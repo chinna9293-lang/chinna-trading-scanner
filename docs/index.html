@@ -99,6 +99,14 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
 .modal{background:#1a1a24;border:1px solid #2d2d3d;border-radius:14px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:28px;position:relative;}
 .mcl{position:absolute;top:16px;right:18px;background:none;border:none;color:#64748b;font-size:22px;cursor:pointer;}
 .mcl:hover{color:#fff;}
+.modal-drag-handle{display:none;width:40px;height:4px;background:#475569;border-radius:2px;margin:0 auto 16px;cursor:grab;}
+.modal-close-bar{display:none;width:100%;margin-top:20px;padding:14px;background:#1e1e2e;border:1px solid #2d2d3d;border-radius:10px;color:#94a3b8;font-size:15px;font-weight:600;cursor:pointer;letter-spacing:.03em;}
+.modal-close-bar:active{background:#2d2d3d;color:#fff;}
+@media(max-width:768px){
+  .modal-drag-handle{display:block;}
+  .modal-close-bar{display:block;}
+  .mcl{display:none;}
+}
 .mticker{font-size:22px;font-weight:800;color:#fff;margin-bottom:4px;}
 .mprice{font-size:15px;color:#94a3b8;margin-bottom:18px;}
 .mdir{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:10px;margin-bottom:18px;}
@@ -296,8 +304,10 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
 <!-- MODAL -->
 <div class="mbg" id="modal" onclick="if(event.target===this)closeModal()">
   <div class="modal">
+    <div class="modal-drag-handle"></div>
     <button class="mcl" onclick="closeModal()">✕</button>
     <div id="modal-body"><div class="empty">Loading...</div></div>
+    <button class="modal-close-bar" onclick="closeModal()">Close</button>
   </div>
 </div>
 
