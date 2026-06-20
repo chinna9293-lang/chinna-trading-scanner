@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chinna Trading</title>
+<title>Trading Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬡</text></svg>">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -196,7 +196,7 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
 <div id="pg-login" class="lw">
   <div class="lb">
     <div class="ll">⬡</div>
-    <div class="lt">Chinna Trading</div>
+    <div class="lt">Trading Dashboard</div>
     <div class="ls" id="auth-subtitle">Sign in to your dashboard</div>
 
     <div class="auth-tabs">
@@ -232,7 +232,7 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
 <!-- DASHBOARD -->
 <div id="pg-dash" style="display:none">
   <div class="hdr">
-    <div class="logo"><span>⬡</span> Chinna Trading</div>
+    <div class="logo"><span>⬡</span> Trading Dashboard</div>
     <div class="hdr-r">
       <div class="stat">
         <div class="dot" id="dot"></div>
@@ -1355,11 +1355,11 @@ function toggleNtfyPanel() {
     '<div style="font-size:11px;color:#64748b;margin-bottom:14px;line-height:1.7">' +
     '<strong style="color:#94a3b8">Setup (1 min):</strong><br>' +
     '1. Install <strong style="color:#6366f1">ntfy</strong> app on your phone (iOS / Android)<br>' +
-    '2. Pick any unique topic name, e.g. <code style="background:#0f0f13;padding:1px 5px;border-radius:3px">chinna-trade-47</code><br>' +
+    '2. Pick any unique topic name, e.g. <code style="background:#0f0f13;padding:1px 5px;border-radius:3px">my-trade-alerts</code><br>' +
     '3. Subscribe to that topic in the app<br>' +
     '4. Enter the same topic name below</div>' +
     '<label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em">Your ntfy topic</label><br>' +
-    '<input id="ntfy-topic" type="text" value="' + saved + '" placeholder="e.g. chinna-trade-47" style="width:100%;background:#0f0f13;border:1px solid #2d2d3d;border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:13px;margin:6px 0 12px;outline:none;font-family:monospace"/>' +
+    '<input id="ntfy-topic" type="text" value="' + saved + '" placeholder="e.g. my-trade-alerts" style="width:100%;background:#0f0f13;border:1px solid #2d2d3d;border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:13px;margin:6px 0 12px;outline:none;font-family:monospace"/>' +
     '<div style="display:flex;gap:8px">' +
     '<button onclick="saveNtfy()" style="flex:1;background:#6366f1;color:#fff;border:none;border-radius:7px;padding:9px;font-size:13px;font-weight:600;cursor:pointer">Save</button>' +
     '<button onclick="testNtfy()" style="flex:1;background:#0f0f13;color:#94a3b8;border:1px solid #2d2d3d;border-radius:7px;padding:9px;font-size:13px;cursor:pointer">Send Test</button>' +
@@ -1383,7 +1383,7 @@ async function testNtfy() {
   saveNtfy();
   const s = g('ntfy-status');
   if (s) { s.style.color = '#f59e0b'; s.textContent = 'Sending...'; }
-  await sendNtfy('Chinna Trading ✓', 'Test alert at ' + new Date().toLocaleTimeString() + ' — alerts are working!', 'default');
+  await sendNtfy('Trading Dashboard ✓', 'Test alert at ' + new Date().toLocaleTimeString() + ' — alerts are working!', 'default');
   if (s) { s.style.color = '#22c55e'; s.textContent = '✓ Check your phone!'; setTimeout(() => s.textContent = '', 4000); }
 }
 
