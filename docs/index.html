@@ -761,16 +761,15 @@ function buildModal(sym, a, cfg, bars) {
 let modalSym = null, modalTimer = null;
 
 async function renderModal(sym) {
-  const bars = await getBars(sym, 50);
+  let bars = await getBars(sym, 50);
   liveBars[sym] = bars;
-  const a = bars.length >= 5 ? analyse(bars) : null;
-  // Patch stale bar-close with live streaming price so conditions reflect reality
-  if (a && LP[sym] && LP[sym].price) {
+  // Inject live price as synthetic current bar so EMAs + VWAP + conditions all use it
+  if (bars.length > 0 && LP[sym] && LP[sym].price) {
     const lp = LP[sym].price;
-    a.aboveVwap = lp > a.vwap;
-    a.priceUp = lp > a.price;
-    a.price = lp;
+    const prev = bars[bars.length - 1];
+    bars = [...bars, { o: prev.c, h: Math.max(prev.c, lp), l: Math.min(prev.c, lp), c: lp, v: prev.v, t: new Date().toISOString() }];
   }
+  const a = bars.length >= 5 ? analyse(bars) : null;
   const cfg = UNI[sym] || null;
   if (!a) {
     g('modal-body').innerHTML = '<div class="mticker">' + ((cfg&&cfg.label)||sym) + '</div>' +
@@ -1130,14 +1129,13 @@ async function loadTickers() {
     const lp = (LP[sym] && LP[sym].price) || (bars.length ? bars[bars.length-1].c : null);
     let dir = 'neutral', rsi = '—', pxTxt = '—', arrow = '→', chgHtml = '';
     if (bars.length >= 5 && lp) {
-      const a = analyse(bars);
-      // Patch with live price so conditions reflect streaming data
-      if (LP[sym] && LP[sym].price) {
-        const liveP = LP[sym].price;
-        a.aboveVwap = liveP > a.vwap;
-        a.priceUp = liveP > a.price;
-        a.price = liveP;
+      // Inject live price as synthetic current bar before analyse
+      let abars = bars;
+      if (LP[sym] && LP[sym].price && bars.length > 0) {
+        const prev = bars[bars.length - 1];
+        abars = [...bars, { o: prev.c, h: Math.max(prev.c, lp), l: Math.min(prev.c, lp), c: lp, v: prev.v, t: new Date().toISOString() }];
       }
+      const a = analyse(abars);
       rsi = a.rsi;
       const dec = lp<1?5:lp<100?3:2;
       pxTxt = '$' + lp.toFixed(dec);
