@@ -470,6 +470,40 @@ async function main() {
   }
 
   console.log('\n=== Done. Signals:', signals, '===');
+
+  // ── Scan summary alert — sent after every scan ────────────────────────────
+  // Fetch quick prediction for each crypto (stocks skipped on weekends)
+  const summaryLines = [];
+  const cryptoSymbols = Object.entries(UNIVERSE).filter(([,v])=>v.type==='crypto');
+  const stockSymbols  = Object.entries(UNIVERSE).filter(([,v])=>v.type==='stock');
+  const scanTargets   = day===0||day===6 ? cryptoSymbols : [...stockSymbols, ...cryptoSymbols];
+
+  for (const [symbol] of scanTargets.slice(0, 20)) { // cap at 20 to keep message readable
+    try {
+      const bars = await getBars(symbol, '5Min', 20);
+      if (bars.length < 5) continue;
+      const closes = bars.map(b=>b.c);
+      const n = closes.length;
+      const k9=2/10; let e9=closes[0],e21=closes[0];
+      for(let i=1;i<n;i++){e9=closes[i]*k9+e9*(1-k9);e21=closes[i]*(2/22)+e21*(1-2/22);}
+      const rsiV = rsiCalc(closes);
+      const last = bars[n-1];
+      const pctChg = ((last.c - bars[0].c)/bars[0].c*100).toFixed(1);
+      const arrow = e9>e21&&rsiV>52 ? '↑' : e9<e21&&rsiV<48 ? '↓' : '→';
+      const label = symbol.replace('/','');
+      summaryLines.push(`${arrow} ${label.padEnd(8)} RSI:${Math.round(rsiV)} ${pctChg>0?'+':''}${pctChg}% $${last.c.toFixed(label.includes('BTC')?0:2)}`);
+    } catch{}
+  }
+
+  if (summaryLines.length > 0) {
+    const etTime = new Date().toLocaleString('en-US',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit',hour12:true});
+    const header = signals > 0 ? `🔔 ${signals} SIGNAL(S) FIRED` : '📊 Scan complete — no signals';
+    await notify(
+      `Scan ${etTime} | ${signals} signal${signals===1?'':'s'}`,
+      header + '\n\n' + summaryLines.join('\n') + '\n\n↑=Bullish ↓=Bearish →=Neutral',
+      signals > 0 ? 'high' : 'low'
+    );
+  }
 }
 
 main().catch(console.error);
