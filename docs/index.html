@@ -125,6 +125,65 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
 .atab.active{color:#6366f1;border-bottom-color:#6366f1;}
 .auth-tabs{display:flex;margin-bottom:18px;border-bottom:1px solid #2d2d3d;}
 .pending-box{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:14px;text-align:center;color:#f59e0b;font-size:13px;margin-top:8px;}
+
+/* ── Mobile responsive ── */
+@media(max-width:768px){
+  /* Login box */
+  .lb{width:92vw;padding:28px 20px;}
+
+  /* Header */
+  .hdr{padding:10px 14px;flex-wrap:wrap;gap:8px;}
+  .hdr-r{flex-wrap:wrap;gap:8px;}
+  .hdr-r button{font-size:11px;padding:5px 9px;}
+  .stat{font-size:11px;}
+  #session-badge{display:none;}
+
+  /* Dashboard padding */
+  .dash{padding:12px;}
+
+  /* Metrics: 2 columns on tablet, 1 on phone */
+  .metrics{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;}
+  .mcard .mv{font-size:18px;}
+
+  /* Cards */
+  .card{padding:14px;margin-bottom:14px;}
+
+  /* Ticker grid — 2 per row minimum */
+  .tgrid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;}
+
+  /* Search row */
+  .search-row{flex-direction:column;gap:8px;}
+  .sbtn{width:100%;}
+
+  /* Modal */
+  .modal{width:100%;max-width:100%;max-height:95vh;border-radius:10px 10px 0 0;padding:20px 16px;position:fixed;bottom:0;left:0;right:0;top:auto;}
+  .mbg{align-items:flex-end;}
+
+  /* Tables — horizontal scroll */
+  .card > div{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  table{min-width:500px;}
+
+  /* Chips */
+  .chips{gap:6px;}
+  .chip{padding:4px 8px;font-size:10px;}
+
+  /* News bar — hide on very small screens */
+  .news-bar{padding:0 8px;}
+  .ni{padding:0 12px;}
+}
+
+@media(max-width:480px){
+  /* Single column metrics on phones */
+  .metrics{grid-template-columns:1fr 1fr;}
+  .mcard{padding:12px 14px;}
+  .mcard .mv{font-size:16px;}
+
+  /* Ticker grid — 2 columns */
+  .tgrid{grid-template-columns:repeat(2,1fr);}
+
+  /* Header — hide non-essential buttons, keep core ones */
+  #alert-bell span,#scalp-btn span{display:none;}
+}
 </style>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
