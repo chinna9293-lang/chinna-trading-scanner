@@ -97,6 +97,20 @@ td{padding:9px 8px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
 .live-badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;margin-left:8px;vertical-align:middle;}
 .live-badge.on{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25);}
 .live-badge.off{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25);}
+/* Tick feed */
+.tick-feed{display:flex;gap:0;overflow:hidden;height:28px;align-items:center;margin-bottom:14px;background:#0a0a10;border:1px solid #1e1e2e;border-radius:6px;padding:0 10px;}
+.tick-feed-inner{display:flex;gap:20px;align-items:center;white-space:nowrap;animation:tickscroll 30s linear infinite;}
+.tick-feed-inner:hover{animation-play-state:paused;}
+@keyframes tickscroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.tick-item{font-size:11px;display:flex;align-items:center;gap:5px;}
+.tick-item .ts{color:#334155;font-size:10px;}
+.tick-item .sym{color:#94a3b8;font-weight:600;}
+.tick-item .p{font-weight:700;}
+.tick-item.up .p{color:#22c55e;}
+.tick-item.dn .p{color:#ef4444;}
+.tick-item.flat .p{color:#64748b;}
+.hb{display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-right:6px;animation:hb .4s ease-out;}
+@keyframes hb{0%{transform:scale(1.8);opacity:1}100%{transform:scale(1);opacity:.6}}
 </style>
 </head>
 <body>
@@ -145,7 +159,13 @@ td{padding:9px 8px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
     </div>
 
     <div class="card">
-      <h3>Live Market <span style="font-weight:400;color:#334155;font-size:11px">— prices refresh every 5s · click any ticker for full analysis</span></h3>
+      <h3>Live Market <span style="font-weight:400;color:#334155;font-size:11px">— streaming · click any ticker for full analysis</span></h3>
+      <!-- Live tick feed -->
+      <div class="tick-feed" title="Hover to pause">
+        <div class="tick-feed-inner" id="tick-feed-inner">
+          <span style="font-size:11px;color:#334155">Waiting for live ticks...</span>
+        </div>
+      </div>
       <div class="search-bar">
         <input class="search-input" id="search-sym" placeholder="Search any ticker — ETC, SOFI, PLTR, RIVN, BTC…" onkeydown="if(event.key==='Enter')searchTicker()"/>
         <button class="search-btn" onclick="searchTicker()">Analyse →</button>
@@ -263,6 +283,34 @@ function $(id){return document.getElementById(id);}
 function fmt(n){return '$'+parseFloat(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtPct(n){return(n>=0?'+':'')+parseFloat(n).toFixed(2)+'%';}
 
+// ── Live tick feed (scrolling bar at top of grid) ────────────────────────────
+const tickHistory=[];
+function pushTick(sym,price,dir){
+  const cfg=UNIVERSE[sym]||{};
+  const label=cfg.label||sym;
+  const decimals=price<1?5:price<100?3:2;
+  const ts=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  tickHistory.unshift({sym,label,price,dir,ts});
+  if(tickHistory.length>60) tickHistory.pop();
+  renderTickFeed();
+}
+function renderTickFeed(){
+  const el=$('tick-feed-inner');
+  if(!el) return;
+  const items=tickHistory.slice(0,40);
+  // Duplicate for seamless loop
+  const html=items.map(t=>`
+    <span class="tick-item ${t.dir}">
+      <span class="sym">${t.label}</span>
+      <span class="p">$${t.price.toFixed(t.price<1?5:t.price<100?3:2)}</span>
+      <span style="color:${t.dir==='up'?'#22c55e':t.dir==='dn'?'#ef4444':'#475569'}">${t.dir==='up'?'▲':t.dir==='dn'?'▼':'─'}</span>
+      <span class="ts">${t.ts}</span>
+    </span>
+    <span style="color:#1e1e2e;margin:0 4px">│</span>
+  `).join('');
+  el.innerHTML=html+html; // double for infinite scroll illusion
+}
+
 // ── Live price store ──────────────────────────────────────────────────────────
 const livePrices={};
 let updateCount=0;
@@ -281,10 +329,11 @@ function updateCardPrice(sym, newPrice){
   const decimals=newPrice<1?5:newPrice<100?3:2;
   const dir=!prev||newPrice>=prev?' ▲':' ▼';
   priceEl.textContent='$'+newPrice.toFixed(decimals)+dir;
+  const dir=!prev?'flat':newPrice>prev?'up':newPrice<prev?'dn':'flat';
   if(prev&&newPrice!==prev){
     priceEl.classList.remove('flash-up','flash-dn');
     void priceEl.offsetWidth;
-    priceEl.classList.add(newPrice>prev?'flash-up':'flash-dn');
+    priceEl.classList.add(dir==='up'?'flash-up':'flash-dn');
     setTimeout(()=>priceEl.classList.remove('flash-up','flash-dn'),800);
     const chgEl=document.querySelector(`[data-chg="${sym}"]`);
     if(chgEl){
@@ -292,9 +341,9 @@ function updateCardPrice(sym, newPrice){
       chgEl.textContent=(pct>=0?'▲ +':'▼ ')+Math.abs(pct).toFixed(3)+'%';
       chgEl.style.color=pct>=0?'#22c55e':'#ef4444';
     }
-    // Update last-seen time on card
     const tsEl=document.querySelector(`[data-ts="${sym}"]`);
     if(tsEl) tsEl.textContent=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    pushTick(sym,newPrice,dir);
   }
 }
 
