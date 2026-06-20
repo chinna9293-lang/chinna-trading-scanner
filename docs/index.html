@@ -183,10 +183,10 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
       </div>
       <button id="admin-btn" onclick="toggleAdminPanel()" style="display:none;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#818cf8;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">👑 Admin</button>
       <span id="session-badge" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;border:1px solid #475569;color:#475569;letter-spacing:.05em">--</span>
-      <button id="scalp-btn" onclick="toggleScalp()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .2s">⚡ Scalp OFF</button>
-      <button onclick="toggleScalpPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Scalp trade log & settings">📋 Trades</button>
-      <button id="alert-bell" onclick="toggleAlertPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:color .2s">🔔 Alerts</button>
-      <button onclick="toggleNtfyPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Phone notifications">📲 ntfy</button>
+      <button id="scalp-btn" onclick="toggleScalp()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .2s">⚡ Scalp OFF</button>
+      <button onclick="toggleScalpPanel()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Scalp trade log & settings">📋 Trades</button>
+      <button id="alert-bell" onclick="toggleAlertPanel()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:color .2s">🔔 Alerts</button>
+      <button onclick="toggleNtfyPanel()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Phone notifications">📲 ntfy</button>
       <button class="signout" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
@@ -196,12 +196,12 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
     <div class="news-scroll"><div class="news-track" id="news-track"><span class="nh" style="color:#334155">Loading headlines...</span></div></div>
   </div>
   <div class="dash">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+    <div class="admin-only" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
       <span id="acct-time" style="font-size:13px;color:#64748b">Loading account...</span>
       <button onclick="loadAccount()" style="background:transparent;border:1px solid #2d2d3d;color:#94a3b8;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;">↻ Refresh</button>
     </div>
 
-    <div class="metrics">
+    <div class="metrics admin-only">
       <div class="mcard"><div class="ml">Portfolio Value</div><div class="mv" id="m-eq">—</div><div class="ms">Paper account</div></div>
       <div class="mcard"><div class="ml">Cash Available</div><div class="mv" id="m-ca">—</div><div class="ms">Ready to trade</div></div>
       <div class="mcard"><div class="ml">Today's P&L</div><div class="mv" id="m-pnl">—</div><div class="ms" id="m-pnl-s">—</div></div>
@@ -218,9 +218,9 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
       <div class="tgrid" id="tgrid"><div class="empty">Loading tickers...</div></div>
     </div>
 
-    <div class="card"><h3>Open Positions</h3><div id="pos-body"><div class="empty">No open positions</div></div></div>
+    <div class="card admin-only"><h3>Open Positions</h3><div id="pos-body"><div class="empty">No open positions</div></div></div>
 
-    <div class="card">
+    <div class="card admin-only">
       <h3>All Trades</h3>
       <div class="chips">
         <span>Sort:</span>
@@ -361,9 +361,12 @@ function grant() {
   sessionStorage.setItem('ct','1');
   g('pg-login').style.display = 'none';
   g('pg-dash').style.display  = 'block';
-  // Show admin button if admin
-  if (currentUser && (currentUser.role === 'admin' || currentUser.email === ADMIN_EMAIL)) {
-    const ab = g('admin-btn'); if (ab) ab.style.display = 'inline-flex';
+  const isAdmin = !currentUser || currentUser.role === 'admin' || currentUser.email === ADMIN_EMAIL;
+  // Show admin button for admins
+  if (isAdmin) { const ab = g('admin-btn'); if (ab) ab.style.display = 'inline-flex'; }
+  // Hide admin-only elements for regular users
+  if (!isAdmin) {
+    document.querySelectorAll('.admin-only').forEach(el => { el.style.display = 'none'; });
   }
   if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
   startAll();
