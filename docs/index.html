@@ -121,7 +121,15 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
 .hrow:last-child{border-bottom:none;}
 .pbar{height:6px;background:#1e1e2e;border-radius:3px;margin-top:8px;overflow:hidden;}
 .pfill{height:100%;border-radius:3px;}
+.atab{flex:1;padding:9px;border:none;border-bottom:2px solid transparent;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
+.atab.active{color:#6366f1;border-bottom-color:#6366f1;}
+.auth-tabs{display:flex;margin-bottom:18px;border-bottom:1px solid #2d2d3d;}
+.pending-box{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:14px;text-align:center;color:#f59e0b;font-size:13px;margin-top:8px;}
 </style>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -130,12 +138,34 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
   <div class="lb">
     <div class="ll">⬡</div>
     <div class="lt">Chinna Trading</div>
-    <div class="ls">Sign in to your dashboard</div>
-    <div class="llab">Username</div>
-    <input class="linp" id="u" type="text" placeholder="Username" autocomplete="username"/>
-    <div class="llab">Password</div>
-    <input class="linp" id="p" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
-    <button class="lbtn" onclick="doLogin()">Sign In</button>
+    <div class="ls" id="auth-subtitle">Sign in to your dashboard</div>
+
+    <div class="auth-tabs">
+      <button class="atab active" id="tab-login" onclick="showAuthTab('login')">Sign In</button>
+      <button class="atab" id="tab-signup" onclick="showAuthTab('signup')">Sign Up</button>
+    </div>
+
+    <!-- Sign In -->
+    <div id="form-login">
+      <div class="llab">Email</div>
+      <input class="linp" id="login-email" type="email" placeholder="your@email.com" autocomplete="email"/>
+      <div class="llab">Password</div>
+      <input class="linp" id="login-pass" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+      <button class="lbtn" onclick="doLogin()">Sign In</button>
+    </div>
+
+    <!-- Sign Up -->
+    <div id="form-signup" style="display:none">
+      <div class="llab">Full Name</div>
+      <input class="linp" id="signup-name" type="text" placeholder="Your name"/>
+      <div class="llab">Email</div>
+      <input class="linp" id="signup-email" type="email" placeholder="your@email.com" autocomplete="email"/>
+      <div class="llab">Password</div>
+      <input class="linp" id="signup-pass" type="password" placeholder="Min 6 characters" onkeydown="if(event.key==='Enter')doSignup()"/>
+      <button class="lbtn" onclick="doSignup()">Create Account</button>
+      <p style="font-size:11px;color:#475569;text-align:center;margin-top:10px">Admin approval required before access is granted</p>
+    </div>
+
     <div class="lerr" id="lerr"></div>
   </div>
 </div>
@@ -151,6 +181,7 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
         <span class="badge off" id="stat-badge">● Connecting</span>
         <span id="upd-cnt" style="font-size:10px;color:#334155">0 ticks</span>
       </div>
+      <button id="admin-btn" onclick="toggleAdminPanel()" style="display:none;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#818cf8;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">👑 Admin</button>
       <span id="session-badge" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;border:1px solid #475569;color:#475569;letter-spacing:.05em">--</span>
       <button id="scalp-btn" onclick="toggleScalp()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .2s">⚡ Scalp OFF</button>
       <button onclick="toggleScalpPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Scalp trade log & settings">📋 Trades</button>
@@ -214,40 +245,199 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
 <script>
 'use strict';
 
-// ─── Auth ────────────────────────────────────────────────────────────────────
-const AUTH = 'e2ebe6308883a6ef7642bb03ee351e2d70d44465c89f61574a75bdb2f86a229c';
+// ─── Firebase config — fill in your Firebase project values ──────────────────
+// Get these from: Firebase Console → Project Settings → Your Apps → Web App
+const FB_CONFIG = {
+  apiKey:            "PASTE_YOUR_API_KEY",
+  authDomain:        "PASTE_YOUR_PROJECT_ID.firebaseapp.com",
+  projectId:         "PASTE_YOUR_PROJECT_ID",
+  storageBucket:     "PASTE_YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID",
+  appId:             "PASTE_YOUR_APP_ID"
+};
+const ADMIN_EMAIL = 'gayathriisfdc@gmail.com';
+const FB_READY = FB_CONFIG.apiKey !== 'PASTE_YOUR_API_KEY';
+
+let fbApp, fbAuth, fbDb, currentUser = null;
+
+if (FB_READY) {
+  fbApp  = firebase.initializeApp(FB_CONFIG);
+  fbAuth = firebase.auth();
+  fbDb   = firebase.firestore();
+
+  fbAuth.onAuthStateChanged(async user => {
+    if (!user) return;
+    const doc = await fbDb.collection('users').doc(user.uid).get();
+    if (!doc.exists) return;
+    const data = doc.data();
+    if (data.status === 'approved' || user.email === ADMIN_EMAIL) {
+      currentUser = { uid: user.uid, email: user.email, name: data.name, role: data.role || 'user' };
+      grant();
+    }
+  });
+}
+
+function showAuthTab(tab) {
+  g('form-login').style.display  = tab === 'login'  ? 'block' : 'none';
+  g('form-signup').style.display = tab === 'signup' ? 'block' : 'none';
+  g('tab-login').classList.toggle('active',  tab === 'login');
+  g('tab-signup').classList.toggle('active', tab === 'signup');
+  g('lerr').textContent = '';
+}
 
 async function doLogin() {
-  const u = g('u').value.trim();
-  const p = g('p').value;
-  if (!u || !p) { g('lerr').textContent = 'Enter username and password'; return; }
+  const email = (g('login-email').value || '').trim();
+  const pass  = g('login-pass').value;
+  if (!email || !pass) { g('lerr').textContent = 'Enter email and password'; return; }
+
+  if (!FB_READY) {
+    // Fallback: legacy hash login (admin only)
+    const AUTH = 'e2ebe6308883a6ef7642bb03ee351e2d70d44465c89f61574a75bdb2f86a229c';
+    try {
+      const u = email.includes('@') ? 'Trade01' : email;
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(u + ':' + pass));
+      const h = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+      if (h === AUTH || (u === 'Trade01' && pass === 'Trade01')) { grant(); }
+      else { g('lerr').textContent = 'Incorrect credentials'; }
+    } catch { g('lerr').textContent = 'Login failed'; }
+    return;
+  }
+
+  const btn = document.querySelector('#form-login .lbtn');
+  if (btn) { btn.textContent = 'Signing in...'; btn.disabled = true; }
   try {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(u + ':' + p));
-    const h = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-    if (h === AUTH) { grant(); } else { g('lerr').textContent = 'Incorrect username or password'; }
-  } catch {
-    if (u === 'Trade01' && p === 'Trade01') { grant(); }
-    else { g('lerr').textContent = 'Incorrect username or password'; }
+    const cred = await fbAuth.signInWithEmailAndPassword(email, pass);
+    const doc  = await fbDb.collection('users').doc(cred.user.uid).get();
+    if (!doc.exists) { g('lerr').textContent = 'Account not found — please sign up'; return; }
+    const data = doc.data();
+    if (data.status === 'suspended') { g('lerr').textContent = 'Account suspended. Contact admin.'; await fbAuth.signOut(); return; }
+    if (data.status === 'pending') {
+      g('lerr').style.color = '#f59e0b';
+      g('lerr').innerHTML = '⏳ Account pending admin approval.<br>You will get access once approved.';
+      await fbAuth.signOut(); return;
+    }
+    currentUser = { uid: cred.user.uid, email: cred.user.email, name: data.name, role: data.role || 'user' };
+    grant();
+  } catch(e) {
+    g('lerr').textContent = e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found' ? 'Incorrect email or password' : e.message;
+  } finally {
+    if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
+  }
+}
+
+async function doSignup() {
+  const name  = (g('signup-name').value || '').trim();
+  const email = (g('signup-email').value || '').trim();
+  const pass  = g('signup-pass').value;
+  if (!name || !email || !pass) { g('lerr').textContent = 'Fill in all fields'; return; }
+  if (pass.length < 6) { g('lerr').textContent = 'Password must be at least 6 characters'; return; }
+  if (!FB_READY) { g('lerr').textContent = 'Firebase not configured — contact admin'; return; }
+
+  const btn = document.querySelector('#form-signup .lbtn');
+  if (btn) { btn.textContent = 'Creating account...'; btn.disabled = true; }
+  try {
+    const cred = await fbAuth.createUserWithEmailAndPassword(email, pass);
+    const role = email === ADMIN_EMAIL ? 'admin' : 'user';
+    const status = email === ADMIN_EMAIL ? 'approved' : 'pending';
+    await fbDb.collection('users').doc(cred.user.uid).set({
+      name, email, role, status, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await fbAuth.signOut();
+    if (status === 'approved') {
+      g('lerr').style.color='#22c55e'; g('lerr').textContent='Admin account created! Sign in now.';
+    } else {
+      g('lerr').style.color='#f59e0b';
+      g('lerr').innerHTML='✓ Account created! Waiting for admin approval.<br>Admin will review your request shortly.';
+    }
+    showAuthTab('login');
+  } catch(e) {
+    g('lerr').textContent = e.code === 'auth/email-already-in-use' ? 'Email already registered — sign in instead' : e.message;
+  } finally {
+    if (btn) { btn.textContent = 'Create Account'; btn.disabled = false; }
   }
 }
 
 function grant() {
   sessionStorage.setItem('ct','1');
   g('pg-login').style.display = 'none';
-  g('pg-dash').style.display = 'block';
-  // Request notification permission on login
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
+  g('pg-dash').style.display  = 'block';
+  // Show admin button if admin
+  if (currentUser && (currentUser.role === 'admin' || currentUser.email === ADMIN_EMAIL)) {
+    const ab = g('admin-btn'); if (ab) ab.style.display = 'inline-flex';
   }
+  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
   startAll();
 }
 
-function doLogout() {
+async function doLogout() {
   sessionStorage.removeItem('ct');
   stopAll();
-  g('pg-dash').style.display = 'none';
+  if (FB_READY && fbAuth) await fbAuth.signOut();
+  currentUser = null;
+  g('pg-dash').style.display  = 'none';
   g('pg-login').style.display = 'flex';
-  g('u').value = ''; g('p').value = '';
+  g('login-email').value = ''; g('login-pass').value = '';
+  const ab = g('admin-btn'); if (ab) ab.style.display = 'none';
+}
+
+// ─── Admin panel ──────────────────────────────────────────────────────────────
+async function toggleAdminPanel() {
+  let p = g('admin-panel');
+  if (p) { p.remove(); return; }
+  if (!FB_READY) { showToast('Firebase not configured', '#ef4444'); return; }
+
+  p = document.createElement('div');
+  p.id = 'admin-panel';
+  p.style.cssText = 'position:fixed;top:54px;right:16px;width:420px;max-height:520px;overflow-y:auto;background:#1a1a24;border:1px solid rgba(99,102,241,.3);border-radius:12px;z-index:300;padding:16px;';
+  p.innerHTML = '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:12px">👑 Admin — User Management</div><div style="color:#64748b;font-size:12px">Loading users...</div>';
+  document.body.appendChild(p);
+  document.addEventListener('click', function out(e) {
+    if (!p.contains(e.target) && !e.target.closest('[onclick="toggleAdminPanel()"]')) { p.remove(); document.removeEventListener('click', out); }
+  }, true);
+
+  try {
+    const snap = await fbDb.collection('users').orderBy('createdAt','desc').get();
+    const users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    const statusColor = { approved:'#22c55e', pending:'#f59e0b', suspended:'#ef4444' };
+    p.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
+      '<span style="font-size:13px;font-weight:700;color:#fff">👑 User Management</span>' +
+      '<span style="font-size:11px;color:#64748b">' + users.length + ' users</span></div>' +
+      (users.length === 0 ? '<p style="color:#475569;font-size:12px">No users yet.</p>' :
+        users.map(u =>
+          '<div style="background:#0f0f13;border:1px solid #2d2d3d;border-radius:8px;padding:10px 12px;margin-bottom:8px">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+          '<div><strong style="color:#e2e8f0;font-size:13px">' + u.name + '</strong>' +
+          (u.role==='admin'?'<span style="font-size:10px;background:rgba(99,102,241,.2);color:#818cf8;padding:1px 6px;border-radius:8px;margin-left:6px">admin</span>':'') + '<br>' +
+          '<span style="font-size:11px;color:#64748b">' + u.email + '</span></div>' +
+          '<span style="font-size:11px;font-weight:700;color:' + (statusColor[u.status]||'#64748b') + '">' + (u.status||'unknown').toUpperCase() + '</span></div>' +
+          '<div style="display:flex;gap:6px">' +
+          (u.status !== 'approved' ? '<button onclick="adminAction(\'' + u.uid + '\',\'approved\')" style="flex:1;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#22c55e;padding:5px;border-radius:6px;font-size:11px;cursor:pointer">✓ Approve</button>' : '') +
+          (u.status !== 'suspended' && u.email !== ADMIN_EMAIL ? '<button onclick="adminAction(\'' + u.uid + '\',\'suspended\')" style="flex:1;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#ef4444;padding:5px;border-radius:6px;font-size:11px;cursor:pointer">✗ Suspend</button>' : '') +
+          (u.email !== ADMIN_EMAIL ? '<button onclick="adminDelete(\'' + u.uid + '\')" style="background:#1a1a24;border:1px solid #2d2d3d;color:#475569;padding:5px 8px;border-radius:6px;font-size:11px;cursor:pointer">🗑</button>' : '') +
+          '</div></div>'
+        ).join('')
+      );
+  } catch(e) {
+    p.innerHTML += '<p style="color:#ef4444;font-size:12px">Error: ' + e.message + '</p>';
+  }
+}
+
+async function adminAction(uid, status) {
+  try {
+    await fbDb.collection('users').doc(uid).update({ status });
+    showToast('User ' + status, status === 'approved' ? '#22c55e' : '#ef4444');
+    toggleAdminPanel(); toggleAdminPanel(); // re-open to refresh
+  } catch(e) { showToast('Error: ' + e.message, '#ef4444'); }
+}
+
+async function adminDelete(uid) {
+  if (!confirm('Delete this user?')) return;
+  try {
+    await fbDb.collection('users').doc(uid).delete();
+    showToast('User deleted', '#f59e0b');
+    toggleAdminPanel(); toggleAdminPanel();
+  } catch(e) { showToast('Error: ' + e.message, '#ef4444'); }
 }
 
 if (sessionStorage.getItem('ct') === '1') {
@@ -516,9 +706,18 @@ async function getBars(sym, lim) {
       } catch {}
     }
   } else {
-    for (const tf of ['5Min','15Min','1Hour']) {
+    // Try SIP extended hours (paid accounts), then IEX regular (paper accounts)
+    const attempts = [
+      ['5Min','sip','&extended_hours=true'],
+      ['5Min','iex',''],
+      ['15Min','sip','&extended_hours=true'],
+      ['15Min','iex',''],
+      ['1Hour','sip','&extended_hours=true'],
+      ['1Hour','iex','']
+    ];
+    for (const [tf, feed, ext] of attempts) {
       try {
-        const url = 'https://data.alpaca.markets/v2/stocks/' + sym + '/bars?timeframe=' + tf + '&limit=' + lim + '&feed=sip&adjustment=raw&extended_hours=true&start=' + start;
+        const url = 'https://data.alpaca.markets/v2/stocks/' + sym + '/bars?timeframe=' + tf + '&limit=' + lim + '&feed=' + feed + '&adjustment=raw&start=' + start + ext;
         const d = await (await fetch(url, { headers: AH })).json();
         if ((d.bars || []).length >= 5) return d.bars;
       } catch {}
@@ -992,8 +1191,13 @@ async function renderModal(sym) {
       const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols='+encodeURIComponent(s)+'&timeframe=1Hour&limit=50',{headers:AH})).json();
       htfBars = (d.bars && d.bars[s]) || [];
     } else {
-      const d = await (await fetch('https://data.alpaca.markets/v2/stocks/'+sym+'/bars?timeframe=1Hour&limit=50&feed=sip&adjustment=raw&extended_hours=true',{headers:AH})).json();
-      htfBars = d.bars || [];
+      // Try SIP first, fall back to IEX
+      for (const feed of ['sip','iex']) {
+        try {
+          const d = await (await fetch('https://data.alpaca.markets/v2/stocks/'+sym+'/bars?timeframe=1Hour&limit=50&feed='+feed+'&adjustment=raw&extended_hours=true',{headers:AH})).json();
+          if ((d.bars||[]).length >= 5) { htfBars = d.bars; break; }
+        } catch {}
+      }
     }
   } catch {}
   const htfA = htfBars.length >= 5 ? analyse(htfBars) : null;
@@ -1012,10 +1216,16 @@ async function renderModal(sym) {
   g('modal-body').innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
     '<span style="font-size:10px;color:#334155">Analysis at ' + ts + ' · auto-refreshes every 60s</span>' +
-    '<button onclick="renderModal(\'' + sym + '\')" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#94a3b8;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer">↻ Refresh now</button>' +
+    '<button id="modal-refresh-btn" onclick="modalRefresh(\'' + sym + '\')" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#94a3b8;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer">↻ Refresh now</button>' +
     '</div>' +
     buildModal(sym, a, cfg, bars, htfA);
   // Live price element inside modal also updates via display loop (data-px attr already set)
+}
+
+async function modalRefresh(sym) {
+  const btn = g('modal-refresh-btn');
+  if (btn) { btn.textContent = '⟳ Loading...'; btn.disabled = true; }
+  await renderModal(sym);
 }
 
 async function openModal(sym) {
