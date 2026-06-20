@@ -152,6 +152,7 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
         <span id="upd-cnt" style="font-size:10px;color:#334155">0 ticks</span>
       </div>
       <button id="alert-bell" onclick="toggleAlertPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:color .2s">🔔 Alerts</button>
+      <button onclick="toggleTgPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Telegram phone alerts">✈️ Telegram</button>
       <button class="signout" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
@@ -803,6 +804,69 @@ async function doSearch() {
 const dirCache = {};  // sym → last known direction
 const alertLog = []; // recent alerts shown in bell panel
 
+// ─── ntfy push notifications ──────────────────────────────────────────────────
+function ntfyTopic() { return localStorage.getItem('ntfy_topic') || ''; }
+
+async function sendNtfy(title, body, priority) {
+  const topic = ntfyTopic();
+  if (!topic) return;
+  try {
+    await fetch('https://ntfy.sh/' + topic, {
+      method: 'POST',
+      headers: {
+        'Title': title,
+        'Priority': priority || 'default',
+        'Tags': title.includes('BULL') ? 'chart_with_upwards_trend' : 'chart_with_downwards_trend'
+      },
+      body: body
+    });
+  } catch {}
+}
+
+function toggleTgPanel() {
+  let p = g('tg-panel');
+  if (p) { p.remove(); return; }
+  p = document.createElement('div');
+  p.id = 'tg-panel';
+  p.style.cssText = 'position:fixed;top:54px;right:180px;width:320px;background:#1a1a24;border:1px solid #2d2d3d;border-radius:12px;z-index:200;padding:20px;';
+  const saved = ntfyTopic();
+  p.innerHTML =
+    '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px">📲 ntfy Phone Alerts</div>' +
+    '<div style="font-size:11px;color:#64748b;margin-bottom:14px;line-height:1.7">' +
+    '<strong style="color:#94a3b8">Setup (1 min):</strong><br>' +
+    '1. Install <strong style="color:#6366f1">ntfy</strong> app on your phone (iOS / Android)<br>' +
+    '2. Pick any unique topic name, e.g. <code style="background:#0f0f13;padding:1px 5px;border-radius:3px">chinna-trade-47</code><br>' +
+    '3. Subscribe to that topic in the app<br>' +
+    '4. Enter the same topic name below</div>' +
+    '<label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em">Your ntfy topic</label><br>' +
+    '<input id="ntfy-topic" type="text" value="' + saved + '" placeholder="e.g. chinna-trade-47" style="width:100%;background:#0f0f13;border:1px solid #2d2d3d;border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:13px;margin:6px 0 12px;outline:none;font-family:monospace"/>' +
+    '<div style="display:flex;gap:8px">' +
+    '<button onclick="saveNtfy()" style="flex:1;background:#6366f1;color:#fff;border:none;border-radius:7px;padding:9px;font-size:13px;font-weight:600;cursor:pointer">Save</button>' +
+    '<button onclick="testNtfy()" style="flex:1;background:#0f0f13;color:#94a3b8;border:1px solid #2d2d3d;border-radius:7px;padding:9px;font-size:13px;cursor:pointer">Send Test</button>' +
+    '</div><div id="ntfy-status" style="font-size:11px;margin-top:8px;min-height:16px;text-align:center;color:#64748b"></div>';
+  document.body.appendChild(p);
+  document.addEventListener('click', function out(e) {
+    if (!p.contains(e.target) && !e.target.closest('[onclick="toggleTgPanel()"]')) {
+      p.remove(); document.removeEventListener('click', out);
+    }
+  }, true);
+}
+
+function saveNtfy() {
+  const topic = (g('ntfy-topic') && g('ntfy-topic').value || '').trim();
+  localStorage.setItem('ntfy_topic', topic);
+  const s = g('ntfy-status');
+  if (s) { s.style.color = '#22c55e'; s.textContent = '✓ Saved'; setTimeout(() => s.textContent = '', 2000); }
+}
+
+async function testNtfy() {
+  saveNtfy();
+  const s = g('ntfy-status');
+  if (s) { s.style.color = '#f59e0b'; s.textContent = 'Sending...'; }
+  await sendNtfy('Chinna Trading ✓', 'Test alert at ' + new Date().toLocaleTimeString() + ' — alerts are working!', 'default');
+  if (s) { s.style.color = '#22c55e'; s.textContent = '✓ Check your phone!'; setTimeout(() => s.textContent = '', 4000); }
+}
+
 function fireAlert(sym, dir, bPassed, dPassed) {
   const label = (UNI[sym] && UNI[sym].label) || sym;
   const price = (LP[sym] && LP[sym].price) || 0;
@@ -811,13 +875,11 @@ function fireAlert(sym, dir, bPassed, dPassed) {
     ? label + ' turned BULLISH — ' + bPassed + '/8 conditions met @ $' + price.toFixed(dec)
     : label + ' turned BEARISH — ' + dPassed + '/5 conditions met @ $' + price.toFixed(dec);
 
-  // Browser notification
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('🔔 Chinna Trading Alert', {
-      body: msg,
-      icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⬡</text></svg>'
-    });
-  }
+  // ntfy phone alert
+  const title = (dir === 'bull' ? '🟢 BULL ' : '🔴 BEAR ') + label;
+  const body = (dir === 'bull' ? bPassed + '/8 bull conditions' : dPassed + '/5 bear conditions') +
+    ' · $' + price.toFixed(dec) + ' · ' + new Date().toLocaleTimeString();
+  sendNtfy(title, body, dir === 'bull' ? 'high' : 'urgent');
 
   // In-app alert log
   const ts = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
