@@ -694,6 +694,77 @@ function buildModal(sym, a, cfg, bars) {
       '<small>'+c.n+'</small></div></div>';
   }
 
+  // ── Trade signal logic ──────────────────────────────────────────────────────
+  const bullPatterns = patterns.filter(p => p.dir === 'bull');
+  const bearPatterns = patterns.filter(p => p.dir === 'bear');
+  const highConfBull = bullPatterns.filter(p => p.conf === 'High');
+  const highConfBear = bearPatterns.filter(p => p.conf === 'High');
+  const rsiOk = a.rsi > 52 && a.rsi < 70;
+  const rsiOversold = a.rsi < 35;
+  const rsiOverbought = a.rsi >= 70;
+  const rsiBearOk = a.rsi < 48;
+
+  let signal = 'WAIT', signalColor = '#f59e0b', signalBg = 'rgba(245,158,11,.08)', signalBorder = 'rgba(245,158,11,.25)';
+  let signalIcon = '⏳', signalMsg = '', waitReasons = [];
+
+  if (dir === 'bull') {
+    if (!rsiOk) waitReasons.push(rsiOverbought ? 'RSI '+a.rsi+' overbought — wait for RSI to cool below 70' : 'RSI '+a.rsi+' too weak — wait for RSI above 52');
+    if (!a.aboveVwap) waitReasons.push('Price below VWAP $'+a.vwap+' — wait for price to reclaim VWAP');
+    if (!a.vSpike && bullPatterns.length === 0) waitReasons.push('No volume spike and no pattern confirmation yet');
+    if (bPassed >= 6 && rsiOk && a.aboveVwap && (a.vSpike || bullPatterns.length > 0)) {
+      signal = 'STRONG BUY'; signalColor = '#22c55e'; signalBg = 'rgba(34,197,94,.1)'; signalBorder = 'rgba(34,197,94,.3)'; signalIcon = '🟢';
+      signalMsg = bPassed+'/8 bull conditions · '+(bullPatterns.length?bullPatterns[0].name+' pattern':'volume confirmed')+' · Entry now';
+      waitReasons = [];
+    } else if (bPassed >= 5 && (rsiOk || !rsiOverbought) && a.aboveVwap) {
+      signal = 'BUY'; signalColor = '#4ade80'; signalBg = 'rgba(34,197,94,.07)'; signalBorder = 'rgba(34,197,94,.2)'; signalIcon = '🟩';
+      signalMsg = bPassed+'/8 conditions, above VWAP'+(waitReasons.length?' — caution: '+waitReasons[0]:'');
+      waitReasons = [];
+    } else {
+      signal = 'WAIT — setup forming'; signalIcon = '⏳';
+      signalMsg = 'Bull direction but not ready: '+waitReasons.join(' · ');
+    }
+  } else if (dir === 'bear') {
+    if (!rsiBearOk) waitReasons.push('RSI '+a.rsi+' not weak enough — wait for RSI below 48');
+    if (a.aboveVwap) waitReasons.push('Price still above VWAP — wait for break below $'+a.vwap);
+    if (dPassed >= 4 && rsiBearOk && !a.aboveVwap && (a.vSpike || bearPatterns.length > 0)) {
+      signal = 'STRONG SHORT'; signalColor = '#ef4444'; signalBg = 'rgba(239,68,68,.1)'; signalBorder = 'rgba(239,68,68,.3)'; signalIcon = '🔴';
+      signalMsg = dPassed+'/5 bear conditions · '+(bearPatterns.length?bearPatterns[0].name+' pattern':'confirmed')+' · Short entry now';
+      waitReasons = [];
+    } else if (dPassed >= 3 && !a.aboveVwap) {
+      signal = 'SHORT'; signalColor = '#f87171'; signalBg = 'rgba(239,68,68,.07)'; signalBorder = 'rgba(239,68,68,.2)'; signalIcon = '🟥';
+      signalMsg = dPassed+'/5 bear conditions, below VWAP'+(waitReasons.length?' — caution: '+waitReasons[0]:'');
+      waitReasons = [];
+    } else {
+      signal = 'WAIT — bearish lean'; signalIcon = '⏳';
+      signalMsg = 'Bear direction but incomplete: '+waitReasons.join(' · ');
+    }
+  } else {
+    signal = 'NO TRADE'; signalColor = '#64748b'; signalBg = 'rgba(100,116,139,.07)'; signalBorder = 'rgba(100,116,139,.2)'; signalIcon = '⬜';
+    const missing = [];
+    if (bPassed < 5) missing.push('need '+(5-bPassed)+' more bull conditions');
+    if (!a.aboveVwap) missing.push('below VWAP');
+    if (rsiOverbought) missing.push('RSI overbought');
+    signalMsg = 'No clear direction — '+( missing.length ? missing.join(', ') : 'market undecided');
+  }
+
+  const dec2 = liveP < 1 ? 5 : 2;
+  const tpPrice = (liveP * (1 + tp/100)).toFixed(dec2);
+  const slPrice = (liveP * (1 - sl/100)).toFixed(dec2);
+  const tradeBoxHtml =
+    '<div style="background:'+signalBg+';border:2px solid '+signalBorder+';border-radius:10px;padding:14px 16px;margin:12px 0">' +
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
+    '<span style="font-size:20px">'+signalIcon+'</span>' +
+    '<strong style="font-size:16px;color:'+signalColor+'">'+signal+'</strong>' +
+    '</div>' +
+    '<p style="font-size:12px;color:#94a3b8;margin:0 0 8px">'+signalMsg+'</p>' +
+    ((signal==='STRONG BUY'||signal==='BUY'||signal==='STRONG SHORT'||signal==='SHORT') ?
+      '<div style="display:flex;gap:16px;font-size:12px">' +
+      '<span>Entry <strong style="color:#fff">$'+liveP.toFixed(dec2)+'</strong></span>' +
+      '<span>TP <strong style="color:#22c55e">$'+tpPrice+'</strong> (+'+tp+'%)</span>' +
+      '<span>SL <strong style="color:#ef4444">$'+slPrice+'</strong> (-'+sl+'%)</span>' +
+      '</div>' : '') +
+    '</div>';
+
   const patHtml = patterns.length === 0
     ? '<div class="nbox"><p style="color:#64748b">No classic patterns detected in current bars. Needs more price history.</p></div>'
     : patterns.map(p => {
@@ -715,6 +786,8 @@ function buildModal(sym, a, cfg, bars) {
     '<div class="mdir '+dir+'"><div style="font-size:36px;color:'+dc+';line-height:1">'+(dir==='bull'?'↑':dir==='bear'?'↓':'→')+'</div>' +
     '<div><h4 style="color:'+dc+'">'+dir.toUpperCase()+'</h4>' +
     '<p>Bull '+bPassed+'/8 · Bear '+dPassed+'/5 · '+(dir==='neutral'?'Waiting — no conviction yet':dir==='bull'?'BUY setup forming':'SELL pressure dominant')+'</p></div></div>' +
+
+    tradeBoxHtml +
 
     // Two-column conditions
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">' +
