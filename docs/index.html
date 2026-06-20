@@ -278,44 +278,51 @@ const LP = {};  // sym → {price, prev}
 let tickCount = 0;
 const TICKS = []; // rolling tick log
 
+// onPrice: just stores into LP and queues a tick — display loop handles DOM
 function onPrice(sym, price) {
   if (!price || isNaN(price)) return;
   const prev = LP[sym] ? LP[sym].price : null;
-  LP[sym] = { price, prev: prev || price };
-  tickCount++;
-  g('upd-cnt').textContent = tickCount + ' ticks';
-
-  // Determine direction
   const dir = !prev ? 'flat' : price > prev ? 'up' : price < prev ? 'dn' : 'flat';
-
-  // Update card DOM
-  const el = document.querySelector('[data-px="' + sym + '"]');
-  if (el) {
-    const dec = price < 1 ? 5 : price < 100 ? 3 : 2;
-    el.textContent = '$' + price.toFixed(dec) + (dir==='up' ? ' ▲' : dir==='dn' ? ' ▼' : '');
-    if (dir !== 'flat') {
-      el.classList.remove('fu','fd');
-      void el.offsetWidth;
-      el.classList.add(dir==='up' ? 'fu' : 'fd');
-      setTimeout(() => el.classList.remove('fu','fd'), 700);
-      const ce = document.querySelector('[data-chg="' + sym + '"]');
-      if (ce && prev) {
-        const pct = ((price-prev)/prev*100);
-        ce.textContent = (pct>=0?'▲ +':'▼ ') + Math.abs(pct).toFixed(3) + '%';
-        ce.style.color = pct>=0 ? '#22c55e' : '#ef4444';
-      }
-    }
-  }
-
-  // Push to tick feed
+  LP[sym] = { price, prev: prev || price, dir, ts: Date.now() };
+  tickCount++;
+  const uc = g('upd-cnt');
+  if (uc) uc.textContent = tickCount + ' ticks';
   if (dir !== 'flat') {
     const label = (UNI[sym] && UNI[sym].label) || sym;
-    const dec2 = price < 1 ? 5 : price < 100 ? 3 : 2;
+    const dec = price < 1 ? 5 : price < 100 ? 3 : 2;
     const ts = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    TICKS.unshift({ label, price, dec: dec2, dir, ts });
+    TICKS.unshift({ label, price, dec, dir, ts });
     if (TICKS.length > 80) TICKS.pop();
     renderTickFeed();
   }
+}
+
+// Display loop — runs every 800ms, pushes LP → DOM cards unconditionally
+function refreshDisplay() {
+  Object.entries(LP).forEach(([sym, d]) => {
+    const el = document.querySelector('[data-px="' + sym + '"]');
+    if (!el) return;
+    const dec = d.price < 1 ? 5 : d.price < 100 ? 3 : 2;
+    const arrow = d.dir === 'up' ? ' ▲' : d.dir === 'dn' ? ' ▼' : '';
+    const newTxt = '$' + d.price.toFixed(dec) + arrow;
+    if (el.textContent !== newTxt) {
+      el.textContent = newTxt;
+      el.classList.remove('fu','fd');
+      void el.offsetWidth;
+      el.classList.add(d.dir === 'up' ? 'fu' : 'fd');
+      setTimeout(() => el.classList.remove('fu','fd'), 700);
+      // update % change vs entry price (prev stored on card)
+      const ce = document.querySelector('[data-chg="' + sym + '"]');
+      if (ce && d.prev && d.prev !== d.price) {
+        const pct = ((d.price - d.prev) / d.prev * 100);
+        ce.textContent = (pct >= 0 ? '▲ +' : '▼ ') + Math.abs(pct).toFixed(3) + '%';
+        ce.style.color = pct >= 0 ? '#22c55e' : '#ef4444';
+      }
+    }
+  });
+  // Pulse the dot to show loop is alive
+  const dot = g('dot');
+  if (dot) { dot.style.opacity = dot.style.opacity === '0.3' ? '1' : '0.3'; }
 }
 
 // ─── Tick feed ────────────────────────────────────────────────────────────────
@@ -771,10 +778,11 @@ async function loadAccount() {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 async function startAll() {
   startBinance();
-  _timers.push(setInterval(pollGecko, 6000));   // crypto fallback
+  _timers.push(setInterval(pollGecko, 6000));      // crypto fallback every 6s
   pollStocks();
-  _timers.push(setInterval(pollStocks, 3000));   // stocks every 3s
-  _timers.push(setInterval(loadAccount, 30000)); // account every 30s
+  _timers.push(setInterval(pollStocks, 3000));      // stocks every 3s
+  _timers.push(setInterval(refreshDisplay, 800));   // push LP → DOM every 800ms
+  _timers.push(setInterval(loadAccount, 30000));    // account every 30s
   await loadAccount();
   await loadTickers();
 }
