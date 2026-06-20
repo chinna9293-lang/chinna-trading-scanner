@@ -509,19 +509,89 @@ function analyse(bars) {
   const cls = bars.map(b => b.c), vols = bars.map(b => b.v);
   const hs = bars.map(b => b.h), ls = bars.map(b => b.l);
   const n = cls.length;
-  let e9 = cls[0], e21 = cls[0], e50 = cls[0];
+
+  // EMAs
+  let e9 = cls[0], e21 = cls[0], e50 = cls[0], e12 = cls[0], e26 = cls[0];
   for (let i = 1; i < n; i++) {
     e9  = cls[i]*(2/10)  + e9*(1-2/10);
     e21 = cls[i]*(2/22)  + e21*(1-2/22);
     e50 = cls[i]*(2/51)  + e50*(1-2/51);
+    e12 = cls[i]*(2/13)  + e12*(1-2/13);
+    e26 = cls[i]*(2/27)  + e26*(1-2/27);
   }
+
+  // MACD (12,26,9) — build MACD history then EMA9 of it for signal
+  let me12 = cls[0], me26 = cls[0];
+  const macdArr = [];
+  for (let i = 1; i < n; i++) {
+    me12 = cls[i]*(2/13) + me12*(1-2/13);
+    me26 = cls[i]*(2/27) + me26*(1-2/27);
+    macdArr.push(me12 - me26);
+  }
+  const macdLine = macdArr[macdArr.length - 1] || 0;
+  let macdSig = macdArr[0] || 0;
+  for (let i = 1; i < macdArr.length; i++) macdSig = macdArr[i]*(2/10) + macdSig*(1-2/10);
+  const macdHist = macdLine - macdSig;
+  const macdHistPrev = macdArr.length >= 2 ? macdArr[macdArr.length-2] - macdSig : 0;
+  const macdBull = macdLine > macdSig && macdHist > macdHistPrev; // rising above signal
+  const macdBear = macdLine < macdSig && macdHist < macdHistPrev; // falling below signal
+
+  // RSI (14)
   let g2 = 0, l2 = 0;
   const rW = Math.min(14, n-1);
   for (let i = n-rW; i < n; i++) { const d = cls[i]-cls[i-1]; if (d>0) g2+=d; else l2-=d; }
   const rsi = Math.round(100 - 100/(1+(g2/(l2||0.001))));
+
+  // Bollinger Bands (20, 2σ)
+  const bbLen = Math.min(20, n);
+  const bbSlice = cls.slice(-bbLen);
+  const bbMid = bbSlice.reduce((a,b)=>a+b,0) / bbLen;
+  const bbStd = Math.sqrt(bbSlice.reduce((s,v)=>s+(v-bbMid)**2,0)/bbLen);
+  const bbUpper = bbMid + 2*bbStd;
+  const bbLower = bbMid - 2*bbStd;
+  const bbWidth = +(((bbUpper-bbLower)/bbMid)*100).toFixed(1);
+  const bbSqueeze = bbWidth < 3;
+  const aboveBbMid = cls[n-1] > bbMid;
+  const atBbUpper = cls[n-1] >= bbUpper * 0.99;
+  const atBbLower = cls[n-1] <= bbLower * 1.01;
+
+  // ATR (14)
+  let atrSum = 0;
+  const atrLen = Math.min(14, n-1);
+  for (let i = n-atrLen; i < n; i++) {
+    atrSum += Math.max(hs[i]-ls[i], Math.abs(hs[i]-cls[i-1]), Math.abs(ls[i]-cls[i-1]));
+  }
+  const atr = atrSum / atrLen;
+
+  // OBV
+  let obv = 0; const obvArr = [0];
+  for (let i = 1; i < n; i++) {
+    obv += cls[i] > cls[i-1] ? vols[i] : cls[i] < cls[i-1] ? -vols[i] : 0;
+    obvArr.push(obv);
+  }
+  const obvRising = n >= 5 && obvArr[n-1] > obvArr[Math.max(0,n-6)];
+  const obvFalling = n >= 5 && obvArr[n-1] < obvArr[Math.max(0,n-6)];
+
+  // Stochastic (14, 3)
+  const stLen = Math.min(14, n);
+  const stH = Math.max(...hs.slice(-stLen)), stL = Math.min(...ls.slice(-stLen));
+  const stochK = Math.round(((cls[n-1]-stL)/(stH-stL||0.0001))*100);
+  let dSum = 0, dCnt = Math.min(3, n);
+  for (let i = n-dCnt; i < n; i++) {
+    const sh = Math.max(...hs.slice(Math.max(0,i-stLen+1),i+1));
+    const sl2 = Math.min(...ls.slice(Math.max(0,i-stLen+1),i+1));
+    dSum += ((cls[i]-sl2)/(sh-sl2||0.0001))*100;
+  }
+  const stochD = Math.round(dSum/dCnt);
+  const stochBull = stochK > stochD && stochK < 80;
+  const stochBear = stochK < stochD && stochK > 20;
+
+  // Volume
   const vs = vols.slice(-Math.min(11,n),-1);
   const vAvg = vs.reduce((a,b)=>a+b,0) / (vs.length||1) || 1;
   const vRat = +(vols[n-1]/vAvg).toFixed(1);
+
+  // VWAP, swing levels, candle
   const last = bars[n-1];
   const range = last.h - last.l || 0.0001;
   const body = Math.abs(last.c - last.o) / range;
@@ -531,8 +601,15 @@ function analyse(bars) {
   const tv2 = bars.reduce((s,b)=>s+b.v,0);
   const vwap = tv2>0 ? tv/tv2 : cls[n-1];
   const cN = Math.min(12,n-1);
+
   return {
     rsi, e9:+e9.toFixed(2), e21:+e21.toFixed(2), e50:+e50.toFixed(2),
+    macdLine:+macdLine.toFixed(4), macdSig:+macdSig.toFixed(4), macdHist:+macdHist.toFixed(4), macdBull, macdBear,
+    bbUpper:+bbUpper.toFixed(2), bbMid:+bbMid.toFixed(2), bbLower:+bbLower.toFixed(2),
+    bbWidth, bbSqueeze, aboveBbMid, atBbUpper, atBbLower,
+    atr:+atr.toFixed(2),
+    obvRising, obvFalling,
+    stochK, stochD, stochBull, stochBear,
     vRat, vSpike: vRat>=2.5, strongC: body>0.6, body:+(body*100).toFixed(0),
     breakUp: n>=2 && cls[n-1]>sH && cls[n-2]>sH,
     hhhl: n>=4 && hs[n-1]>hs[n-2] && hs[n-2]>hs[n-3] && ls[n-1]>ls[n-2],
@@ -542,11 +619,11 @@ function analyse(bars) {
   };
 }
 
-function getDir(a) {
-  const bs = (a.e9>a.e21?1:0)+(a.e21>a.e50?1:0)+(a.rsi>52&&a.rsi<70?1:0)+(a.aboveVwap?1:0)+(a.priceUp?1:0)+(a.vSpike?1:0)+(a.hhhl?1:0)+(a.breakUp?1:0);
-  const ds = (a.e9<a.e21?1:0)+(a.e21<a.e50?1:0)+(a.rsi<48?1:0)+(!a.aboveVwap?1:0)+(!a.priceUp?1:0);
-  if (bs >= 5 && a.e9>a.e21 && a.e21>a.e50) return 'bull';
-  if (ds >= 4 && a.e9<a.e21) return 'bear';
+function getDir(a, htfBull) {
+  const bs = (a.e9>a.e21?1:0)+(a.e21>a.e50?1:0)+(a.rsi>52&&a.rsi<70?1:0)+(a.aboveVwap?1:0)+(a.priceUp?1:0)+(a.vSpike?1:0)+(a.hhhl?1:0)+(a.breakUp?1:0)+(a.macdBull?1:0)+(a.aboveBbMid?1:0)+(a.obvRising?1:0)+(a.stochBull?1:0);
+  const ds = (a.e9<a.e21?1:0)+(a.e21<a.e50?1:0)+(a.rsi<48?1:0)+(!a.aboveVwap?1:0)+(!a.priceUp?1:0)+(a.macdBear?1:0)+(!a.aboveBbMid?1:0)+(a.obvFalling?1:0);
+  if (bs >= 7 && a.e9>a.e21 && a.e21>a.e50) return 'bull';
+  if (ds >= 5 && a.e9<a.e21) return 'bear';
   return 'neutral';
 }
 
@@ -658,18 +735,26 @@ async function loadNews() {
 // ─── Modal ────────────────────────────────────────────────────────────────────
 const liveBars = {};
 
-function buildModal(sym, a, cfg, bars) {
+function buildModal(sym, a, cfg, bars, htfA) {
   const label = (cfg && cfg.label) || sym;
   const liveP = (LP[sym] && LP[sym].price) || a.price;
   const dir = getDir(a);
   const dc = dir==='bull'?'#22c55e':dir==='bear'?'#ef4444':'#64748b';
   const patterns = detectPatterns(bars || []);
+  // HTF direction
+  const htfDir = htfA ? getDir(htfA) : null;
+  const htfAligned = htfDir === dir && dir !== 'neutral';
+  const htfColor = htfDir==='bull'?'#22c55e':htfDir==='bear'?'#ef4444':'#64748b';
 
   const bullChecks = [
     {l:'EMA9 > EMA21',pass:a.e9>a.e21,v:'$'+a.e9+' vs $'+a.e21,n:a.e9>a.e21?'Short-term trend UP':'Need EMA9 to cross above EMA21 ($'+(a.e21-a.e9).toFixed(2)+' gap)'},
     {l:'EMA21 > EMA50',pass:a.e21>a.e50,v:'$'+a.e21+' vs $'+a.e50,n:a.e21>a.e50?'Medium-term trend UP':'EMA21 still below EMA50 — broad trend bearish'},
-    {l:'RSI 52–70',pass:a.rsi>52&&a.rsi<70,v:'RSI '+a.rsi,n:a.rsi<52?'Too weak — needs 52+':a.rsi>=70?'Overbought — wait for cooldown':'Buy zone ✓'},
+    {l:'RSI 52–70',pass:a.rsi>52&&a.rsi<70,v:'RSI '+a.rsi,n:a.rsi<52?'Too weak — needs 52+':a.rsi>=70?'Overbought '+a.rsi+' — wait for cooldown':'Buy zone ✓'},
+    {l:'MACD Bullish',pass:a.macdBull,v:'MACD '+a.macdLine.toFixed(2)+' vs Sig '+a.macdSig.toFixed(2),n:a.macdBull?'MACD above signal & rising ✓':'MACD below signal — no momentum yet'},
     {l:'Above VWAP',pass:a.aboveVwap,v:'$'+liveP.toFixed(2)+' vs VWAP $'+a.vwap,n:a.aboveVwap?'Institutions buying above VWAP ✓':'$'+(a.vwap-liveP).toFixed(2)+' below VWAP'},
+    {l:'Above BB Middle',pass:a.aboveBbMid,v:'BB Mid $'+a.bbMid+' · Width '+a.bbWidth+'%',n:a.aboveBbMid?(a.bbSqueeze?'Squeeze breakout forming ✓':'Above midline — bulls in control ✓'):'Below BB midline — bearish bias'},
+    {l:'OBV Rising',pass:a.obvRising,v:a.obvRising?'Accumulation':'Distribution',n:a.obvRising?'Volume confirms buying pressure ✓':'OBV falling — smart money selling'},
+    {l:'Stochastic Bullish',pass:a.stochBull,v:'%K '+a.stochK+' vs %D '+a.stochD,n:a.stochBull?'%K above %D, not overbought ✓':a.stochK>=80?'Overbought '+a.stochK+' — wait for pullback':'%K below %D — no bullish cross yet'},
     {l:'Volume spike 2.5x',pass:a.vSpike,v:a.vRat+'x avg',n:a.vSpike?a.vRat+'x — strong conviction ✓':'Only '+a.vRat+'x, need 2.5x+ for real move'},
     {l:'HH + HL structure',pass:a.hhhl,v:a.hhhl?'Confirmed':'Not forming',n:a.hhhl?'Higher highs & higher lows ✓':'Need 3 bars of higher highs and lows'},
     {l:'Breakout above swing high',pass:a.breakUp,v:'Swing high $'+a.sH,n:a.breakUp?'Broke $'+a.sH+' ✓':'$'+Math.abs(a.sH-liveP).toFixed(2)+' away from breakout'},
@@ -679,7 +764,10 @@ function buildModal(sym, a, cfg, bars) {
     {l:'EMA9 < EMA21',pass:a.e9<a.e21,v:'$'+a.e9+' vs $'+a.e21,n:a.e9<a.e21?'Short-term trend DOWN ✓':'EMA9 still above EMA21 — not bearish yet'},
     {l:'EMA21 < EMA50',pass:a.e21<a.e50,v:'$'+a.e21+' vs $'+a.e50,n:a.e21<a.e50?'Broad trend DOWN ✓':'EMA21 above EMA50 — broad trend still bullish'},
     {l:'RSI < 48',pass:a.rsi<48,v:'RSI '+a.rsi,n:a.rsi<48?'Weak momentum ✓':'RSI '+a.rsi+' — not yet in bear zone'},
+    {l:'MACD Bearish',pass:a.macdBear,v:'MACD '+a.macdLine.toFixed(2)+' vs Sig '+a.macdSig.toFixed(2),n:a.macdBear?'MACD below signal & falling ✓':'MACD still bullish — no bear momentum'},
     {l:'Below VWAP',pass:!a.aboveVwap,v:'$'+liveP.toFixed(2)+' vs VWAP $'+a.vwap,n:!a.aboveVwap?'Below VWAP — sellers in control ✓':'Still above VWAP — not bearish'},
+    {l:'Below BB Middle',pass:!a.aboveBbMid,v:'BB Mid $'+a.bbMid,n:!a.aboveBbMid?'Below midline — bearish bias ✓':'Above BB midline — still bullish'},
+    {l:'OBV Falling',pass:a.obvFalling,v:a.obvFalling?'Distribution':'Accumulation',n:a.obvFalling?'Volume confirms selling pressure ✓':'OBV rising — buyers still active'},
     {l:'Price declining',pass:!a.priceUp,v:!a.priceUp?'Price falling':'Price rising',n:!a.priceUp?'Downward price action ✓':'Price still rising — not bearish'},
   ];
   const bPassed = bullChecks.filter(c=>c.pass).length;
@@ -711,13 +799,13 @@ function buildModal(sym, a, cfg, bars) {
     if (!rsiOk) waitReasons.push(rsiOverbought ? 'RSI '+a.rsi+' overbought — wait for RSI to cool below 70' : 'RSI '+a.rsi+' too weak — wait for RSI above 52');
     if (!a.aboveVwap) waitReasons.push('Price below VWAP $'+a.vwap+' — wait for price to reclaim VWAP');
     if (!a.vSpike && bullPatterns.length === 0) waitReasons.push('No volume spike and no pattern confirmation yet');
-    if (bPassed >= 6 && rsiOk && a.aboveVwap && (a.vSpike || bullPatterns.length > 0)) {
+    if (bPassed >= 9 && rsiOk && a.aboveVwap && a.macdBull && (a.vSpike || bullPatterns.length > 0) && (!htfA || htfDir !== 'bear')) {
       signal = 'STRONG BUY'; signalColor = '#22c55e'; signalBg = 'rgba(34,197,94,.1)'; signalBorder = 'rgba(34,197,94,.3)'; signalIcon = '🟢';
-      signalMsg = bPassed+'/8 bull conditions · '+(bullPatterns.length?bullPatterns[0].name+' pattern':'volume confirmed')+' · Entry now';
+      signalMsg = bPassed+'/12 conditions · MACD ✓ · '+(htfAligned?'HTF aligned ✓ · ':'')+( bullPatterns.length?bullPatterns[0].name+' · ':'')+' Entry now';
       waitReasons = [];
-    } else if (bPassed >= 5 && (rsiOk || !rsiOverbought) && a.aboveVwap) {
+    } else if (bPassed >= 7 && (rsiOk || !rsiOverbought) && a.aboveVwap) {
       signal = 'BUY'; signalColor = '#4ade80'; signalBg = 'rgba(34,197,94,.07)'; signalBorder = 'rgba(34,197,94,.2)'; signalIcon = '🟩';
-      signalMsg = bPassed+'/8 conditions, above VWAP'+(waitReasons.length?' — caution: '+waitReasons[0]:'');
+      signalMsg = bPassed+'/12 conditions, above VWAP'+(waitReasons.length?' — caution: '+waitReasons[0]:'');
       waitReasons = [];
     } else {
       signal = 'WAIT — setup forming'; signalIcon = '⏳';
@@ -726,13 +814,13 @@ function buildModal(sym, a, cfg, bars) {
   } else if (dir === 'bear') {
     if (!rsiBearOk) waitReasons.push('RSI '+a.rsi+' not weak enough — wait for RSI below 48');
     if (a.aboveVwap) waitReasons.push('Price still above VWAP — wait for break below $'+a.vwap);
-    if (dPassed >= 4 && rsiBearOk && !a.aboveVwap && (a.vSpike || bearPatterns.length > 0)) {
+    if (dPassed >= 6 && rsiBearOk && !a.aboveVwap && a.macdBear && (a.vSpike || bearPatterns.length > 0)) {
       signal = 'STRONG SHORT'; signalColor = '#ef4444'; signalBg = 'rgba(239,68,68,.1)'; signalBorder = 'rgba(239,68,68,.3)'; signalIcon = '🔴';
-      signalMsg = dPassed+'/5 bear conditions · '+(bearPatterns.length?bearPatterns[0].name+' pattern':'confirmed')+' · Short entry now';
+      signalMsg = dPassed+'/8 bear conditions · MACD ✓ · '+(bearPatterns.length?bearPatterns[0].name+' · ':'')+' Short entry now';
       waitReasons = [];
-    } else if (dPassed >= 3 && !a.aboveVwap) {
+    } else if (dPassed >= 5 && !a.aboveVwap) {
       signal = 'SHORT'; signalColor = '#f87171'; signalBg = 'rgba(239,68,68,.07)'; signalBorder = 'rgba(239,68,68,.2)'; signalIcon = '🟥';
-      signalMsg = dPassed+'/5 bear conditions, below VWAP'+(waitReasons.length?' — caution: '+waitReasons[0]:'');
+      signalMsg = dPassed+'/8 bear conditions, below VWAP'+(waitReasons.length?' — caution: '+waitReasons[0]:'');
       waitReasons = [];
     } else {
       signal = 'WAIT — bearish lean'; signalIcon = '⏳';
@@ -741,7 +829,7 @@ function buildModal(sym, a, cfg, bars) {
   } else {
     signal = 'NO TRADE'; signalColor = '#64748b'; signalBg = 'rgba(100,116,139,.07)'; signalBorder = 'rgba(100,116,139,.2)'; signalIcon = '⬜';
     const missing = [];
-    if (bPassed < 5) missing.push('need '+(5-bPassed)+' more bull conditions');
+    if (bPassed < 7) missing.push('need '+(7-bPassed)+' more bull conditions ('+bPassed+'/12)');
     if (!a.aboveVwap) missing.push('below VWAP');
     if (rsiOverbought) missing.push('RSI overbought');
     signalMsg = 'No clear direction — '+( missing.length ? missing.join(', ') : 'market undecided');
@@ -785,7 +873,17 @@ function buildModal(sym, a, cfg, bars) {
 
     '<div class="mdir '+dir+'"><div style="font-size:36px;color:'+dc+';line-height:1">'+(dir==='bull'?'↑':dir==='bear'?'↓':'→')+'</div>' +
     '<div><h4 style="color:'+dc+'">'+dir.toUpperCase()+'</h4>' +
-    '<p>Bull '+bPassed+'/8 · Bear '+dPassed+'/5 · '+(dir==='neutral'?'Waiting — no conviction yet':dir==='bull'?'BUY setup forming':'SELL pressure dominant')+'</p></div></div>' +
+    '<p>Bull '+bPassed+'/12 · Bear '+dPassed+'/8 · '+(dir==='neutral'?'Waiting — no conviction yet':dir==='bull'?'BUY setup forming':'SELL pressure dominant')+'</p></div></div>' +
+
+    // HTF alignment bar
+    '<div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">' +
+    '<span style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em">1H HTF</span>' +
+    (htfA
+      ? '<span style="color:'+htfColor+';font-weight:700">'+(htfDir==='bull'?'↑ BULLISH':htfDir==='bear'?'↓ BEARISH':'→ NEUTRAL')+'</span>' +
+        '<span style="font-size:11px;color:#64748b">EMA9 $'+htfA.e9+' · EMA21 $'+htfA.e21+' · RSI '+htfA.rsi+'</span>' +
+        '<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:'+(htfAligned?'rgba(34,197,94,.15)':'rgba(239,68,68,.1)')+';color:'+(htfAligned?'#22c55e':'#f59e0b')+'">'+(htfAligned?'✓ Aligned with 5min':'⚠ Diverging from 5min')+'</span>'
+      : '<span style="font-size:11px;color:#475569">No 1H data available</span>') +
+    '</div>' +
 
     tradeBoxHtml +
 
@@ -843,6 +941,20 @@ async function renderModal(sym) {
     bars = [...bars, { o: prev.c, h: Math.max(prev.c, lp), l: Math.min(prev.c, lp), c: lp, v: prev.v, t: new Date().toISOString() }];
   }
   const a = bars.length >= 5 ? analyse(bars) : null;
+  // HTF: fetch 1-hour bars for trend alignment
+  const isCrypto = sym.endsWith('USD') && sym.length > 3;
+  let htfBars = [];
+  try {
+    if (isCrypto) {
+      const s = sym.slice(0,-3)+'/USD';
+      const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols='+encodeURIComponent(s)+'&timeframe=1Hour&limit=50',{headers:AH})).json();
+      htfBars = (d.bars && d.bars[s]) || [];
+    } else {
+      const d = await (await fetch('https://data.alpaca.markets/v2/stocks/'+sym+'/bars?timeframe=1Hour&limit=50&feed=iex',{headers:AH})).json();
+      htfBars = d.bars || [];
+    }
+  } catch {}
+  const htfA = htfBars.length >= 5 ? analyse(htfBars) : null;
   const cfg = UNI[sym] || null;
   if (!a) {
     g('modal-body').innerHTML = '<div class="mticker">' + ((cfg&&cfg.label)||sym) + '</div>' +
@@ -859,7 +971,7 @@ async function renderModal(sym) {
     '<span style="font-size:10px;color:#334155">Analysis at ' + ts + ' · auto-refreshes every 60s</span>' +
     '<button onclick="renderModal(\'' + sym + '\')" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#94a3b8;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer">↻ Refresh now</button>' +
     '</div>' +
-    buildModal(sym, a, cfg, bars);
+    buildModal(sym, a, cfg, bars, htfA);
   // Live price element inside modal also updates via display loop (data-px attr already set)
 }
 
