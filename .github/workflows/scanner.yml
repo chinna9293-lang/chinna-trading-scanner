@@ -2,10 +2,9 @@ name: Trading Scanner
 
 on:
   schedule:
-    # Every 5 min, Mon-Fri, 9:30 AM - 4:00 PM ET (14:30-21:00 UTC)
-    - cron: '*/5 14-20 * * 1-5'
-    - cron: '0-0 21 * * 1-5'
-  workflow_dispatch: # allow manual trigger
+    # Every 5 min, 24/7 — stocks auto-skip on weekends/off-hours inside scanner.js
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
 
 jobs:
   scan:
