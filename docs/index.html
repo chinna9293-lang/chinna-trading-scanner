@@ -503,19 +503,23 @@ function stopAll() {
 async function getBars(sym, lim) {
   lim = lim || 50;
   const isCrypto = sym.endsWith('USD') && sym.length > 3;
+  // Start 7 calendar days ago — ensures we always have enough bars across weekends,
+  // holidays, and during pre/after market when today's session has few candles yet
+  const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   if (isCrypto) {
     const s = sym.slice(0,-3) + '/USD';
     for (const tf of ['5Min','15Min','1Hour']) {
       try {
-        const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=' + encodeURIComponent(s) + '&timeframe=' + tf + '&limit=' + lim, { headers: AH })).json();
+        const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=' + encodeURIComponent(s) + '&timeframe=' + tf + '&limit=' + lim + '&start=' + start, { headers: AH })).json();
         const bars = (d.bars && d.bars[s]) || [];
         if (bars.length >= 5) return bars;
       } catch {}
     }
   } else {
-    for (const pair of [['5Min','sip'],['15Min','sip'],['1Hour','sip']]) {
+    for (const tf of ['5Min','15Min','1Hour']) {
       try {
-        const d = await (await fetch('https://data.alpaca.markets/v2/stocks/' + sym + '/bars?timeframe=' + pair[0] + '&limit=' + lim + '&feed=' + pair[1] + '&adjustment=raw&extended_hours=true', { headers: AH })).json();
+        const url = 'https://data.alpaca.markets/v2/stocks/' + sym + '/bars?timeframe=' + tf + '&limit=' + lim + '&feed=sip&adjustment=raw&extended_hours=true&start=' + start;
+        const d = await (await fetch(url, { headers: AH })).json();
         if ((d.bars || []).length >= 5) return d.bars;
       } catch {}
     }
@@ -996,10 +1000,11 @@ async function renderModal(sym) {
   const cfg = UNI[sym] || null;
   if (!a) {
     g('modal-body').innerHTML = '<div class="mticker">' + ((cfg&&cfg.label)||sym) + '</div>' +
-      '<div class="nbox" style="margin-top:16px"><p><strong style="color:#fff">No bar data</strong><br><br>' +
-      '• Stock market closed (weekend / pre-market / after-hours)<br>' +
-      '• For crypto try ' + (sym.endsWith('USD')?sym:sym+'USD') + '<br>' +
-      '• Stocks work Mon–Fri 9:30 AM–4 PM ET · Crypto 24/7</p></div>' +
+      '<div class="nbox" style="margin-top:16px"><p><strong style="color:#fff">No bar data returned</strong><br><br>' +
+      '• Alpaca SIP feed may not have data for this symbol<br>' +
+      '• Try searching the exact ticker (e.g. TSLA, AAPL, BTC/USD)<br>' +
+      '• Crypto tickers: use BTCUSD, ETHUSD format<br>' +
+      '• Stock data available pre-market (4 AM ET) through after-hours (8 PM ET)</p></div>' +
       (cfg?'<div class="stitle">Backtest stats</div><div class="nbox"><div class="hrow"><span style="color:#94a3b8">Win rate</span><span>'+cfg.hw+'%</span></div><div class="hrow"><span style="color:#94a3b8">P&L</span><span class="'+(cfg.hp>=0?'g':'r')+'">'+(cfg.hp>=0?'+':'')+cfg.hp+'%</span></div></div>':'');
     return;
   }
