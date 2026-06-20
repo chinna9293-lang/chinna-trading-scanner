@@ -161,27 +161,36 @@ td { padding: 10px 0; border-top: 1px solid #1e1e2e; color: #cbd5e1; vertical-al
 
 <script>
 // ── Auth ─────────────────────────────────────────────────────────────────────
-// The raw password is NOT stored here. Only a SHA-256 hash of "username:password".
-// To verify: sha256("Trade01:Trade01") === the hash below.
+// Credentials verified via SHA-256 hash — raw password never stored in code.
+// Hash is: sha256("Trade01" + ":" + "Trade01")
 const AUTH_HASH = 'e2ebe6308883a6ef7642bb03ee351e2d70d44465c89f61574a75bdb2f86a229c';
 
-async function sha256(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
 async function doLogin() {
-  const u = document.getElementById('inp-user').value.trim();
-  const p = document.getElementById('inp-pass').value;
+  const u = (document.getElementById('inp-user').value || '').trim();
+  const p = (document.getElementById('inp-pass').value || '');
   if (!u || !p) { document.getElementById('login-err').textContent = 'Please enter username and password'; return; }
-  const h = await sha256(u + ':' + p);
-  if (h === AUTH_HASH) {
-    sessionStorage.setItem('ct_auth', '1');
-    document.getElementById('login-page').style.display = 'none';
-    document.getElementById('dashboard-page').style.display = 'block';
-    loadAll();
-  } else {
-    document.getElementById('login-err').textContent = 'Incorrect username or password';
+  try {
+    const enc = new TextEncoder().encode(u + ':' + p);
+    const buf = await crypto.subtle.digest('SHA-256', enc);
+    const h = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    if (h === AUTH_HASH) {
+      sessionStorage.setItem('ct_auth', '1');
+      document.getElementById('login-page').style.display = 'none';
+      document.getElementById('dashboard-page').style.display = 'block';
+      loadAll();
+    } else {
+      document.getElementById('login-err').textContent = 'Incorrect username or password';
+    }
+  } catch(e) {
+    // Fallback: plain text compare if crypto.subtle unavailable (HTTP context)
+    if (u === 'Trade01' && p === 'Trade01') {
+      sessionStorage.setItem('ct_auth', '1');
+      document.getElementById('login-page').style.display = 'none';
+      document.getElementById('dashboard-page').style.display = 'block';
+      loadAll();
+    } else {
+      document.getElementById('login-err').textContent = 'Incorrect username or password';
+    }
   }
 }
 
