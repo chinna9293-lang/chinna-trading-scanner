@@ -327,9 +327,8 @@ function updateCardPrice(sym, newPrice){
   const priceEl=document.querySelector(`[data-price="${sym}"]`);
   if(!priceEl) return;
   const decimals=newPrice<1?5:newPrice<100?3:2;
-  const dir=!prev||newPrice>=prev?' ▲':' ▼';
-  priceEl.textContent='$'+newPrice.toFixed(decimals)+dir;
   const dir=!prev?'flat':newPrice>prev?'up':newPrice<prev?'dn':'flat';
+  priceEl.textContent='$'+newPrice.toFixed(decimals)+(dir==='up'?' ▲':dir==='dn'?' ▼':'');
   if(prev&&newPrice!==prev){
     priceEl.classList.remove('flash-up','flash-dn');
     void priceEl.offsetWidth;
