@@ -124,6 +124,7 @@ td{padding:9px 8px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
       <div class="status">
         <div class="dot" id="price-dot"></div>
         <span id="price-status">Loading prices...</span>
+        <span id="update-count" style="font-size:11px;color:#334155;margin-left:4px">0 updates</span>
         <span class="live-badge off" id="price-badge">● Fetching</span>
       </div>
       <button class="logout-btn" onclick="doLogout()">Sign Out</button>
@@ -263,122 +264,142 @@ function fmt(n){return '$'+parseFloat(n).toLocaleString('en-US',{minimumFraction
 function fmtPct(n){return(n>=0?'+':'')+parseFloat(n).toFixed(2)+'%';}
 
 // ── Live price store ──────────────────────────────────────────────────────────
-const livePrices={};  // sym → {price, prev}
+const livePrices={};
+let updateCount=0;
 
 function updateCardPrice(sym, newPrice){
+  if(!newPrice||isNaN(newPrice)) return;
   const prev=livePrices[sym]?.price;
-  livePrices[sym]={price:newPrice, prev:prev||newPrice};
+  livePrices[sym]={price:newPrice,prev:prev||newPrice};
+  updateCount++;
+  // Update counter in header
+  const ct=$('update-count');
+  if(ct) ct.textContent=updateCount+' updates';
+  // Find DOM element — might not exist yet if grid not rendered
   const priceEl=document.querySelector(`[data-price="${sym}"]`);
-  const chgEl=document.querySelector(`[data-chg="${sym}"]`);
   if(!priceEl) return;
-  const p=newPrice<1?newPrice.toFixed(5):newPrice.toFixed(2);
-  priceEl.textContent='$'+p+(newPrice>=(prev||newPrice)?' ↑':' ↓');
-  priceEl.classList.remove('flash-up','flash-dn');
-  void priceEl.offsetWidth;
+  const decimals=newPrice<1?5:newPrice<100?3:2;
+  const dir=!prev||newPrice>=prev?' ▲':' ▼';
+  priceEl.textContent='$'+newPrice.toFixed(decimals)+dir;
   if(prev&&newPrice!==prev){
+    priceEl.classList.remove('flash-up','flash-dn');
+    void priceEl.offsetWidth;
     priceEl.classList.add(newPrice>prev?'flash-up':'flash-dn');
-    setTimeout(()=>priceEl.classList.remove('flash-up','flash-dn'),600);
+    setTimeout(()=>priceEl.classList.remove('flash-up','flash-dn'),800);
+    const chgEl=document.querySelector(`[data-chg="${sym}"]`);
     if(chgEl){
       const pct=((newPrice-prev)/prev*100);
       chgEl.textContent=(pct>=0?'▲ +':'▼ ')+Math.abs(pct).toFixed(3)+'%';
       chgEl.style.color=pct>=0?'#22c55e':'#ef4444';
     }
+    // Update last-seen time on card
+    const tsEl=document.querySelector(`[data-ts="${sym}"]`);
+    if(tsEl) tsEl.textContent=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   }
 }
 
-// ── Poll latest prices every 5 seconds ───────────────────────────────────────
-// Binance symbol map for crypto
-// ── Binance symbol maps ───────────────────────────────────────────────────────
+// ── Symbol maps ───────────────────────────────────────────────────────────────
 const BINANCE_MAP={BTCUSD:'btcusdt',ETHUSD:'ethusdt',DOGEUSD:'dogeusdt',LTCUSD:'ltcusdt',LINKUSD:'linkusdt',SOLUSD:'solusdt',BCHUSD:'bchusdt'};
 const BINANCE_REV=Object.fromEntries(Object.entries(BINANCE_MAP).map(([k,v])=>[v,k]));
 const GECKO_MAP={BTCUSD:'bitcoin',ETHUSD:'ethereum',DOGEUSD:'dogecoin',LTCUSD:'litecoin',LINKUSD:'chainlink',SOLUSD:'solana',BCHUSD:'bitcoin-cash'};
 
-// ── Binance WebSocket — live tick stream for all crypto ───────────────────────
-let binanceWS=null;
-let cryptoStreaming=false;
+// ── Binance WebSocket — port 443 (firewall-safe) ──────────────────────────────
+let binanceWS=null, cryptoLive=false, wsRetries=0;
 
 function startBinanceStream(){
-  if(binanceWS) try{binanceWS.close();}catch{}
+  if(binanceWS){try{binanceWS.close();}catch{} binanceWS=null;}
+  // Port 443 is firewall-safe; fall back to 9443 after first fail
+  const port=wsRetries<3?443:9443;
   const streams=Object.values(BINANCE_MAP).map(s=>s+'@miniTicker').join('/');
-  binanceWS=new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
+  const url=`wss://stream.binance.com:${port}/stream?streams=${streams}`;
+  try{ binanceWS=new WebSocket(url); }catch{ scheduleCryptoFallback(); return; }
+
+  let pingTimer=null;
   binanceWS.onopen=()=>{
-    cryptoStreaming=true;
-    updatePriceBadge();
+    cryptoLive=true; wsRetries=0; updateBadge();
+    // Keep-alive ping every 20s
+    pingTimer=setInterval(()=>{ if(binanceWS.readyState===1) binanceWS.send(JSON.stringify({method:'PING'})); },20000);
   };
   binanceWS.onmessage=e=>{
     try{
-      const msg=JSON.parse(e.data);
-      const d=msg.data;
-      if(d&&d.s&&d.c){
+      const d=JSON.parse(e.data)?.data;
+      if(d?.s&&d?.c){
         const sym=BINANCE_REV[d.s.toLowerCase()];
         if(sym) updateCardPrice(sym,parseFloat(d.c));
       }
     }catch{}
   };
   binanceWS.onclose=()=>{
-    cryptoStreaming=false;
-    updatePriceBadge();
-    setTimeout(startBinanceStream,3000); // auto-reconnect
+    cryptoLive=false; wsRetries++; clearInterval(pingTimer); updateBadge();
+    setTimeout(startBinanceStream,Math.min(wsRetries*2000,10000));
   };
-  binanceWS.onerror=()=>{cryptoStreaming=false;updatePriceBadge();};
+  binanceWS.onerror=()=>{ cryptoLive=false; updateBadge(); };
 }
 
-// ── Stock price polling every 3 seconds (Yahoo Finance) ──────────────────────
-let stocksLive=false;
-
-async function pollStockPrices(){
-  // Try Yahoo Finance
-  try{
-    const d=await(await fetch(`https://query2.finance.yahoo.com/v7/finance/quote?symbols=${STOCKS.join(',')}`,{signal:AbortSignal.timeout(4000)})).json();
-    const results=d?.quoteResponse?.result||[];
-    if(results.length){
-      results.forEach(q=>{
-        const p=q.regularMarketPrice||q.postMarketPrice||q.preMarketPrice;
-        if(p) updateCardPrice(q.symbol,p);
-      });
-      stocksLive=true; updatePriceBadge(); return;
-    }
-  }catch{}
-  // Fallback: Alpaca IEX
-  try{
-    const d=await(await fetch(`https://data.alpaca.markets/v2/stocks/trades/latest?symbols=${STOCKS.join(',')}&feed=iex`,{headers:HDR,signal:AbortSignal.timeout(4000)})).json();
-    if(d.trades){Object.entries(d.trades).forEach(([s,t])=>updateCardPrice(s,t.p));stocksLive=true;updatePriceBadge();}
-  }catch{stocksLive=false;updatePriceBadge();}
+function scheduleCryptoFallback(){
+  // If WS completely fails, poll CoinGecko
+  if(!window._geckoTimer) window._geckoTimer=setInterval(pollCoinGecko,5000);
 }
 
-// ── CoinGecko fallback if Binance WebSocket fails (REST every 5s) ─────────────
-async function pollCryptoPrices(){
-  if(cryptoStreaming) return; // Binance WS is live, no need to poll
+async function pollCoinGecko(){
+  if(cryptoLive) return;
   try{
     const ids=Object.values(GECKO_MAP).join(',');
     const d=await(await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,{signal:AbortSignal.timeout(5000)})).json();
-    Object.entries(GECKO_MAP).forEach(([sym,id])=>{if(d[id]?.usd) updateCardPrice(sym,d[id].usd);});
+    Object.entries(GECKO_MAP).forEach(([s,id])=>{ if(d[id]?.usd) updateCardPrice(s,d[id].usd); });
   }catch{}
 }
 
-function updatePriceBadge(){
+// ── Stock prices — Alpaca snapshots (most reliable, close-to-real-time) ───────
+let stocksLive=false;
+
+async function pollStockPrices(){
+  // Use Alpaca snapshots — returns latestTrade, latestQuote, dailyBar in one call
+  try{
+    const d=await(await fetch(
+      `https://data.alpaca.markets/v2/stocks/snapshots?symbols=${STOCKS.join(',')}&feed=iex`,
+      {headers:HDR,signal:AbortSignal.timeout(5000)}
+    )).json();
+    let got=0;
+    Object.entries(d||{}).forEach(([s,snap])=>{
+      const p=snap?.latestTrade?.p||snap?.latestQuote?.ap||snap?.dailyBar?.c;
+      if(p){updateCardPrice(s,p);got++;}
+    });
+    if(got>0){stocksLive=true;updateBadge();return;}
+  }catch{}
+  // Fallback: Yahoo Finance
+  try{
+    const d=await(await fetch(
+      `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${STOCKS.join(',')}`,
+      {signal:AbortSignal.timeout(5000)}
+    )).json();
+    (d?.quoteResponse?.result||[]).forEach(q=>{
+      const p=q.regularMarketPrice||q.postMarketPrice;
+      if(p){updateCardPrice(q.symbol,p);stocksLive=true;}
+    });
+    updateBadge();
+  }catch{stocksLive=false;updateBadge();}
+}
+
+function updateBadge(){
   const badge=$('price-badge'),dot=$('price-dot'),status=$('price-status');
-  if(cryptoStreaming&&stocksLive){
-    badge.textContent='● Live Stream'; badge.className='live-badge on';
-    dot.className='dot';
-    status.textContent='Crypto: Binance stream · Stocks: 3s refresh';
-  }else if(cryptoStreaming){
-    badge.textContent='● Crypto Live'; badge.className='live-badge on';
-    dot.className='dot';
-    status.textContent='Crypto streaming · Stocks polling...';
+  const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  if(cryptoLive&&stocksLive){
+    badge.textContent='● Streaming'; badge.className='live-badge on'; dot.className='dot';
+    status.textContent=`Crypto live · Stocks 3s · Last: ${t}`;
+  }else if(cryptoLive){
+    badge.textContent='● Crypto Live'; badge.className='live-badge on'; dot.className='dot';
+    status.textContent=`Binance streaming · Stocks connecting... · ${t}`;
   }else if(stocksLive){
-    badge.textContent='● Stocks Live'; badge.className='live-badge on';
-    dot.className='dot orange';
-    status.textContent='Stocks 3s refresh · Crypto reconnecting...';
+    badge.textContent='● Polling'; badge.className='live-badge off'; dot.className='dot orange';
+    status.textContent=`Stocks 3s · Crypto reconnecting... · ${t}`;
   }else{
-    badge.textContent='● Connecting'; badge.className='live-badge off';
-    dot.className='dot orange';
+    badge.textContent='● Connecting'; badge.className='live-badge off'; dot.className='dot orange';
     status.textContent='Connecting to price feeds...';
   }
 }
 
-// backward compat stub used in doLogout
-function pollLivePrices(){pollStockPrices();pollCryptoPrices();}
+function pollLivePrices(){pollStockPrices();}
 
 // ── Bars for analysis ─────────────────────────────────────────────────────────
 async function getBars(sym,limit=50){
@@ -707,8 +728,8 @@ async function loadAccount(){
 async function init(){
   startBinanceStream();                          // crypto: live WebSocket ticks
   pollStockPrices();                             // stocks: first fetch now
-  window._stockTimer=setInterval(pollStockPrices,3000);   // then every 3s
-  window._cryptoFallback=setInterval(pollCryptoPrices,6000); // gecko fallback if WS drops
+  window._stockTimer=setInterval(pollStockPrices,3000);   // stocks every 3s
+  scheduleCryptoFallback();                                // gecko fallback if WS drops
   await loadAccount();
   await loadTickers();
   // Poll prices every 5 seconds
