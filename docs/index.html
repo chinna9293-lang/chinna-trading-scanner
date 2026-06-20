@@ -48,6 +48,18 @@ th{text-align:left;color:#64748b;font-size:11px;text-transform:uppercase;padding
 th:hover{color:#94a3b8;}
 td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-align:middle;}
 /* tick feed */
+/* News strip */
+.news-bar{background:#0a0a10;border-bottom:1px solid #1e1e2e;padding:0 14px;height:28px;overflow:hidden;display:flex;align-items:center;gap:10px;}
+.news-label{font-size:10px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;flex-shrink:0;}
+.news-scroll{overflow:hidden;flex:1;}
+.news-track{display:inline-flex;white-space:nowrap;animation:newsroll 60s linear infinite;}
+.news-track:hover{animation-play-state:paused;}
+@keyframes newsroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ni{display:inline-flex;align-items:center;gap:8px;padding:0 20px;}
+.ns{font-size:10px;color:#6366f1;font-weight:700;text-transform:uppercase;}
+.nh{font-size:11px;color:#94a3b8;}
+.nt{font-size:10px;color:#334155;}
+.nd{color:#1e1e2e;padding:0 6px;}
 .tick-wrap{overflow:hidden;height:30px;background:#0a0a10;border:1px solid #1e1e2e;border-radius:6px;margin-bottom:14px;display:flex;align-items:center;}
 .tick-track{display:flex;gap:0;white-space:nowrap;will-change:transform;}
 .tick-item{display:inline-flex;align-items:center;gap:5px;padding:0 14px;font-size:11px;border-right:1px solid #1e1e2e;}
@@ -143,6 +155,10 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
     </div>
   </div>
 
+  <div class="news-bar">
+    <span class="news-label">📰 Market News</span>
+    <div class="news-scroll"><div class="news-track" id="news-track"><span class="nh" style="color:#334155">Loading headlines...</span></div></div>
+  </div>
   <div class="dash">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
       <span id="acct-time" style="font-size:13px;color:#64748b">Loading account...</span>
@@ -526,72 +542,199 @@ function getDir(a) {
   return 'neutral';
 }
 
+// ─── Chart pattern detection ─────────────────────────────────────────────────
+function detectPatterns(bars) {
+  if (bars.length < 10) return [];
+  const pts = [];
+  const cls = bars.map(b=>b.c), hs = bars.map(b=>b.h), ls = bars.map(b=>b.l);
+  const n = cls.length;
+
+  // Find swing highs and lows (window=2)
+  const peaks=[], troughs=[];
+  for (let i=2;i<n-2;i++){
+    if(hs[i]>hs[i-1]&&hs[i]>hs[i-2]&&hs[i]>hs[i+1]&&hs[i]>hs[i+2]) peaks.push({i,v:hs[i]});
+    if(ls[i]<ls[i-1]&&ls[i]<ls[i-2]&&ls[i]<ls[i+1]&&ls[i]<ls[i+2]) troughs.push({i,v:ls[i]});
+  }
+
+  // Double Top
+  if(peaks.length>=2){
+    const p1=peaks[peaks.length-2],p2=peaks[peaks.length-1];
+    const diff=Math.abs(p1.v-p2.v)/Math.max(p1.v,p2.v)*100;
+    if(diff<3&&p2.i>p1.i+3){
+      const valley=Math.min(...ls.slice(p1.i,p2.i));
+      if((Math.max(p1.v,p2.v)-valley)/Math.max(p1.v,p2.v)*100>2)
+        pts.push({name:'Double Top',dir:'bear',conf:'High',desc:'Two peaks at $'+p1.v.toFixed(2)+' & $'+p2.v.toFixed(2)+'. Classic bearish reversal — expect pullback to $'+valley.toFixed(2)});
+    }
+  }
+  // Double Bottom
+  if(troughs.length>=2){
+    const t1=troughs[troughs.length-2],t2=troughs[troughs.length-1];
+    const diff=Math.abs(t1.v-t2.v)/Math.min(t1.v,t2.v)*100;
+    if(diff<3&&t2.i>t1.i+3){
+      const peak=Math.max(...hs.slice(t1.i,t2.i));
+      if((peak-Math.min(t1.v,t2.v))/Math.min(t1.v,t2.v)*100>2)
+        pts.push({name:'Double Bottom',dir:'bull',conf:'High',desc:'Two lows at $'+t1.v.toFixed(2)+' & $'+t2.v.toFixed(2)+'. Bullish reversal — target $'+peak.toFixed(2)});
+    }
+  }
+  // Head & Shoulders
+  if(peaks.length>=3){
+    const [sh1,hd,sh2]=peaks.slice(-3);
+    const sdiff=Math.abs(sh1.v-sh2.v)/Math.max(sh1.v,sh2.v)*100;
+    if(hd.v>sh1.v&&hd.v>sh2.v&&sdiff<5)
+      pts.push({name:'Head & Shoulders',dir:'bear',conf:'High',desc:'Shoulders ~$'+sh1.v.toFixed(2)+', head $'+hd.v.toFixed(2)+'. Strong bearish reversal signal.'});
+  }
+  // Inverse Head & Shoulders
+  if(troughs.length>=3){
+    const [sh1,hd,sh2]=troughs.slice(-3);
+    const sdiff=Math.abs(sh1.v-sh2.v)/Math.min(sh1.v,sh2.v)*100;
+    if(hd.v<sh1.v&&hd.v<sh2.v&&sdiff<5)
+      pts.push({name:'Inv. Head & Shoulders',dir:'bull',conf:'High',desc:'Shoulders ~$'+sh1.v.toFixed(2)+', head $'+hd.v.toFixed(2)+'. Strong bullish reversal signal.'});
+  }
+  // Bull Flag / Bear Flag
+  if(n>=20){
+    const pole=cls.slice(n-20,n-10), flag=cls.slice(n-10);
+    const poleG=(pole[9]-pole[0])/pole[0]*100;
+    const flagG=(flag[9]-flag[0])/flag[0]*100;
+    if(poleG>3&&flagG<0&&flagG>-poleG*0.5)
+      pts.push({name:'Bull Flag',dir:'bull',conf:'High',desc:'Surge +'+poleG.toFixed(1)+'%, now consolidating '+flagG.toFixed(1)+'%. Breakout imminent — target: pole height repeat.'});
+    if(poleG<-3&&flagG>0&&flagG<Math.abs(poleG)*0.5)
+      pts.push({name:'Bear Flag',dir:'bear',conf:'High',desc:'Drop '+poleG.toFixed(1)+'%, bouncing '+flagG.toFixed(1)+'%. Breakdown likely — avoid long.'});
+  }
+  // Ascending / Descending Triangle
+  if(n>=15){
+    const rH=hs.slice(-15),rL=ls.slice(-15);
+    const topRange=(Math.max(...rH)-Math.min(...rH))/Math.max(...rH)*100;
+    const botRange=(Math.max(...rL)-Math.min(...rL))/Math.max(...rL)*100;
+    if(topRange<3&&Math.min(...rL.slice(7))>Math.min(...rL.slice(0,7)))
+      pts.push({name:'Ascending Triangle',dir:'bull',conf:'Medium',desc:'Flat resistance $'+Math.max(...rH).toFixed(2)+', rising lows. Bullish breakout setup.'});
+    if(botRange<3&&Math.max(...rH.slice(7))<Math.max(...rH.slice(0,7)))
+      pts.push({name:'Descending Triangle',dir:'bear',conf:'Medium',desc:'Flat support $'+Math.min(...rL).toFixed(2)+', falling highs. Bearish breakdown setup.'});
+  }
+  // Rising / Falling Wedge
+  if(peaks.length>=2&&troughs.length>=2){
+    const rp=peaks.slice(-2),rt=troughs.slice(-2);
+    const ps=(rp[1].v-rp[0].v)/(rp[1].i-rp[0].i||1);
+    const ts=(rt[1].v-rt[0].v)/(rt[1].i-rt[0].i||1);
+    if(ps>0&&ts>0&&ts>ps) pts.push({name:'Rising Wedge',dir:'bear',conf:'Medium',desc:'Highs and lows both rising but converging. Bearish reversal — momentum weakening.'});
+    if(ps<0&&ts<0&&ts<ps) pts.push({name:'Falling Wedge',dir:'bull',conf:'Medium',desc:'Highs and lows both falling but converging. Bullish reversal — selling pressure easing.'});
+  }
+  // Support bounce
+  const rcntLow=Math.min(...ls.slice(-5));
+  if((cls[n-1]-rcntLow)/rcntLow*100<3&&cls[n-1]>cls[n-2])
+    pts.push({name:'Support Bounce',dir:'bull',conf:'Medium',desc:'Holding support at $'+rcntLow.toFixed(2)+' and reversing up. Watch for follow-through.'});
+  // Resistance rejection
+  const rcntHigh=Math.max(...hs.slice(-5));
+  if((rcntHigh-cls[n-1])/rcntHigh*100<3&&cls[n-1]<cls[n-2])
+    pts.push({name:'Resistance Rejection',dir:'bear',conf:'Medium',desc:'Rejected at resistance $'+rcntHigh.toFixed(2)+' and turning down. Sellers in control.'});
+
+  return pts;
+}
+
+// ─── News ──────────────────────────────────────────────────────────────────────
+async function loadNews() {
+  try {
+    const d = await (await fetch('https://data.alpaca.markets/v1beta1/news?sort=desc&limit=8', { headers: AH, signal: AbortSignal.timeout(6000) })).json();
+    const items = (d.news || []).slice(0, 8);
+    if (!items.length) return;
+    const track = g('news-track');
+    if (!track) return;
+    const html = items.map(n =>
+      '<span class="ni"><span class="ns">' + (n.source||'News') + '</span>' +
+      '<span class="nh">' + n.headline + '</span>' +
+      '<span class="nt">' + new Date(n.created_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) + '</span></span>'
+    ).join('<span class="nd">·</span>');
+    track.innerHTML = html + '<span class="nd">·</span>' + html; // double for loop
+  } catch {}
+}
+
 // ─── Modal ────────────────────────────────────────────────────────────────────
 const liveBars = {};
 
-function buildModal(sym, a, cfg, erTs) {
+function buildModal(sym, a, cfg, bars) {
   const label = (cfg && cfg.label) || sym;
   const liveP = (LP[sym] && LP[sym].price) || a.price;
-  const erLbl = erLabel(erTs);
-  const erBadge = erLbl ? '<span style="display:inline-block;background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.3);border-radius:5px;padding:2px 8px;font-size:12px;margin-left:8px">📅 ' + erLbl + '</span>' : '';
   const dir = getDir(a);
   const dc = dir==='bull'?'#22c55e':dir==='bear'?'#ef4444':'#64748b';
-  const checks = [
-    {l:'EMA9 vs EMA21 — short-term',pass:a.e9>a.e21,v:'EMA9 $'+a.e9+' vs EMA21 $'+a.e21,
-     n:a.e9>a.e21?'Short-term UP ✓':'Price needs ~$'+(a.e21-a.e9).toFixed(2)+' more for EMA9 to cross EMA21.'},
-    {l:'EMA21 vs EMA50 — medium-term',pass:a.e21>a.e50,v:'EMA21 $'+a.e21+' vs EMA50 $'+a.e50,
-     n:a.e21>a.e50?'Medium-term UP ✓':'EMA21 below EMA50 — broader trend still down.'},
-    {l:'RSI (buy zone 52–70)',pass:a.rsi>52&&a.rsi<70,v:'RSI '+a.rsi,
-     n:a.rsi<52?'RSI '+a.rsi+' — too weak, needs 52+.':a.rsi>=70?'RSI '+a.rsi+' — overbought, wait for cooldown.':'Buy zone ✓'},
-    {l:'Price vs VWAP',pass:a.aboveVwap,v:'$'+liveP.toFixed(2)+' vs VWAP $'+a.vwap,
-     n:a.aboveVwap?'Above VWAP — institutions buying ✓':'$'+(a.vwap-liveP).toFixed(2)+' below VWAP.'},
-    {l:'Volume conviction (need 2.5x)',pass:a.vSpike,v:a.vRat+'x avg volume',
-     n:a.vSpike?a.vRat+'x — real conviction ✓':'Only '+a.vRat+'x — need 2.5x+.'},
-    {l:'Price structure HH+HL',pass:a.hhhl,v:a.hhhl?'Confirmed':'Not forming',
-     n:a.hhhl?'Uptrend structure ✓':'Need 3 candles each with higher highs and lows.'},
-    {l:'Breakout above swing high',pass:a.breakUp,v:'Swing high $'+a.sH,
-     n:a.breakUp?'Broken above $'+a.sH+' ✓':'Need 2 closes above $'+a.sH+'. Currently $'+Math.abs(a.sH-liveP).toFixed(2)+' away.'},
-    {l:'Strong candle body (>60%)',pass:a.strongC,v:'Body '+a.body+'% of range',
-     n:a.strongC?'Strong candle ✓':'Only '+a.body+'% — indecision.'},
-  ];
-  const passed = checks.filter(c=>c.pass).length;
-  const needed = checks.filter(c=>!c.pass).slice(0,3).map(c=>'<strong>'+c.l+':</strong> '+c.n).join('<br><br>');
-  const tp=(cfg&&cfg.tp)||2.5, sl=(cfg&&cfg.sl)||1.5, hw=(cfg&&cfg.hw)||50, hp=(cfg&&cfg.hp)||0;
-  const ev = ((hw/100*tp)-((1-hw/100)*sl)).toFixed(2);
-  const risk = cfg && cfg.risk;
+  const patterns = detectPatterns(bars || []);
 
-  return '<div class="mticker">' + label + erBadge + '</div>' +
-    '<div class="mprice"><strong style="font-size:17px;color:#fff">$' + liveP.toFixed(liveP<1?5:2) + '</strong>' +
-    ' <span style="color:' + (a.chg1h>=0?'#22c55e':'#ef4444') + '">' + (a.chg1h>=0?'+':'') + a.chg1h + '% last hr</span>' +
-    ' <span style="color:#334155">· ' + a.n + ' bars</span></div>' +
-    '<div class="mdir ' + dir + '"><div style="font-size:34px;color:'+dc+';line-height:1">' + (dir==='bull'?'↑':dir==='bear'?'↓':'→') + '</div>' +
-    '<div><h4 style="color:'+dc+'">' + dir.toUpperCase() + '</h4>' +
-    '<p>' + passed + '/8 conditions · ' + (dir==='neutral'?'Waiting for conviction':dir==='bull'?'Bullish setup — key filters pass':'Bearish — avoid long') + '</p></div></div>' +
-    (erLbl?'<div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#fbbf24">⚠️ <strong>Earnings '+erLbl.replace('ER ','')+'</strong> — high volatility. Trade smaller size.</div>':'') +
-    '<div class="stitle">Why ' + dir + ' — all 8 conditions</div>' +
-    checks.map(c=>
-      '<div class="crow"><div class="ci '+(c.pass?'p':'f')+'">'+(c.pass?'✓':'✗')+'</div>' +
-      '<div class="cl"><strong>'+c.l+'</strong> <span style="color:#475569">·</span> <span style="color:#64748b;font-size:12px">'+c.v+'</span>' +
-      '<small>'+c.n+'</small></div></div>'
-    ).join('') +
-    '<div class="stitle">What needs to happen for a BUY</div>' +
-    '<div class="nbox"><p>' + (passed===8?'<strong style="color:#22c55e">✅ All 8 met — BUY fires next scan!</strong>':(needed||'Almost there')) + '</p></div>' +
-    '<div class="stitle">Key levels</div>' +
-    '<div class="nbox"><p><strong>Breakout:</strong> $'+a.sH+' — 2 closes above = BUY<br>' +
-    '<strong>Breakdown:</strong> $'+a.sL+' — close below = bearish<br>' +
-    '<strong>VWAP:</strong> $'+a.vwap+' — '+(a.aboveVwap?'✅ above':'❌ below')+'<br>' +
-    '<strong>RSI:</strong> '+a.rsi+' — '+(a.rsi<52?'needs 52+':a.rsi>70?'overbought':'buy zone ✓')+'</p></div>' +
+  const bullChecks = [
+    {l:'EMA9 > EMA21',pass:a.e9>a.e21,v:'$'+a.e9+' vs $'+a.e21,n:a.e9>a.e21?'Short-term trend UP':'Need EMA9 to cross above EMA21 ($'+(a.e21-a.e9).toFixed(2)+' gap)'},
+    {l:'EMA21 > EMA50',pass:a.e21>a.e50,v:'$'+a.e21+' vs $'+a.e50,n:a.e21>a.e50?'Medium-term trend UP':'EMA21 still below EMA50 — broad trend bearish'},
+    {l:'RSI 52–70',pass:a.rsi>52&&a.rsi<70,v:'RSI '+a.rsi,n:a.rsi<52?'Too weak — needs 52+':a.rsi>=70?'Overbought — wait for cooldown':'Buy zone ✓'},
+    {l:'Above VWAP',pass:a.aboveVwap,v:'$'+liveP.toFixed(2)+' vs VWAP $'+a.vwap,n:a.aboveVwap?'Institutions buying above VWAP ✓':'$'+(a.vwap-liveP).toFixed(2)+' below VWAP'},
+    {l:'Volume spike 2.5x',pass:a.vSpike,v:a.vRat+'x avg',n:a.vSpike?a.vRat+'x — strong conviction ✓':'Only '+a.vRat+'x, need 2.5x+ for real move'},
+    {l:'HH + HL structure',pass:a.hhhl,v:a.hhhl?'Confirmed':'Not forming',n:a.hhhl?'Higher highs & higher lows ✓':'Need 3 bars of higher highs and lows'},
+    {l:'Breakout above swing high',pass:a.breakUp,v:'Swing high $'+a.sH,n:a.breakUp?'Broke $'+a.sH+' ✓':'$'+Math.abs(a.sH-liveP).toFixed(2)+' away from breakout'},
+    {l:'Strong bullish candle',pass:a.strongC,v:'Body '+a.body+'% of range',n:a.strongC?'Strong body — conviction candle ✓':'Only '+a.body+'% — indecision candle'},
+  ];
+  const bearChecks = [
+    {l:'EMA9 < EMA21',pass:a.e9<a.e21,v:'$'+a.e9+' vs $'+a.e21,n:a.e9<a.e21?'Short-term trend DOWN ✓':'EMA9 still above EMA21 — not bearish yet'},
+    {l:'EMA21 < EMA50',pass:a.e21<a.e50,v:'$'+a.e21+' vs $'+a.e50,n:a.e21<a.e50?'Broad trend DOWN ✓':'EMA21 above EMA50 — broad trend still bullish'},
+    {l:'RSI < 48',pass:a.rsi<48,v:'RSI '+a.rsi,n:a.rsi<48?'Weak momentum ✓':'RSI '+a.rsi+' — not yet in bear zone'},
+    {l:'Below VWAP',pass:!a.aboveVwap,v:'$'+liveP.toFixed(2)+' vs VWAP $'+a.vwap,n:!a.aboveVwap?'Below VWAP — sellers in control ✓':'Still above VWAP — not bearish'},
+    {l:'Price declining',pass:!a.priceUp,v:!a.priceUp?'Price falling':'Price rising',n:!a.priceUp?'Downward price action ✓':'Price still rising — not bearish'},
+  ];
+  const bPassed = bullChecks.filter(c=>c.pass).length;
+  const dPassed = bearChecks.filter(c=>c.pass).length;
+  const tp=(cfg&&cfg.tp)||2.5, sl=(cfg&&cfg.sl)||1.5, hw=(cfg&&cfg.hw)||50, hp=(cfg&&cfg.hp)||0;
+  const ev=((hw/100*tp)-((1-hw/100)*sl)).toFixed(2);
+  const risk=cfg&&cfg.risk;
+
+  function cRow(c) {
+    return '<div class="crow"><div class="ci '+(c.pass?'p':'f')+'">'+(c.pass?'✓':'✗')+'</div>' +
+      '<div class="cl"><strong>'+c.l+'</strong> <span style="color:#475569;font-size:11px"> · '+c.v+'</span>' +
+      '<small>'+c.n+'</small></div></div>';
+  }
+
+  const patHtml = patterns.length === 0
+    ? '<div class="nbox"><p style="color:#64748b">No classic patterns detected in current bars. Needs more price history.</p></div>'
+    : patterns.map(p => {
+        const pc = p.dir==='bull'?'#22c55e':'#ef4444';
+        const bg = p.dir==='bull'?'rgba(34,197,94,.08)':'rgba(239,68,68,.08)';
+        const brd = p.dir==='bull'?'rgba(34,197,94,.2)':'rgba(239,68,68,.2)';
+        return '<div style="background:'+bg+';border:1px solid '+brd+';border-radius:8px;padding:12px 14px;margin-bottom:8px">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+          '<strong style="color:'+pc+';font-size:13px">'+(p.dir==='bull'?'↑ ':'↓ ')+p.name+'</strong>' +
+          '<span style="font-size:10px;background:'+brd+';color:'+pc+';padding:2px 7px;border-radius:10px">'+p.conf+' confidence</span></div>' +
+          '<p style="font-size:12px;color:#94a3b8;line-height:1.5">'+p.desc+'</p></div>';
+      }).join('');
+
+  return '<div class="mticker">' + label + '</div>' +
+    '<div class="mprice"><strong style="font-size:17px;color:#fff">$'+liveP.toFixed(liveP<1?5:2)+'</strong>' +
+    ' <span style="color:'+(a.chg1h>=0?'#22c55e':'#ef4444')+'">'+(a.chg1h>=0?'+':'')+a.chg1h+'% recent</span>' +
+    ' <span style="color:#334155">· '+a.n+' bars · RSI '+a.rsi+'</span></div>' +
+
+    '<div class="mdir '+dir+'"><div style="font-size:36px;color:'+dc+';line-height:1">'+(dir==='bull'?'↑':dir==='bear'?'↓':'→')+'</div>' +
+    '<div><h4 style="color:'+dc+'">'+dir.toUpperCase()+'</h4>' +
+    '<p>Bull '+bPassed+'/8 · Bear '+dPassed+'/5 · '+(dir==='neutral'?'Waiting — no conviction yet':dir==='bull'?'BUY setup forming':'SELL pressure dominant')+'</p></div></div>' +
+
+    // Two-column conditions
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">' +
+    '<div><div class="stitle" style="margin-top:0;color:#22c55e">▲ BULL CONDITIONS ('+bPassed+'/8)</div>' +
+    bullChecks.map(cRow).join('') + '</div>' +
+    '<div><div class="stitle" style="margin-top:0;color:#ef4444">▼ BEAR CONDITIONS ('+dPassed+'/5)</div>' +
+    bearChecks.map(cRow).join('') + '</div>' +
+    '</div>' +
+
+    '<div class="stitle">Chart Pattern Recognition</div>' + patHtml +
+
+    '<div class="stitle">Key Levels</div>' +
+    '<div class="nbox"><p>' +
+    '<strong>Breakout target:</strong> $'+a.sH+' — 2 closes above = BUY<br>' +
+    '<strong>Support:</strong> $'+a.sL+' — close below = danger<br>' +
+    '<strong>VWAP:</strong> $'+a.vwap+' — '+(a.aboveVwap?'✅ price above':'❌ price below')+'<br>' +
+    '<strong>EMA9/21/50:</strong> $'+a.e9+' / $'+a.e21+' / $'+a.e50 +
+    '</p></div>' +
+
     (cfg ?
-      '<div class="stitle">Backtest performance (45 days)</div>' +
-      '<div class="nbox">' +
+      '<div class="stitle">Backtest (45 days)</div><div class="nbox">' +
       '<div class="hrow"><span style="color:#94a3b8">Win rate</span><span style="color:'+(hw>=55?'#22c55e':hw>=45?'#f59e0b':'#ef4444')+'">'+hw+'%</span></div>' +
       '<div class="pbar"><div class="pfill" style="width:'+hw+'%;background:'+(hw>=55?'#22c55e':hw>=45?'#f59e0b':'#ef4444')+'"></div></div>' +
-      '<div class="hrow" style="margin-top:10px"><span style="color:#94a3b8">Total P&L</span><span class="'+(hp>=0?'g':'r')+'">'+(hp>=0?'+':'')+hp+'%</span></div>' +
-      '<div class="hrow"><span style="color:#94a3b8">Expected return</span><span style="color:'+(parseFloat(ev)>=0?'#22c55e':'#ef4444')+'">'+(parseFloat(ev)>=0?'+':'')+ev+'%</span></div>' +
+      '<div class="hrow" style="margin-top:8px"><span style="color:#94a3b8">Total P&L</span><span class="'+(hp>=0?'g':'r')+'">'+(hp>=0?'+':'')+hp+'%</span></div>' +
+      '<div class="hrow"><span style="color:#94a3b8">Expected return/trade</span><span style="color:'+(parseFloat(ev)>=0?'#22c55e':'#ef4444')+'">'+(parseFloat(ev)>=0?'+':'')+ev+'%</span></div>' +
       '<div class="hrow"><span style="color:#94a3b8">TP / SL</span><span style="color:#818cf8">+'+tp+'% / -'+sl+'%</span></div>' +
-      '<div class="hrow"><span style="color:#94a3b8">Risk</span><span class="'+(risk==='low'?'g':'a')+'">'+(risk==='low'?'✅ PROVEN WINNER':'⚠️ RISK HEAVY')+'</span></div>' +
-      '</div>'
-    : '<div class="stitle" style="margin-top:16px">Searched ticker</div><div class="nbox"><p style="color:#64748b">Not in scanner watchlist. Analysis based on live chart data only.</p></div>');
+      '<div class="hrow"><span style="color:#94a3b8">Rating</span><span class="'+(risk==='low'?'g':'a')+'">'+(risk==='low'?'✅ PROVEN WINNER':'⚠️ RISK HEAVY')+'</span></div></div>'
+    : '<div class="stitle" style="margin-top:14px">Searched ticker</div><div class="nbox"><p style="color:#64748b">Not in watchlist — analysis based on live chart data only.</p></div>');
 }
 
 async function openModal(sym) {
@@ -600,7 +743,6 @@ async function openModal(sym) {
   const bars = liveBars[sym] && liveBars[sym].length >= 5 ? liveBars[sym] : await getBars(sym, 50);
   const a = bars.length >= 5 ? analyse(bars) : null;
   const cfg = UNI[sym] || null;
-  const erTs = await getEarnings(sym);
   if (!a) {
     g('modal-body').innerHTML = '<div class="mticker">' + ((cfg&&cfg.label)||sym) + '</div>' +
       '<div class="nbox" style="margin-top:16px"><p><strong style="color:#fff">No bar data</strong><br><br>' +
@@ -610,7 +752,7 @@ async function openModal(sym) {
       (cfg?'<div class="stitle">Backtest stats</div><div class="nbox"><div class="hrow"><span style="color:#94a3b8">Win rate</span><span>'+cfg.hw+'%</span></div><div class="hrow"><span style="color:#94a3b8">P&L</span><span class="'+(cfg.hp>=0?'g':'r')+'">'+(cfg.hp>=0?'+':'')+cfg.hp+'%</span></div></div>':'');
     return;
   }
-  g('modal-body').innerHTML = buildModal(sym, a, cfg, erTs);
+  g('modal-body').innerHTML = buildModal(sym, a, cfg, bars);
 }
 
 function closeModal() { g('modal').classList.remove('open'); }
@@ -738,6 +880,8 @@ async function startAll() {
   _timers.push(setInterval(pollStocks, 3000));      // stocks every 3s
   _timers.push(setInterval(refreshDisplay, 800));   // push LP → DOM every 800ms
   _timers.push(setInterval(loadAccount, 30000));    // account every 30s
+  loadNews();
+  _timers.push(setInterval(loadNews, 300000));      // refresh news every 5 min
   await loadAccount();
   await loadTickers();
 }
