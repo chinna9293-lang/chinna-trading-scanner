@@ -151,6 +151,7 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
         <span class="badge off" id="stat-badge">● Connecting</span>
         <span id="upd-cnt" style="font-size:10px;color:#334155">0 ticks</span>
       </div>
+      <button id="alert-bell" onclick="toggleAlertPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:color .2s">🔔 Alerts</button>
       <button class="signout" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
@@ -230,6 +231,10 @@ function grant() {
   sessionStorage.setItem('ct','1');
   g('pg-login').style.display = 'none';
   g('pg-dash').style.display = 'block';
+  // Request notification permission on login
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
   startAll();
 }
 
@@ -737,10 +742,12 @@ function buildModal(sym, a, cfg, bars) {
     : '<div class="stitle" style="margin-top:14px">Searched ticker</div><div class="nbox"><p style="color:#64748b">Not in watchlist — analysis based on live chart data only.</p></div>');
 }
 
-async function openModal(sym) {
-  g('modal').classList.add('open');
-  g('modal-body').innerHTML = '<div class="empty">Loading ' + sym + '...</div>';
-  const bars = liveBars[sym] && liveBars[sym].length >= 5 ? liveBars[sym] : await getBars(sym, 50);
+// ─── Dynamic modal with live price + auto-refresh ─────────────────────────────
+let modalSym = null, modalTimer = null;
+
+async function renderModal(sym) {
+  const bars = await getBars(sym, 50);
+  liveBars[sym] = bars;
   const a = bars.length >= 5 ? analyse(bars) : null;
   const cfg = UNI[sym] || null;
   if (!a) {
@@ -752,10 +759,34 @@ async function openModal(sym) {
       (cfg?'<div class="stitle">Backtest stats</div><div class="nbox"><div class="hrow"><span style="color:#94a3b8">Win rate</span><span>'+cfg.hw+'%</span></div><div class="hrow"><span style="color:#94a3b8">P&L</span><span class="'+(cfg.hp>=0?'g':'r')+'">'+(cfg.hp>=0?'+':'')+cfg.hp+'%</span></div></div>':'');
     return;
   }
-  g('modal-body').innerHTML = buildModal(sym, a, cfg, bars);
+  const ts = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  g('modal-body').innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+    '<span style="font-size:10px;color:#334155">Analysis at ' + ts + ' · auto-refreshes every 60s</span>' +
+    '<button onclick="renderModal(\'' + sym + '\')" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#94a3b8;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer">↻ Refresh now</button>' +
+    '</div>' +
+    buildModal(sym, a, cfg, bars);
+  // Live price element inside modal also updates via display loop (data-px attr already set)
 }
 
-function closeModal() { g('modal').classList.remove('open'); }
+async function openModal(sym) {
+  modalSym = sym;
+  if (modalTimer) { clearInterval(modalTimer); modalTimer = null; }
+  g('modal').classList.add('open');
+  g('modal-body').innerHTML = '<div class="empty">Loading ' + sym + '...</div>';
+  await renderModal(sym);
+  // Auto-refresh analysis while modal is open
+  modalTimer = setInterval(() => {
+    if (modalSym && g('modal').classList.contains('open')) renderModal(modalSym);
+    else { clearInterval(modalTimer); modalTimer = null; }
+  }, 60000);
+}
+
+function closeModal() {
+  g('modal').classList.remove('open');
+  modalSym = null;
+  if (modalTimer) { clearInterval(modalTimer); modalTimer = null; }
+}
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 async function doSearch() {
@@ -766,6 +797,74 @@ async function doSearch() {
   const sym = await resolveSym(raw);
   if (sym !== raw.toUpperCase()) g('s-sym').value = sym;
   openModal(sym);
+}
+
+// ─── Alert system ─────────────────────────────────────────────────────────────
+const dirCache = {};  // sym → last known direction
+const alertLog = []; // recent alerts shown in bell panel
+
+function fireAlert(sym, dir, bPassed, dPassed) {
+  const label = (UNI[sym] && UNI[sym].label) || sym;
+  const price = (LP[sym] && LP[sym].price) || 0;
+  const dec = price < 1 ? 5 : price < 100 ? 3 : 2;
+  const msg = dir === 'bull'
+    ? label + ' turned BULLISH — ' + bPassed + '/8 conditions met @ $' + price.toFixed(dec)
+    : label + ' turned BEARISH — ' + dPassed + '/5 conditions met @ $' + price.toFixed(dec);
+
+  // Browser notification
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('🔔 Chinna Trading Alert', {
+      body: msg,
+      icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⬡</text></svg>'
+    });
+  }
+
+  // In-app alert log
+  const ts = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  alertLog.unshift({sym, label, dir, msg, ts});
+  if (alertLog.length > 20) alertLog.pop();
+
+  // Flash bell
+  const bell = g('alert-bell');
+  if (bell) {
+    bell.style.color = dir === 'bull' ? '#22c55e' : '#ef4444';
+    bell.textContent = '🔔 ' + alertLog.length;
+    setTimeout(() => { bell.style.color = ''; }, 3000);
+  }
+}
+
+function checkAlerts(sym, a) {
+  const dir = getDir(a);
+  const prev = dirCache[sym];
+  dirCache[sym] = dir;
+  if (!prev || prev === dir) return; // no change
+  const bs = (a.e9>a.e21?1:0)+(a.e21>a.e50?1:0)+(a.rsi>52&&a.rsi<70?1:0)+(a.aboveVwap?1:0)+(a.priceUp?1:0)+(a.vSpike?1:0)+(a.hhhl?1:0)+(a.breakUp?1:0);
+  const ds = (a.e9<a.e21?1:0)+(a.e21<a.e50?1:0)+(a.rsi<48?1:0)+(!a.aboveVwap?1:0)+(!a.priceUp?1:0);
+  if (dir === 'bull' || dir === 'bear') fireAlert(sym, dir, bs, ds);
+}
+
+function toggleAlertPanel() {
+  let panel = g('alert-panel');
+  if (panel) { panel.remove(); return; }
+  panel = document.createElement('div');
+  panel.id = 'alert-panel';
+  panel.style.cssText = 'position:fixed;top:54px;right:16px;width:320px;max-height:400px;overflow-y:auto;background:#1a1a24;border:1px solid #2d2d3d;border-radius:10px;z-index:200;padding:14px;';
+  panel.innerHTML = '<div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:10px">Recent Alerts</div>' +
+    (alertLog.length === 0
+      ? '<p style="font-size:12px;color:#475569">No alerts yet. Alerts fire when a ticker changes direction.</p>'
+      : alertLog.map(a =>
+          '<div style="padding:8px 0;border-bottom:1px solid #1e1e2e;font-size:12px">' +
+          '<span style="color:'+(a.dir==='bull'?'#22c55e':'#ef4444')+';font-weight:700">'+(a.dir==='bull'?'↑ ':'↓ ')+a.label+'</span>' +
+          '<span style="color:#64748b;float:right">'+a.ts+'</span><br>' +
+          '<span style="color:#94a3b8">'+a.msg+'</span></div>'
+        ).join('')
+    );
+  document.body.appendChild(panel);
+  document.addEventListener('click', function outside(e) {
+    if (!panel.contains(e.target) && e.target.id !== 'alert-bell') {
+      panel.remove(); document.removeEventListener('click', outside);
+    }
+  }, true);
 }
 
 // ─── Ticker grid ──────────────────────────────────────────────────────────────
@@ -788,6 +887,7 @@ async function loadTickers() {
       chgHtml = '<span style="font-size:11px;color:'+(pct>=0?'#22c55e':'#ef4444')+'">'+(pct>=0?'▲ +':'▼ ')+Math.abs(pct).toFixed(2)+'%</span>';
       dir = getDir(a);
       arrow = dir==='bull' ? (a.vSpike?'↑':'↗') : dir==='bear' ? (a.vSpike?'↓':'↘') : '→';
+      checkAlerts(sym, a);
     }
     const dc = dir==='bull'?'#22c55e':dir==='bear'?'#ef4444':'#64748b';
     const rb = cfg.risk==='high'
