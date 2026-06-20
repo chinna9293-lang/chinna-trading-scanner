@@ -7,12 +7,32 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f13; color: #e2e8f0; min-height: 100vh; }
+
+/* LOGIN */
+.login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+.login-box { background: #1a1a24; border: 1px solid #2d2d3d; border-radius: 14px; padding: 36px 32px; width: 360px; }
+.login-logo { text-align: center; font-size: 32px; margin-bottom: 6px; }
+.login-title { text-align: center; font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.login-sub { text-align: center; font-size: 13px; color: #64748b; margin-bottom: 28px; }
+.login-label { font-size: 12px; color: #64748b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .05em; }
+.login-input { width: 100%; background: #0f0f13; border: 1px solid #2d2d3d; border-radius: 8px; padding: 11px 14px; color: #e2e8f0; font-size: 14px; margin-bottom: 16px; outline: none; }
+.login-input:focus { border-color: #6366f1; }
+.login-btn { width: 100%; background: #6366f1; color: #fff; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 4px; }
+.login-btn:hover { background: #4f46e5; }
+.login-err { color: #ef4444; font-size: 13px; text-align: center; margin-top: 12px; min-height: 18px; }
+
+/* HEADER */
 .header { background: #1a1a24; border-bottom: 1px solid #2d2d3d; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
 .logo { font-size: 16px; font-weight: 600; color: #fff; }
 .logo span { color: #6366f1; }
+.hdr-right { display: flex; align-items: center; gap: 16px; }
 .status { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #94a3b8; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.logout-btn { background: transparent; border: 1px solid #2d2d3d; color: #64748b; padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.logout-btn:hover { border-color: #ef4444; color: #ef4444; }
+
+/* DASH */
 .dash { padding: 24px; max-width: 1400px; margin: 0 auto; }
 .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
 .metric { background: #1a1a24; border: 1px solid #2d2d3d; border-radius: 10px; padding: 16px 20px; }
@@ -27,26 +47,23 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th { text-align: left; color: #64748b; font-weight: 500; font-size: 11px; text-transform: uppercase; padding: 0 0 10px; letter-spacing: .05em; }
 td { padding: 10px 0; border-top: 1px solid #1e1e2e; color: #cbd5e1; vertical-align: middle; }
 .ticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
-.ticker-card { background: #0f0f13; border: 1px solid #2d2d3d; border-radius: 8px; padding: 12px; cursor: pointer; transition: all .15s; position: relative; }
+.ticker-card { background: #0f0f13; border: 1px solid #2d2d3d; border-radius: 8px; padding: 12px; cursor: pointer; transition: all .15s; }
 .ticker-card:hover { border-color: #6366f1; transform: translateY(-1px); }
 .ticker-card.bull { border-left: 3px solid #22c55e; }
 .ticker-card.bear { border-left: 3px solid #ef4444; }
 .ticker-card.neutral { border-left: 3px solid #475569; }
 .ticker-name { font-size: 13px; font-weight: 700; color: #fff; }
-.ticker-dir { font-size: 22px; margin: 4px 0 2px; }
-.ticker-rsi { font-size: 11px; color: #64748b; }
 .empty { color: #475569; font-size: 13px; text-align: center; padding: 24px; }
 .refresh-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
 .refresh-bar span { font-size: 13px; color: #64748b; }
 .refresh-btn { background: transparent; border: 1px solid #2d2d3d; color: #94a3b8; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
-.refresh-btn:hover { background: #2d2d3d; }
 .section-full { margin-bottom: 24px; }
 
-/* Modal */
+/* MODAL */
 .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 100; align-items: center; justify-content: center; }
 .modal-bg.open { display: flex; }
 .modal { background: #1a1a24; border: 1px solid #2d2d3d; border-radius: 14px; width: 540px; max-width: 95vw; max-height: 90vh; overflow-y: auto; padding: 28px; position: relative; }
-.modal-close { position: absolute; top: 16px; right: 18px; background: none; border: none; color: #64748b; font-size: 22px; cursor: pointer; line-height: 1; }
+.modal-close { position: absolute; top: 16px; right: 18px; background: none; border: none; color: #64748b; font-size: 22px; cursor: pointer; }
 .modal-close:hover { color: #fff; }
 .modal-ticker { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 4px; }
 .modal-price { font-size: 15px; color: #94a3b8; margin-bottom: 20px; }
@@ -62,64 +79,134 @@ td { padding: 10px 0; border-top: 1px solid #1e1e2e; color: #cbd5e1; vertical-al
 .check-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; margin-top: 1px; }
 .check-icon.pass { background: rgba(34,197,94,.15); color: #22c55e; }
 .check-icon.fail { background: rgba(239,68,68,.15); color: #ef4444; }
-.check-icon.warn { background: rgba(245,158,11,.15); color: #f59e0b; }
 .check-label { color: #cbd5e1; line-height: 1.4; }
 .check-label strong { color: #fff; }
 .check-label small { display: block; color: #64748b; font-size: 11px; margin-top: 2px; }
 .need-box { background: #0f0f13; border: 1px solid #2d2d3d; border-radius: 8px; padding: 14px 16px; margin-top: 6px; }
-.need-box p { font-size: 13px; color: #94a3b8; line-height: 1.6; }
+.need-box p { font-size: 13px; color: #94a3b8; line-height: 1.7; }
 .need-box p strong { color: #818cf8; }
 .hist-row { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px solid #1e1e2e; }
 .hist-row:last-child { border-bottom: none; }
 .progress-bar { height: 6px; background: #1e1e2e; border-radius: 3px; margin-top: 8px; overflow: hidden; }
 .progress-fill { height: 100%; border-radius: 3px; }
+.no-data-box { background: #0f0f13; border: 1px solid #334155; border-radius: 8px; padding: 20px; }
+.no-data-box p { font-size: 13px; color: #64748b; line-height: 1.7; }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="logo"><span>⬡</span> Chinna Trading</div>
-  <div class="status"><div class="dot"></div><span id="last-update">Loading...</span></div>
-</div>
-
-<div class="dash">
-  <div class="refresh-bar">
-    <span id="scan-time">Connecting...</span>
-    <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
-  </div>
-
-  <div class="metrics">
-    <div class="metric"><div class="label">Portfolio Value</div><div class="val" id="m-equity">—</div><div class="sub">Paper account</div></div>
-    <div class="metric"><div class="label">Cash Available</div><div class="val" id="m-cash">—</div><div class="sub">Ready to trade</div></div>
-    <div class="metric"><div class="label">Today's P&L</div><div class="val" id="m-pnl">—</div><div class="sub" id="m-pnl-sub">—</div></div>
-    <div class="metric"><div class="label">Open Positions</div><div class="val" id="m-pos">—</div><div class="sub" id="m-pos-sub">—</div></div>
-  </div>
-
-  <div class="section-full card">
-    <h3>Market Predictions — click any ticker for full analysis</h3>
-    <div class="ticker-grid" id="ticker-grid">Loading...</div>
-  </div>
-
-  <div class="grid2">
-    <div class="card"><h3>Open Positions</h3><div id="positions-body"><div class="empty">No open positions</div></div></div>
-    <div class="card"><h3>Today's Trades</h3><div id="orders-body"><div class="empty">No trades today</div></div></div>
-  </div>
-
-  <div class="section-full card">
-    <h3>All Orders — Last 7 Days</h3>
-    <div id="history-body"><div class="empty">Loading...</div></div>
+<!-- LOGIN PAGE -->
+<div id="login-page" class="login-wrap">
+  <div class="login-box">
+    <div class="login-logo">⬡</div>
+    <div class="login-title">Chinna Trading</div>
+    <div class="login-sub">Sign in to access your dashboard</div>
+    <div class="login-label">Username</div>
+    <input class="login-input" id="inp-user" type="text" placeholder="Username" autocomplete="username" />
+    <div class="login-label">Password</div>
+    <input class="login-input" id="inp-pass" type="password" placeholder="Password" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')doLogin()" />
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-err" id="login-err"></div>
   </div>
 </div>
 
-<!-- Ticker Detail Modal -->
+<!-- DASHBOARD PAGE -->
+<div id="dashboard-page" style="display:none">
+  <div class="header">
+    <div class="logo"><span>⬡</span> Chinna Trading</div>
+    <div class="hdr-right">
+      <div class="status"><div class="dot"></div><span id="last-update">Loading...</span></div>
+      <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="dash">
+    <div class="refresh-bar">
+      <span id="scan-time">Connecting...</span>
+      <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+    </div>
+
+    <div class="metrics">
+      <div class="metric"><div class="label">Portfolio Value</div><div class="val" id="m-equity">—</div><div class="sub">Paper account</div></div>
+      <div class="metric"><div class="label">Cash Available</div><div class="val" id="m-cash">—</div><div class="sub">Ready to trade</div></div>
+      <div class="metric"><div class="label">Today's P&L</div><div class="val" id="m-pnl">—</div><div class="sub" id="m-pnl-sub">—</div></div>
+      <div class="metric"><div class="label">Open Positions</div><div class="val" id="m-pos">—</div><div class="sub" id="m-pos-sub">—</div></div>
+    </div>
+
+    <div class="section-full card">
+      <h3>Market Predictions — click any ticker for full analysis</h3>
+      <div class="ticker-grid" id="ticker-grid"><div class="empty">Loading...</div></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card"><h3>Open Positions</h3><div id="positions-body"><div class="empty">No open positions</div></div></div>
+      <div class="card"><h3>Today's Trades</h3><div id="orders-body"><div class="empty">No trades today</div></div></div>
+    </div>
+
+    <div class="section-full card">
+      <h3>All Orders — Last 7 Days</h3>
+      <div id="history-body"><div class="empty">Loading...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TICKER MODAL -->
 <div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
-  <div class="modal" id="modal-content">
+  <div class="modal">
     <button class="modal-close" onclick="closeModal()">✕</button>
-    <div id="modal-body">Loading...</div>
+    <div id="modal-body"><div class="empty">Loading...</div></div>
   </div>
 </div>
 
 <script>
+// ── Auth ─────────────────────────────────────────────────────────────────────
+// The raw password is NOT stored here. Only a SHA-256 hash of "username:password".
+// To verify: sha256("Trade01:Trade01") === the hash below.
+const AUTH_HASH = 'e2ebe6308883a6ef7642bb03ee351e2d70d44465c89f61574a75bdb2f86a229c';
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function doLogin() {
+  const u = document.getElementById('inp-user').value.trim();
+  const p = document.getElementById('inp-pass').value;
+  if (!u || !p) { document.getElementById('login-err').textContent = 'Please enter username and password'; return; }
+  const h = await sha256(u + ':' + p);
+  if (h === AUTH_HASH) {
+    sessionStorage.setItem('ct_auth', '1');
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('dashboard-page').style.display = 'block';
+    loadAll();
+  } else {
+    document.getElementById('login-err').textContent = 'Incorrect username or password';
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('ct_auth');
+  document.getElementById('dashboard-page').style.display = 'none';
+  document.getElementById('login-page').style.display = 'flex';
+  document.getElementById('inp-user').value = '';
+  document.getElementById('inp-pass').value = '';
+  document.getElementById('login-err').textContent = '';
+}
+
+// Restore session if page is reloaded
+if (sessionStorage.getItem('ct_auth') === '1') {
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('dashboard-page').style.display = 'block';
+}
+
+// ── Alpaca credentials ────────────────────────────────────────────────────────
+const AK  = 'PK7T6WNU6ANNWQXMWFFFSYLKR7';
+const AS  = 'EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHGoMBtNKDoz6';
+const AB  = 'https://paper-api.alpaca.markets';
+const HDR = { 'APCA-API-KEY-ID': AK, 'APCA-API-SECRET-KEY': AS };
+
+// ── Ticker universe ───────────────────────────────────────────────────────────
 const UNIVERSE = {
   LLY:{risk:'low',histWin:55,histPnl:14.7,tp:2.5,sl:1.5},
   COST:{risk:'low',histWin:58,histPnl:13.3,tp:2.5,sl:1.0},
@@ -155,173 +242,215 @@ const UNIVERSE = {
   ORCL:{risk:'high',histWin:42,histPnl:3.3,tp:2.0,sl:1.5},
 };
 
-const KEY='PK7T6WNU6ANNWQXMWFFFSYLKR7',SEC='EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHGoMBtNKDoz6',BASE='https://paper-api.alpaca.markets';
-const hdr = {'APCA-API-KEY-ID':KEY,'APCA-API-SECRET-KEY':SEC};
-
 function $(id){return document.getElementById(id);}
 function fmt(n){return '$'+parseFloat(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtPct(n){return(n>=0?'+':'')+parseFloat(n).toFixed(2)+'%';}
+async function apGet(path){const r=await fetch(AB+path,{headers:HDR});return r.json();}
 
-async function apGet(path){const r=await fetch(BASE+path,{headers:hdr});return r.json();}
-
-async function getBars(sym, limit=40){
-  const isCrypto=sym.endsWith('USD')&&sym.length>3;
-  try{
-    if(isCrypto){
-      const s=sym.slice(0,-3)+'/USD';
-      const d=await(await fetch(`https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=${encodeURIComponent(s)}&timeframe=5Min&limit=${limit}`,{headers:hdr})).json();
-      return(d.bars&&d.bars[s])||[];
-    }else{
-      const d=await(await fetch(`https://data.alpaca.markets/v2/stocks/${sym}/bars?timeframe=5Min&limit=${limit}&feed=iex`,{headers:hdr})).json();
-      return d.bars||[];
+// ── Fetch bars — tries multiple endpoints/timeframes until we get data ─────────
+async function getBars(sym, limit=50) {
+  const isCrypto = sym.endsWith('USD') && sym.length > 3;
+  if (isCrypto) {
+    const s = sym.slice(0, -3) + '/USD';
+    const base = 'https://data.alpaca.markets/v1beta3/crypto/us/bars';
+    for (const tf of ['5Min','15Min','1Hour']) {
+      try {
+        const d = await (await fetch(`${base}?symbols=${encodeURIComponent(s)}&timeframe=${tf}&limit=${limit}`,{headers:HDR})).json();
+        const bars = (d.bars && d.bars[s]) || [];
+        if (bars.length >= 5) return bars;
+      } catch {}
     }
-  }catch{return[];}
+  } else {
+    const base = `https://data.alpaca.markets/v2/stocks/${sym}/bars`;
+    for (const [tf, feed] of [['5Min','sip'],['5Min','iex'],['15Min','sip'],['1Hour','sip']]) {
+      try {
+        const d = await (await fetch(`${base}?timeframe=${tf}&limit=${limit}&feed=${feed}&adjustment=raw`,{headers:HDR})).json();
+        const bars = d.bars || [];
+        if (bars.length >= 5) return bars;
+      } catch {}
+    }
+  }
+  return [];
 }
 
-function analyse(bars){
-  if(bars.length<10) return null;
-  const cls=bars.map(b=>b.c), vols=bars.map(b=>b.v), hs=bars.map(b=>b.h), ls=bars.map(b=>b.l);
+// ── Technical analysis ────────────────────────────────────────────────────────
+function analyse(bars) {
+  if (bars.length < 5) return null;
+  const cls=bars.map(b=>b.c), vols=bars.map(b=>b.v);
+  const hs=bars.map(b=>b.h), ls=bars.map(b=>b.l);
   const n=cls.length;
   let e9=cls[0],e21=cls[0],e50=cls[0];
-  for(let i=1;i<n;i++){e9=cls[i]*(2/10)+e9*(1-2/10);e21=cls[i]*(2/22)+e21*(1-2/22);e50=cls[i]*(2/51)+e50*(1-2/51);}
+  for(let i=1;i<n;i++){
+    e9=cls[i]*(2/10)+e9*(1-2/10);
+    e21=cls[i]*(2/22)+e21*(1-2/22);
+    e50=cls[i]*(2/51)+e50*(1-2/51);
+  }
   let g=0,l2=0;
-  for(let i=Math.max(1,n-14);i<n;i++){const d=cls[i]-cls[i-1];if(d>0)g+=d;else l2-=d;}
+  const rsiW=Math.min(14,n-1);
+  for(let i=n-rsiW;i<n;i++){const d=cls[i]-cls[i-1];if(d>0)g+=d;else l2-=d;}
   const rsi=Math.round(100-100/(1+(g/(l2||0.001))));
-  const volAvg=vols.slice(-11,-1).reduce((a,b)=>a+b,0)/10||1;
+  const volSlice=vols.slice(-Math.min(11,n),-1);
+  const volAvg=volSlice.reduce((a,b)=>a+b,0)/(volSlice.length||1)||1;
   const volRatio=+(vols[n-1]/volAvg).toFixed(1);
-  const volSpike=volRatio>=2.5;
-  const last=bars[n-1], prev=bars[n-2];
-  const bodyPct=Math.abs(last.c-last.o)/(last.h-last.l||1);
-  const strongCandle=bodyPct>0.6;
-  const swingH=Math.max(...hs.slice(-12,-2));
-  const swingL=Math.min(...ls.slice(-12,-2));
-  const breakUp=cls[n-1]>swingH&&cls[n-2]>swingH;
-  const breakDn=cls[n-1]<swingL&&cls[n-2]<swingL;
-  const hhhl=hs[n-1]>hs[n-2]&&hs[n-2]>hs[n-3]&&ls[n-1]>ls[n-2];
-  const lhll=hs[n-1]<hs[n-2]&&hs[n-2]<hs[n-3]&&ls[n-1]<ls[n-2];
-  const priceUp=cls[n-1]>cls[n-4];
+  const last=bars[n-1];
+  const range=last.h-last.l||0.0001;
+  const bodyPct=Math.abs(last.c-last.o)/range;
+  const swingH=Math.max(...hs.slice(-Math.min(12,n),-1));
+  const swingL=Math.min(...ls.slice(-Math.min(12,n),-1));
+  const breakUp=n>=2&&cls[n-1]>swingH&&cls[n-2]>swingH;
+  const hhhl=n>=4&&hs[n-1]>hs[n-2]&&hs[n-2]>hs[n-3]&&ls[n-1]>ls[n-2];
+  const priceUp=n>=4&&cls[n-1]>cls[n-4];
   const tv=bars.reduce((s,b)=>s+(b.h+b.l+b.c)/3*b.v,0);
   const tv2=bars.reduce((s,b)=>s+b.v,0);
   const vwap=tv2>0?tv/tv2:cls[n-1];
-  const aboveVwap=last.c>vwap;
-
+  const chgN=Math.min(12,n-1);
+  const change1h=+(((cls[n-1]-cls[n-1-chgN])/cls[n-1-chgN])*100).toFixed(2);
   return {
     rsi,e9:+e9.toFixed(2),e21:+e21.toFixed(2),e50:+e50.toFixed(2),
-    volRatio,volSpike,strongCandle,bodyPct:+(bodyPct*100).toFixed(0),
-    breakUp,breakDn,hhhl,lhll,aboveVwap,priceUp,
+    volRatio,volSpike:volRatio>=2.5,
+    strongCandle:bodyPct>0.6,bodyPct:+(bodyPct*100).toFixed(0),
+    breakUp,hhhl,aboveVwap:last.c>vwap,priceUp,
     vwap:+vwap.toFixed(2),swingH:+swingH.toFixed(2),swingL:+swingL.toFixed(2),
-    price:+last.c.toFixed(4),
-    ema9bull:e9>e21&&e21>e50, ema9bear:e9<e21&&e21<e50,
-    change1h:+(((cls[n-1]-cls[Math.max(0,n-12)])/cls[Math.max(0,n-12)])*100).toFixed(2),
+    price:+last.c,change1h,barCount:n,
   };
 }
 
-function buildModal(sym, a, cfg){
+// ── Modal HTML ────────────────────────────────────────────────────────────────
+function buildModal(sym, a, cfg) {
   const label=cfg.label||sym;
-  const isCrypto=sym.endsWith('USD')&&sym.length>3;
+  const bullScore=(a.e9>a.e21?1:0)+(a.rsi>52?1:0)+(a.aboveVwap?1:0)+(a.priceUp?1:0)+(a.volRatio>1.5?1:0);
+  const bearScore=(a.e9<a.e21?1:0)+(a.rsi<48?1:0)+(!a.aboveVwap?1:0)+(!a.priceUp?1:0);
+  const dir=bullScore>=4?'bull':bearScore>=4?'bear':'neutral';
+  const dirColor=dir==='bull'?'#22c55e':dir==='bear'?'#ef4444':'#64748b';
+  const dirArrow=dir==='bull'?'↑':dir==='bear'?'↓':'→';
+  const dirLabel=dir==='bull'?'BULLISH':dir==='bear'?'BEARISH':'NEUTRAL';
 
-  // Determine overall direction
-  const bullScore = (a.e9>a.e21?1:0)+(a.rsi>52?1:0)+(a.aboveVwap?1:0)+(a.priceUp?1:0)+(a.volRatio>1.5?1:0);
-  const bearScore = (a.e9<a.e21?1:0)+(a.rsi<48?1:0)+(!a.aboveVwap?1:0)+(!a.priceUp?1:0)+(a.volRatio>1.5?1:0);
-  const dir = bullScore>=4?'bull':bearScore>=4?'bear':'neutral';
-  const dirColor = dir==='bull'?'#22c55e':dir==='bear'?'#ef4444':'#64748b';
-  const dirArrow = dir==='bull'?'↑':dir==='bear'?'↓':'→';
-  const dirLabel = dir==='bull'?'BULLISH':dir==='bear'?'BEARISH':'NEUTRAL';
-
-  // Build condition checks
-  const checks = [
-    { label:'EMA9 vs EMA21', pass:a.e9>a.e21, value:`EMA9 $${a.e9} vs EMA21 $${a.e21}`, need:`EMA9 must cross above EMA21. Currently ${a.e9>a.e21?'above ✓':'below — needs +$'+(a.e21-a.e9).toFixed(2)+' move'}` },
-    { label:'EMA21 vs EMA50', pass:a.e21>a.e50, value:`EMA21 $${a.e21} vs EMA50 $${a.e50}`, need:`EMA21 must be above EMA50. Currently ${a.e21>a.e50?'above ✓':'below — trend not fully confirmed'}` },
-    { label:'RSI momentum', pass:a.rsi>52&&a.rsi<70, value:`RSI: ${a.rsi}`, need:`RSI needs to be 52–70 for bullish entry. Currently ${a.rsi<52?'too weak at '+a.rsi+' — needs buying pressure':a.rsi>70?'overbought at '+a.rsi+' — may pull back':'in range ✓'}` },
-    { label:'Price vs VWAP', pass:a.aboveVwap, value:`Price $${a.price} vs VWAP $${a.vwap}`, need:`Price must be above VWAP. Currently ${a.aboveVwap?'above ✓':'below by $'+(a.vwap-a.price).toFixed(2)+' — institutional sellers in control'}` },
-    { label:'Volume spike', pass:a.volSpike, value:`Volume: ${a.volRatio}x average`, need:`Need 2.5x+ average volume for strong entry. Currently ${a.volRatio}x — ${a.volSpike?'sufficient ✓':'not enough buyer conviction yet'}` },
-    { label:'Price structure (HH+HL)', pass:a.hhhl, value:a.hhhl?'Higher highs + higher lows forming':'Structure not bullish', need:`Need 3 candles showing higher highs and higher lows. ${a.hhhl?'Pattern confirmed ✓':'Currently showing flat or bearish candle sequence'}` },
-    { label:'Breakout above swing high', pass:a.breakUp, value:`Swing high: $${a.swingH}`, need:`Price must close above $${a.swingH} on 2 consecutive candles. Currently at $${a.price} — ${a.breakUp?'broken out ✓':'$'+(a.swingH-a.price).toFixed(2)+' away from breakout'}` },
-    { label:'Strong candle body', pass:a.strongCandle, value:`Body: ${a.bodyPct}% of range`, need:`Candle body must be >60% of its range. Currently ${a.bodyPct}% — ${a.strongCandle?'strong ✓':'weak candle, indecision in market'}` },
+  const checks=[
+    {label:'EMA9 vs EMA21 — short-term momentum',pass:a.e9>a.e21,value:`EMA9 $${a.e9}  vs  EMA21 $${a.e21}`,
+      need:a.e9>a.e21?'Short-term trend is UP ✓':`EMA9 is below EMA21 — short-term momentum is down. Price needs to rise ~$${(a.e21-a.e9).toFixed(2)} more to trigger the crossover.`},
+    {label:'EMA21 vs EMA50 — medium-term trend',pass:a.e21>a.e50,value:`EMA21 $${a.e21}  vs  EMA50 $${a.e50}`,
+      need:a.e21>a.e50?'Medium-term trend is UP ✓':'EMA21 is below EMA50 — the broader trend is still bearish. Needs sustained buying pressure over several more candles.'},
+    {label:'RSI momentum (buy zone: 52–70)',pass:a.rsi>52&&a.rsi<70,value:`RSI: ${a.rsi}`,
+      need:a.rsi<52?`RSI is ${a.rsi} — weak. Buyers need to push RSI above 52 to show real momentum.`:a.rsi>=70?`RSI is ${a.rsi} — overbought. Risk of pullback. Wait for RSI to cool below 70.`:`RSI ${a.rsi} is in the buy zone ✓`},
+    {label:'Price vs VWAP — institutional level',pass:a.aboveVwap,value:`Price $${a.price.toFixed(2)}  vs  VWAP $${a.vwap}`,
+      need:a.aboveVwap?'Price is above VWAP — institutions are buyers ✓':`Price is $${(a.vwap-a.price).toFixed(2)} below VWAP. Institutions are net sellers at this level. Need price to reclaim VWAP.`},
+    {label:'Volume conviction (need 2.5x average)',pass:a.volSpike,value:`Volume: ${a.volRatio}x average`,
+      need:a.volSpike?`Strong volume at ${a.volRatio}x — real conviction behind the move ✓`:`Volume is only ${a.volRatio}x average. Need 2.5x+ volume to confirm a real breakout, not a fake-out.`},
+    {label:'Price structure — higher highs + higher lows',pass:a.hhhl,value:a.hhhl?'HH+HL uptrend pattern confirmed':'Uptrend structure not forming',
+      need:a.hhhl?'Candles show higher highs and higher lows — uptrend structure confirmed ✓':'Need 3 consecutive candles each making a higher high and higher low. Current candle sequence is flat or mixed.'},
+    {label:'Breakout above swing high',pass:a.breakUp,value:`Swing high: $${a.swingH}`,
+      need:a.breakUp?`Broken out above $${a.swingH} on 2 candles ✓`:`Need price to close above $${a.swingH} on 2 back-to-back candles. Currently $${(a.swingH-a.price).toFixed(2)} away from breakout.`},
+    {label:'Strong candle body (>60% of its range)',pass:a.strongCandle,value:`Candle body: ${a.bodyPct}% of range`,
+      need:a.strongCandle?`${a.bodyPct}% body — strong decisive candle ✓`:`Body is only ${a.bodyPct}% of the range. Long wicks show indecision. Need a clean directional candle to enter.`},
   ];
 
-  const passed = checks.filter(c=>c.pass).length;
-  const failed = checks.filter(c=>!c.pass);
-
-  // What's needed to turn bullish
-  const neededForBull = failed.slice(0,3).map(c=>`<strong>${c.label}</strong>: ${c.need}`).join('<br><br>');
-
-  const ev = ((cfg.histWin/100*cfg.tp)-((1-cfg.histWin/100)*cfg.sl)).toFixed(2);
-  const evPos = parseFloat(ev)>=0;
+  const passed=checks.filter(c=>c.pass).length;
+  const failed=checks.filter(c=>!c.pass);
+  const needed=failed.slice(0,3).map(c=>`<strong>${c.label}:</strong> ${c.need}`).join('<br><br>');
+  const ev=((cfg.histWin/100*cfg.tp)-((1-cfg.histWin/100)*cfg.sl)).toFixed(2);
 
   return `
     <div class="modal-ticker">${label}</div>
-    <div class="modal-price">$${a.price} &nbsp;·&nbsp; <span style="color:${a.change1h>=0?'#22c55e':'#ef4444'}">${a.change1h>=0?'+':''}${a.change1h}% last hour</span></div>
+    <div class="modal-price">
+      $${a.price.toFixed(a.price<1?4:2)}
+      &nbsp;·&nbsp;<span style="color:${a.change1h>=0?'#22c55e':'#ef4444'}">${a.change1h>=0?'+':''}${a.change1h}% last hour</span>
+      &nbsp;·&nbsp;<span style="color:#334155">${a.barCount} bars</span>
+    </div>
 
     <div class="modal-dir ${dir}">
-      <div class="modal-dir-arrow" style="color:${dirColor}">${dirArrow}</div>
+      <div class="modal-dir-arrow" style="color:${dirColor};line-height:1">${dirArrow}</div>
       <div class="modal-dir-text">
         <h4 style="color:${dirColor}">${dirLabel}</h4>
-        <p>${passed}/8 conditions met &nbsp;·&nbsp; ${dir==='neutral'?'Waiting for clearer signal':dir==='bull'?'Bullish momentum building':'Bearish pressure active'}</p>
+        <p>${passed}/8 conditions met &nbsp;·&nbsp;
+        ${dir==='neutral'?'Waiting for more conviction — not enough signals yet':
+          dir==='bull'?'Bullish momentum building — trade signal possible soon':'Bearish pressure active — avoid long entry'}</p>
       </div>
     </div>
 
-    <div class="section-title">Condition Checklist — what the scanner looks at</div>
+    <div class="section-title">Why it is ${dirLabel.toLowerCase()} right now — all 8 conditions</div>
     ${checks.map(c=>`
       <div class="check-row">
         <div class="check-icon ${c.pass?'pass':'fail'}">${c.pass?'✓':'✗'}</div>
         <div class="check-label">
-          <strong>${c.label}</strong> — ${c.value}
+          <strong>${c.label}</strong>
+          &nbsp;<span style="color:#334155">·</span>&nbsp;
+          <span style="color:#64748b;font-size:12px">${c.value}</span>
           <small>${c.need}</small>
         </div>
       </div>`).join('')}
 
     <div class="section-title">What needs to happen to trigger a BUY signal</div>
     <div class="need-box">
-      <p>${passed===8?'<strong style="color:#22c55e">All conditions met — scanner will trigger BUY on next scan!</strong>':neededForBull||'<strong>Almost there</strong> — minor conditions remaining'}</p>
+      <p>${passed===8
+        ?'<strong style="color:#22c55e">✅ All 8 conditions met — scanner will place a BUY on the next 5-min scan!</strong>'
+        :(needed||'<strong>Almost there</strong> — minor conditions still pending')}</p>
     </div>
 
-    <div class="section-title">Key levels to watch</div>
-    <div class="need-box">
-      <p>
-        <strong>Breakout target:</strong> $${a.swingH} (close above this 2 candles = BUY signal)<br>
-        <strong>Breakdown risk:</strong> $${a.swingL} (close below = bearish)<br>
-        <strong>VWAP:</strong> $${a.vwap} (${a.aboveVwap?'holding above — bulls in control':'below — bears in control'})<br>
-        <strong>RSI needs:</strong> ${a.rsi<52?'Rise from '+a.rsi+' to 52+ for momentum':a.rsi>70?'Cool from '+a.rsi+' to <70 to avoid overbought':'Already in buy zone at '+a.rsi}
-      </p>
-    </div>
+    <div class="section-title">Key price levels to watch</div>
+    <div class="need-box"><p>
+      <strong>Breakout level:</strong> $${a.swingH} — 2 closes above this = BUY signal<br>
+      <strong>Breakdown level:</strong> $${a.swingL} — close below = bearish, scanner avoids<br>
+      <strong>VWAP:</strong> $${a.vwap} — ${a.aboveVwap?'✅ above (bullish)':'❌ below (bearish)'}<br>
+      <strong>RSI now:</strong> ${a.rsi} — ${a.rsi<52?'needs to reach 52+ before entry':a.rsi>70?'overbought, wait for cooldown below 70':'in the buy zone ✓'}
+    </p></div>
 
-    <div class="section-title">Historical performance</div>
+    <div class="section-title">Historical performance (45-day backtest)</div>
     <div class="need-box">
-      <div class="hist-row"><span style="color:#94a3b8">Win rate (45-day backtest)</span><span style="color:${cfg.histWin>=55?'#22c55e':cfg.histWin>=45?'#f59e0b':'#ef4444'}">${cfg.histWin}%</span></div>
+      <div class="hist-row"><span style="color:#94a3b8">Win rate</span><span style="color:${cfg.histWin>=55?'#22c55e':cfg.histWin>=45?'#f59e0b':'#ef4444'}">${cfg.histWin}%</span></div>
       <div class="progress-bar"><div class="progress-fill" style="width:${cfg.histWin}%;background:${cfg.histWin>=55?'#22c55e':cfg.histWin>=45?'#f59e0b':'#ef4444'}"></div></div>
       <div class="hist-row" style="margin-top:10px"><span style="color:#94a3b8">Total P&L (45 days)</span><span class="${cfg.histPnl>=0?'green':'red'}">${cfg.histPnl>=0?'+':''}${cfg.histPnl}%</span></div>
-      <div class="hist-row"><span style="color:#94a3b8">Expected return per trade</span><span style="color:${evPos?'#22c55e':'#ef4444'}">${evPos?'+':''}${ev}%</span></div>
+      <div class="hist-row"><span style="color:#94a3b8">Expected return per trade</span><span style="color:${parseFloat(ev)>=0?'#22c55e':'#ef4444'}">${parseFloat(ev)>=0?'+':''}${ev}%</span></div>
       <div class="hist-row"><span style="color:#94a3b8">Take profit target</span><span style="color:#818cf8">+${cfg.tp}%</span></div>
       <div class="hist-row"><span style="color:#94a3b8">Stop loss</span><span style="color:#ef4444">-${cfg.sl}%</span></div>
       <div class="hist-row"><span style="color:#94a3b8">Risk rating</span><span class="${cfg.risk==='low'?'green':'amber'}">${cfg.risk==='low'?'✅ PROVEN WINNER':'⚠️ RISK HEAVY'}</span></div>
     </div>`;
 }
 
-async function openModal(sym){
+async function openModal(sym) {
   $('modal-bg').classList.add('open');
-  $('modal-body').innerHTML='<div style="text-align:center;padding:40px;color:#64748b">Fetching live data...</div>';
-  const bars = await getBars(sym, 40);
-  const a = bars.length>=10 ? analyse(bars) : null;
-  const cfg = UNIVERSE[sym];
-  if(!a){ $('modal-body').innerHTML='<div style="padding:20px;color:#ef4444">Could not fetch data for '+sym+'</div>'; return; }
-  $('modal-body').innerHTML = buildModal(sym, a, cfg);
+  $('modal-body').innerHTML='<div class="empty">Fetching live data...</div>';
+  const bars=await getBars(sym,50);
+  const a=bars.length>=5?analyse(bars):null;
+  const cfg=UNIVERSE[sym];
+  if(!a){
+    $('modal-body').innerHTML=`
+      <div class="modal-ticker">${cfg.label||sym}</div>
+      <div class="modal-price" style="margin-bottom:20px">Live data unavailable</div>
+      <div class="no-data-box"><p>
+        <strong style="color:#fff">Why this shows "no data":</strong><br>
+        • Stock market is closed (weekends / pre-market / after-hours) and no recent bars exist<br>
+        • Alpaca's free data plan has limited history for this ticker<br>
+        • Temporary API issue — try again in a few minutes<br><br>
+        <strong style="color:#818cf8">Crypto tickers (BTC, ETH, DOGE…) should always work</strong> since they trade 24/7.<br>
+        Stock tickers work best Mon–Fri 9:30 AM – 4 PM ET.
+      </p></div>
+      <div class="section-title">Backtest stats (always available)</div>
+      <div class="need-box">
+        <div class="hist-row"><span style="color:#94a3b8">Win rate (45d)</span><span style="color:${cfg.histWin>=55?'#22c55e':cfg.histWin>=45?'#f59e0b':'#ef4444'}">${cfg.histWin}%</span></div>
+        <div class="hist-row"><span style="color:#94a3b8">Total P&L</span><span class="${cfg.histPnl>=0?'green':'red'}">${cfg.histPnl>=0?'+':''}${cfg.histPnl}%</span></div>
+        <div class="hist-row"><span style="color:#94a3b8">TP / SL</span><span style="color:#818cf8">+${cfg.tp}% / -${cfg.sl}%</span></div>
+        <div class="hist-row"><span style="color:#94a3b8">Risk</span><span class="${cfg.risk==='low'?'green':'amber'}">${cfg.risk==='low'?'✅ PROVEN WINNER':'⚠️ RISK HEAVY'}</span></div>
+      </div>`;
+    return;
+  }
+  $('modal-body').innerHTML=buildModal(sym,a,cfg);
 }
 
-function closeModal(){ $('modal-bg').classList.remove('open'); }
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+function closeModal(){$('modal-bg').classList.remove('open');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
+// ── Ticker grid ───────────────────────────────────────────────────────────────
 async function loadTickers(){
   const grid=$('ticker-grid');
-  grid.innerHTML='<div class="empty">Scanning all tickers...</div>';
+  grid.innerHTML='<div class="empty">Scanning tickers...</div>';
   const cards=[];
-  for(const [sym,cfg] of Object.entries(UNIVERSE)){
+  for(const[sym,cfg]of Object.entries(UNIVERSE)){
     const bars=await getBars(sym,30);
     const label=cfg.label||sym;
-    let dir='neutral',rsi=50,emoji='→',price='—';
-    if(bars.length>=10){
+    let dir='neutral',rsi='—',emoji='→',price='—';
+    if(bars.length>=5){
       const a=analyse(bars);
-      rsi=a.rsi; price='$'+a.price;
+      rsi=a.rsi; price='$'+a.price.toFixed(a.price<1?4:2);
       const bull=a.e9>a.e21&&a.rsi>52&&a.aboveVwap&&a.priceUp;
       const bear=a.e9<a.e21&&a.rsi<48&&!a.aboveVwap&&!a.priceUp;
       if(bull&&a.volSpike){dir='bull';emoji='↑';}
@@ -329,28 +458,27 @@ async function loadTickers(){
       else if(bear&&a.volSpike){dir='bear';emoji='↓';}
       else if(bear){dir='bear';emoji='↘';}
     }
-    const dirColor=dir==='bull'?'#22c55e':dir==='bear'?'#ef4444':'#64748b';
-    const riskBadge=cfg.risk==='high'
+    const dc=dir==='bull'?'#22c55e':dir==='bear'?'#ef4444':'#64748b';
+    const rb=cfg.risk==='high'
       ?`<span style="font-size:9px;background:rgba(245,158,11,.12);color:#f59e0b;padding:1px 5px;border-radius:10px">RISK</span>`
       :`<span style="font-size:9px;background:rgba(99,102,241,.12);color:#818cf8;padding:1px 5px;border-radius:10px">PROVEN</span>`;
     cards.push(`<div class="ticker-card ${dir}" onclick="openModal('${sym}')">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <div class="ticker-name">${label}</div>${riskBadge}
-      </div>
-      <div class="ticker-dir" style="color:${dirColor}">${emoji}</div>
-      <div style="font-size:11px;font-weight:700;color:${dirColor};margin-bottom:4px">${dir.toUpperCase()}</div>
-      <div class="ticker-rsi">RSI ${rsi} · ${price}</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px"><div class="ticker-name">${label}</div>${rb}</div>
+      <div style="font-size:22px;color:${dc}">${emoji}</div>
+      <div style="font-size:11px;font-weight:700;color:${dc};margin-bottom:4px">${dir.toUpperCase()}</div>
+      <div style="font-size:11px;color:#64748b">RSI ${rsi} · ${price}</div>
       <div style="font-size:10px;color:#475569;margin-top:4px">${cfg.histWin}% win · ${cfg.histPnl>=0?'+':''}${cfg.histPnl}%</div>
-      <div style="font-size:10px;color:#334155;margin-top:2px">click for analysis</div>
+      <div style="font-size:10px;color:#334155;margin-top:2px">tap for analysis</div>
     </div>`);
   }
   grid.innerHTML=cards.join('');
 }
 
+// ── Account data ──────────────────────────────────────────────────────────────
 async function loadAll(){
   $('scan-time').textContent='Refreshing...';
   try{
-    const [acct,positions,orders,history]=await Promise.all([
+    const[acct,positions,orders,history]=await Promise.all([
       apGet('/v2/account'),apGet('/v2/positions'),
       apGet('/v2/orders?status=all&after='+new Date().toISOString().slice(0,10)+'T00:00:00Z&limit=50'),
       apGet('/v2/orders?status=all&limit=100'),
@@ -365,24 +493,32 @@ async function loadAll(){
     $('m-pos-sub').textContent=positions.length?positions.map(p=>p.symbol).join(', '):'All in cash';
 
     if(!positions.length){$('positions-body').innerHTML='<div class="empty">No open positions</div>';}
-    else{$('positions-body').innerHTML=`<table><tr><th>Symbol</th><th>Qty</th><th>Entry</th><th>Current</th><th>P&L</th></tr>${positions.map(p=>{const pnl=parseFloat(p.unrealized_pl),pct=parseFloat(p.unrealized_plpc)*100;return`<tr><td style="font-weight:600;color:#fff">${p.symbol}</td><td>${p.qty}</td><td>${fmt(p.avg_entry_price)}</td><td>${fmt(p.current_price)}</td><td class="${pnl>=0?'green':'red'}">${pnl>=0?'+':''}${fmt(pnl)} (${fmtPct(pct)})</td></tr>`;}).join('')}</table>`;}
+    else{$('positions-body').innerHTML=`<table><tr><th>Symbol</th><th>Qty</th><th>Entry</th><th>Current</th><th>P&L</th></tr>
+      ${positions.map(p=>{const pnl=parseFloat(p.unrealized_pl),pct=parseFloat(p.unrealized_plpc)*100;
+        return`<tr><td style="font-weight:600;color:#fff">${p.symbol}</td><td>${p.qty}</td><td>${fmt(p.avg_entry_price)}</td><td>${fmt(p.current_price)}</td><td class="${pnl>=0?'green':'red'}">${pnl>=0?'+':''}${fmt(pnl)} (${fmtPct(pct)})</td></tr>`;}).join('')}
+      </table>`;}
 
     const filled=(Array.isArray(orders)?orders:[]).filter(o=>o.status==='filled');
     if(!filled.length){$('orders-body').innerHTML='<div class="empty">No trades today</div>';}
-    else{$('orders-body').innerHTML=`<table><tr><th>Symbol</th><th>Side</th><th>Qty</th><th>Price</th><th>Time</th></tr>${filled.map(o=>`<tr><td style="font-weight:600;color:#fff">${o.symbol}</td><td class="${o.side==='buy'?'green':'red'}">${o.side.toUpperCase()}</td><td>${o.filled_qty}</td><td>${fmt(o.filled_avg_price||0)}</td><td style="color:#64748b">${new Date(o.filled_at||o.created_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</td></tr>`).join('')}</table>`;}
+    else{$('orders-body').innerHTML=`<table><tr><th>Symbol</th><th>Side</th><th>Qty</th><th>Price</th><th>Time</th></tr>
+      ${filled.map(o=>`<tr><td style="font-weight:600;color:#fff">${o.symbol}</td><td class="${o.side==='buy'?'green':'red'}">${o.side.toUpperCase()}</td><td>${o.filled_qty}</td><td>${fmt(o.filled_avg_price||0)}</td><td style="color:#64748b">${new Date(o.filled_at||o.created_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</td></tr>`).join('')}
+      </table>`;}
 
     const allO=Array.isArray(history)?history.filter(o=>o.status==='filled'):[];
-    if(!allO.length){$('history-body').innerHTML='<div class="empty">No trade history</div>';}
-    else{$('history-body').innerHTML=`<table><tr><th>Date</th><th>Symbol</th><th>Side</th><th>Qty</th><th>Fill Price</th><th>Type</th></tr>${allO.slice(0,50).map(o=>`<tr><td style="color:#64748b">${new Date(o.created_at).toLocaleDateString()}</td><td style="font-weight:600;color:#fff">${o.symbol}</td><td class="${o.side==='buy'?'green':'red'}">${o.side.toUpperCase()}</td><td>${o.filled_qty||o.qty}</td><td>${o.filled_avg_price?fmt(o.filled_avg_price):'—'}</td><td style="color:#64748b">${o.order_class||o.type}</td></tr>`).join('')}</table>`;}
+    if(!allO.length){$('history-body').innerHTML='<div class="empty">No trade history yet</div>';}
+    else{$('history-body').innerHTML=`<table><tr><th>Date</th><th>Symbol</th><th>Side</th><th>Qty</th><th>Fill Price</th><th>Type</th></tr>
+      ${allO.slice(0,50).map(o=>`<tr><td style="color:#64748b">${new Date(o.created_at).toLocaleDateString()}</td><td style="font-weight:600;color:#fff">${o.symbol}</td><td class="${o.side==='buy'?'green':'red'}">${o.side.toUpperCase()}</td><td>${o.filled_qty||o.qty}</td><td>${o.filled_avg_price?fmt(o.filled_avg_price):'—'}</td><td style="color:#64748b">${o.order_class||o.type}</td></tr>`).join('')}
+      </table>`;}
 
-    $('scan-time').textContent='Updated '+new Date().toLocaleTimeString();
-    $('last-update').textContent='Live · '+new Date().toLocaleTimeString();
-  }catch(e){$('scan-time').textContent='Error: '+e.message;}
+    const t=new Date().toLocaleTimeString();
+    $('scan-time').textContent='Updated '+t;
+    $('last-update').textContent='Live · '+t;
+  }catch(e){$('scan-time').textContent='Account error: '+e.message;}
   loadTickers();
 }
 
-loadAll();
-setInterval(loadAll, 60000);
+if(sessionStorage.getItem('ct_auth')==='1') loadAll();
+setInterval(()=>{if(sessionStorage.getItem('ct_auth')==='1')loadAll();},60000);
 </script>
 </body>
 </html>
