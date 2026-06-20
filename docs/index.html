@@ -151,6 +151,8 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
         <span class="badge off" id="stat-badge">● Connecting</span>
         <span id="upd-cnt" style="font-size:10px;color:#334155">0 ticks</span>
       </div>
+      <button id="scalp-btn" onclick="toggleScalp()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .2s">⚡ Scalp OFF</button>
+      <button onclick="toggleScalpPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Scalp trade log & settings">📋 Trades</button>
       <button id="alert-bell" onclick="toggleAlertPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:color .2s">🔔 Alerts</button>
       <button onclick="toggleTgPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Telegram phone alerts">✈️ Telegram</button>
       <button class="signout" onclick="doLogout()">Sign Out</button>
@@ -740,7 +742,19 @@ function buildModal(sym, a, cfg, bars) {
       '<div class="hrow"><span style="color:#94a3b8">Expected return/trade</span><span style="color:'+(parseFloat(ev)>=0?'#22c55e':'#ef4444')+'">'+(parseFloat(ev)>=0?'+':'')+ev+'%</span></div>' +
       '<div class="hrow"><span style="color:#94a3b8">TP / SL</span><span style="color:#818cf8">+'+tp+'% / -'+sl+'%</span></div>' +
       '<div class="hrow"><span style="color:#94a3b8">Rating</span><span class="'+(risk==='low'?'g':'a')+'">'+(risk==='low'?'✅ PROVEN WINNER':'⚠️ RISK HEAVY')+'</span></div></div>'
-    : '<div class="stitle" style="margin-top:14px">Searched ticker</div><div class="nbox"><p style="color:#64748b">Not in watchlist — analysis based on live chart data only.</p></div>');
+    : '<div class="stitle" style="margin-top:14px">Searched ticker</div><div class="nbox"><p style="color:#64748b">Not in watchlist — analysis based on live chart data only.</p></div>') +
+
+    // Manual scalp buttons
+    '<div class="stitle">Manual Scalp Trade (Paper)</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:6px">' +
+    '<button onclick="(async()=>{await scalpBuy(\''+sym+'\','+(LP[sym]&&LP[sym].price?LP[sym].price:a.price).toFixed(4)+',UNI[\''+sym+'\']||null,\'Manual BUY\');renderModal(\''+sym+'\');})()" ' +
+    'style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#22c55e;padding:10px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">⚡ BUY<br><span style="font-size:10px;font-weight:400">$'+scalpTradeSize()+' paper</span></button>' +
+    '<button onclick="(async()=>{await scalpSell(\''+sym+'\','+(LP[sym]&&LP[sym].price?LP[sym].price:a.price).toFixed(4)+',UNI[\''+sym+'\']||null);renderModal(\''+sym+'\');})()" ' +
+    'style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#ef4444;padding:10px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">⚡ SELL<br><span style="font-size:10px;font-weight:400">close pos</span></button>' +
+    '<button onclick="(async()=>{await closePosition(\''+sym+'\');renderModal(\''+sym+'\');})()" ' +
+    'style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:#f59e0b;padding:10px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✕ Close<br><span style="font-size:10px;font-weight:400">market exit</span></button>' +
+    '</div>' +
+    '<p style="font-size:10px;color:#334155;text-align:center">Paper trades only · bracket order with TP/SL auto-set</p>';
 }
 
 // ─── Dynamic modal with live price + auto-refresh ─────────────────────────────
@@ -929,6 +943,175 @@ function toggleAlertPanel() {
   }, true);
 }
 
+// ─── Scalp Trading Engine ────────────────────────────────────────────────────
+let scalpEnabled = false;
+let openPositions = {};   // sym → position object from Alpaca
+const scalpLog = [];      // recent scalp trades
+
+function scalpTradeSize() { return parseFloat(localStorage.getItem('scalp_size') || '500'); }
+
+async function refreshPositions() {
+  try {
+    const pos = await apGet('/v2/positions');
+    openPositions = {};
+    (Array.isArray(pos) ? pos : []).forEach(p => { openPositions[p.symbol] = p; });
+  } catch {}
+}
+
+async function placeScalpOrder(sym, side, qty, price, cfg) {
+  const isCrypto = sym.endsWith('USD') && sym.length > 3;
+  const tp = cfg && cfg.tp ? cfg.tp : 2.5;
+  const sl = cfg && cfg.sl ? cfg.sl : 1.5;
+  const tpPrice = side === 'buy' ? +(price * (1 + tp/100)).toFixed(2) : +(price * (1 - tp/100)).toFixed(2);
+  const slPrice = side === 'buy' ? +(price * (1 - sl/100)).toFixed(2) : +(price * (1 + sl/100)).toFixed(2);
+
+  // Crypto uses fractional qty, stocks use integer
+  const qtyVal = isCrypto ? qty.toFixed(6) : Math.max(1, Math.floor(qty)).toString();
+
+  const body = {
+    symbol: isCrypto ? sym.replace('USD', '/USD') : sym,
+    qty: qtyVal,
+    side: side,
+    type: 'market',
+    time_in_force: isCrypto ? 'gtc' : 'day',
+    order_class: 'bracket',
+    take_profit: { limit_price: tpPrice.toString() },
+    stop_loss: { stop_price: slPrice.toString() }
+  };
+
+  try {
+    const r = await fetch(AB + '/v2/orders', {
+      method: 'POST',
+      headers: { ...AH, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const order = await r.json();
+    if (order.id) {
+      const label = (UNI[sym] && UNI[sym].label) || sym;
+      const ts = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      const entry = { sym, label, side, qty: qtyVal, price, tp: tpPrice, sl: slPrice, ts, id: order.id, status: 'open' };
+      scalpLog.unshift(entry);
+      if (scalpLog.length > 50) scalpLog.pop();
+      sendNtfy(
+        (side==='buy'?'⚡ BUY ':'⚡ SELL ') + label,
+        side + ' ' + qtyVal + ' @ $' + price.toFixed(2) + ' | TP $' + tpPrice + ' | SL $' + slPrice,
+        'high'
+      );
+      loadAccount();
+      return order;
+    }
+  } catch(e) {}
+  return null;
+}
+
+async function scalpBuy(sym, price, cfg, reason) {
+  if (openPositions[sym]) return; // already have position
+  const size = scalpTradeSize();
+  const qty = size / price;
+  const order = await placeScalpOrder(sym, 'buy', qty, price, cfg);
+  if (order) {
+    showToast('⚡ BUY ' + ((UNI[sym]&&UNI[sym].label)||sym) + ' — ' + reason, '#22c55e');
+    await refreshPositions();
+  }
+}
+
+async function scalpSell(sym, price, cfg) {
+  const pos = openPositions[sym];
+  if (!pos) return;
+  const qty = parseFloat(pos.qty);
+  await placeScalpOrder(sym, 'sell', qty, price, cfg);
+  showToast('⚡ SELL ' + ((UNI[sym]&&UNI[sym].label)||sym), '#ef4444');
+  await refreshPositions();
+}
+
+async function closePosition(sym) {
+  try {
+    await fetch(AB + '/v2/positions/' + sym, { method: 'DELETE', headers: AH });
+    showToast('Position closed: ' + sym, '#f59e0b');
+    await refreshPositions();
+    loadAccount();
+  } catch {}
+}
+
+function showToast(msg, color) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a24;border:1px solid ' + color + ';color:' + color + ';padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:999;pointer-events:none;transition:opacity .5s';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 600); }, 3000);
+}
+
+function toggleScalp() {
+  scalpEnabled = !scalpEnabled;
+  const btn = g('scalp-btn');
+  if (btn) {
+    btn.textContent = scalpEnabled ? '⚡ Scalp ON' : '⚡ Scalp OFF';
+    btn.style.background = scalpEnabled ? 'rgba(34,197,94,.15)' : 'transparent';
+    btn.style.borderColor = scalpEnabled ? '#22c55e' : '#2d2d3d';
+    btn.style.color = scalpEnabled ? '#22c55e' : '#64748b';
+  }
+  if (scalpEnabled) {
+    showToast('⚡ Auto-scalp ON — watching for setups', '#22c55e');
+    refreshPositions();
+  } else {
+    showToast('⚡ Auto-scalp OFF', '#64748b');
+  }
+}
+
+function toggleScalpPanel() {
+  let p = g('scalp-panel');
+  if (p) { p.remove(); return; }
+  p = document.createElement('div');
+  p.id = 'scalp-panel';
+  p.style.cssText = 'position:fixed;top:54px;right:350px;width:340px;max-height:500px;overflow-y:auto;background:#1a1a24;border:1px solid #2d2d3d;border-radius:12px;z-index:200;padding:16px;';
+  const sz = scalpTradeSize();
+  p.innerHTML =
+    '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:12px">⚡ Scalp Trading Settings</div>' +
+    '<div style="font-size:11px;color:#64748b;margin-bottom:12px;line-height:1.6">' +
+    'Auto-scalp watches every ticker scan. When a ticker turns <strong style="color:#22c55e">BULLISH</strong> (5+/8 conditions + bullish pattern), it places a bracket <strong>BUY</strong> order. When it turns <strong style="color:#ef4444">BEARISH</strong>, it closes the position. All trades are <strong>paper only</strong>.</div>' +
+    '<label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em">Trade size (USD per position)</label><br>' +
+    '<input id="scalp-size-inp" type="number" value="' + sz + '" min="50" max="10000" step="50" style="width:100%;background:#0f0f13;border:1px solid #2d2d3d;border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:14px;margin:6px 0 12px;outline:none"/>' +
+    '<button onclick="saveScalpSize()" style="width:100%;background:#6366f1;color:#fff;border:none;border-radius:7px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:14px">Save Settings</button>' +
+    '<div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:8px">Recent Scalp Trades</div>' +
+    (scalpLog.length === 0
+      ? '<p style="font-size:12px;color:#475569">No auto-scalp trades yet. Enable auto-scalp and wait for next scan.</p>'
+      : scalpLog.slice(0,15).map(t =>
+          '<div style="padding:8px 0;border-bottom:1px solid #1e1e2e;font-size:12px">' +
+          '<span style="color:'+(t.side==='buy'?'#22c55e':'#ef4444')+';font-weight:700">'+(t.side==='buy'?'BUY ':'SELL ')+t.label+'</span>' +
+          '<span style="color:#64748b;float:right">'+t.ts+'</span><br>' +
+          '<span style="color:#94a3b8">'+t.qty+' shares @ $'+t.price.toFixed(2)+' | TP $'+t.tp+' · SL $'+t.sl+'</span></div>'
+        ).join('')
+    );
+  document.body.appendChild(p);
+  document.addEventListener('click', function out(e) {
+    if (!p.contains(e.target) && !e.target.closest('[onclick="toggleScalpPanel()"]')) {
+      p.remove(); document.removeEventListener('click', out);
+    }
+  }, true);
+}
+
+function saveScalpSize() {
+  const v = parseFloat(g('scalp-size-inp').value) || 500;
+  localStorage.setItem('scalp_size', v);
+  showToast('Trade size saved: $' + v, '#6366f1');
+}
+
+// Called after each ticker scan — auto-scalp logic
+async function autoScalpCheck(sym, a, bars, cfg) {
+  if (!scalpEnabled) return;
+  const dir = getDir(a);
+  const price = (LP[sym] && LP[sym].price) || a.price;
+  const patterns = detectPatterns(bars);
+  const bullPatterns = patterns.filter(p => p.dir === 'bull');
+  const bearPatterns = patterns.filter(p => p.dir === 'bear');
+
+  if (dir === 'bull' && bullPatterns.length > 0 && !openPositions[sym]) {
+    await scalpBuy(sym, price, cfg, bullPatterns[0].name + ' pattern');
+  } else if (dir === 'bear' && openPositions[sym]) {
+    await scalpSell(sym, price, cfg);
+  }
+}
+
 // ─── Ticker grid ──────────────────────────────────────────────────────────────
 async function loadTickers() {
   g('tgrid').innerHTML = '<div class="empty">Loading chart data...</div>';
@@ -950,6 +1133,7 @@ async function loadTickers() {
       dir = getDir(a);
       arrow = dir==='bull' ? (a.vSpike?'↑':'↗') : dir==='bear' ? (a.vSpike?'↓':'↘') : '→';
       checkAlerts(sym, a);
+      autoScalpCheck(sym, a, bars, cfg);
     }
     const dc = dir==='bull'?'#22c55e':dir==='bear'?'#ef4444':'#64748b';
     const rb = cfg.risk==='high'
