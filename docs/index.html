@@ -265,9 +265,9 @@ const UNI = {
 };
 const STOCKS = Object.keys(UNI).filter(s => !(s.endsWith('USD') && s.length > 3));
 const CRYPTOS = Object.keys(UNI).filter(s => s.endsWith('USD') && s.length > 3);
-const BMAP = {BTCUSD:'btcusdt',ETHUSD:'ethusdt',DOGEUSD:'dogeusdt',LTCUSD:'ltcusdt',LINKUSD:'linkusdt',SOLUSD:'solusdt',BCHUSD:'bchusdt'};
-const BREV = Object.fromEntries(Object.entries(BMAP).map(([k,v])=>[v,k]));
-const GMAP = {BTCUSD:'bitcoin',ETHUSD:'ethereum',DOGEUSD:'dogecoin',LTCUSD:'litecoin',LINKUSD:'chainlink',SOLUSD:'solana',BCHUSD:'bitcoin-cash'};
+// Kraken pair map — CORS allowed from any origin, not region-blocked
+const KMAP = {BTCUSD:'XBTUSD',ETHUSD:'ETHUSD',DOGEUSD:'XDGUSD',LTCUSD:'LTCUSD',LINKUSD:'LINKUSD',SOLUSD:'SOLUSD',BCHUSD:'BCHUSD'};
+const KREV = {'XXBTZUSD':'BTCUSD','XBTUSD':'BTCUSD','XETHZUSD':'ETHUSD','ETHUSD':'ETHUSD','XDGUSD':'DOGEUSD','XLTCZUSD':'LTCUSD','LTCUSD':'LTCUSD','LINKUSD':'LINKUSD','SOLUSD':'SOLUSD','BCHUSD':'BCHUSD'};
 
 function g(id) { return document.getElementById(id); }
 function fmt(n) { return '$' + parseFloat(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -363,31 +363,24 @@ function renderTickFeed() {
 // ─── Crypto price polling — Binance REST (CORS-safe, no auth, ~real-time) ────
 // WebSocket ports 443/9443 are blocked on most networks; REST api.binance.com works everywhere
 let bLive = false;
-const BSYMS = Object.values(BMAP).map(s => s.toUpperCase()); // ["BTCUSDT","ETHUSDT",...]
 
-async function pollBinance() {
+async function pollKraken() {
+  // Kraken public API — full CORS support, works from GitHub Pages, not region-blocked
   try {
-    const url = 'https://api.binance.com/api/v3/ticker/price?symbols=' + encodeURIComponent(JSON.stringify(BSYMS));
-    const d = await (await fetch(url, { signal: AbortSignal.timeout(4000) })).json();
-    if (Array.isArray(d) && d.length) {
-      d.forEach(item => {
-        const sym = BREV[item.symbol.toLowerCase()];
-        if (sym) onPrice(sym, parseFloat(item.price));
+    const pairs = Object.values(KMAP).join(',');
+    const d = await (await fetch('https://api.kraken.com/0/public/Ticker?pair=' + pairs, { signal: AbortSignal.timeout(5000) })).json();
+    if (d.result) {
+      let got = 0;
+      Object.entries(d.result).forEach(([krakenSym, data]) => {
+        const sym = KREV[krakenSym];
+        if (sym && data.c && data.c[0]) { onPrice(sym, parseFloat(data.c[0])); got++; }
       });
-      bLive = true; updateBadge(); return;
+      bLive = got > 0; updateBadge();
     }
-  } catch {}
-  // Fallback: CoinGecko
-  try {
-    const ids = Object.values(GMAP).join(',');
-    const d = await (await fetch('https://api.coingecko.com/api/v3/simple/price?ids=' + ids + '&vs_currencies=usd', { signal: AbortSignal.timeout(5000) })).json();
-    let got = 0;
-    Object.entries(GMAP).forEach(([sym, id]) => { if (d[id] && d[id].usd) { onPrice(sym, d[id].usd); got++; } });
-    bLive = got > 0; updateBadge();
   } catch { bLive = false; updateBadge(); }
 }
 
-function startBinance() { pollBinance(); } // REST-based, no WS needed
+function startBinance() { pollKraken(); }
 
 // ─── Stock price polling (Alpaca snapshots every 3s) ─────────────────────────
 let sLive = false;
@@ -481,27 +474,9 @@ async function resolveSym(raw) {
 }
 
 // ─── Earnings ─────────────────────────────────────────────────────────────────
-const EC = {};
-async function getEarnings(sym) {
-  if (sym.endsWith('USD') && sym.length > 3) return null;
-  if (EC[sym] !== undefined) return EC[sym];
-  try {
-    const d = await (await fetch('https://query1.finance.yahoo.com/v10/finance/quoteSummary/' + sym + '?modules=calendarEvents', { signal: AbortSignal.timeout(4000) })).json();
-    const dates = d && d.quoteSummary && d.quoteSummary.result && d.quoteSummary.result[0] && d.quoteSummary.result[0].calendarEvents && d.quoteSummary.result[0].calendarEvents.earnings && d.quoteSummary.result[0].calendarEvents.earnings.earningsDate;
-    if (dates && dates.length) { EC[sym] = dates[0].raw * 1000; return EC[sym]; }
-  } catch {}
-  EC[sym] = null; return null;
-}
-function erLabel(ts) {
-  if (!ts) return null;
-  const today = new Date(); today.setHours(0,0,0,0);
-  const ed = new Date(ts); ed.setHours(0,0,0,0);
-  const diff = Math.round((ed - today) / 86400000);
-  if (diff === 0) return 'ER Today';
-  if (diff === 1) return 'ER Tomorrow';
-  if (diff > 0 && diff <= 30) return 'ER ' + new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  return null;
-}
+// Earnings disabled — Yahoo Finance CORS-blocks GitHub Pages (401)
+function getEarnings() { return Promise.resolve(null); }
+function erLabel() { return null; }
 
 // ─── Technical analysis ───────────────────────────────────────────────────────
 function analyse(bars) {
@@ -770,7 +745,7 @@ async function loadAccount() {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 async function startAll() {
   startBinance();
-  _timers.push(setInterval(pollBinance, 2000));     // crypto every 2s (REST)
+  _timers.push(setInterval(pollKraken, 5000));      // crypto every 5s (Kraken)
   pollStocks();
   _timers.push(setInterval(pollStocks, 3000));      // stocks every 3s
   _timers.push(setInterval(refreshDisplay, 800));   // push LP → DOM every 800ms
