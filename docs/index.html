@@ -293,30 +293,51 @@ const BINANCE_MAP={BTCUSD:'BTCUSDT',ETHUSD:'ETHUSDT',DOGEUSD:'DOGEUSDT',LTCUSD:'
 async function pollLivePrices(){
   let gotAny=false;
 
-  // ── Crypto: Binance public API (free, truly real-time, no key needed) ──
+  // ── Crypto: try Binance first, fall back to CoinGecko ──
+  let cryptoDone=false;
   try{
     const pairs=CRYPTOS.map(s=>BINANCE_MAP[s]).filter(Boolean);
-    const qs=JSON.stringify(pairs);
-    const d=await(await fetch(`https://api.binance.com/api/v3/ticker/price?symbols=${encodeURIComponent(qs)}`)).json();
-    if(Array.isArray(d)){
+    const d=await(await fetch(`https://api.binance.com/api/v3/ticker/price?symbols=${encodeURIComponent(JSON.stringify(pairs))}`,{signal:AbortSignal.timeout(4000)})).json();
+    if(Array.isArray(d)&&d.length){
       d.forEach(t=>{
-        // reverse-map BTCUSDT → BTCUSD
         const sym=Object.keys(BINANCE_MAP).find(k=>BINANCE_MAP[k]===t.symbol);
         if(sym){updateCardPrice(sym,parseFloat(t.price));gotAny=true;}
       });
+      cryptoDone=true;
     }
   }catch{}
+  // CoinGecko fallback (if Binance CORS fails)
+  if(!cryptoDone){
+    try{
+      const GECKO_MAP={BTCUSD:'bitcoin',ETHUSD:'ethereum',DOGEUSD:'dogecoin',LTCUSD:'litecoin',LINKUSD:'chainlink',SOLUSD:'solana',BCHUSD:'bitcoin-cash'};
+      const ids=Object.values(GECKO_MAP).join(',');
+      const d=await(await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,{signal:AbortSignal.timeout(5000)})).json();
+      Object.entries(GECKO_MAP).forEach(([sym,id])=>{
+        if(d[id]?.usd){updateCardPrice(sym,d[id].usd);gotAny=true;}
+      });
+    }catch{}
+  }
 
-  // ── Stocks: Yahoo Finance quote (free, ~15s delay, much closer to real price) ──
+  // ── Stocks: Yahoo Finance (try v7 then v8 per-symbol) ──
+  let stocksDone=false;
   try{
-    const syms=STOCKS.join(',');
-    const d=await(await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${syms}`,{signal:AbortSignal.timeout(5000)})).json();
+    const d=await(await fetch(`https://query2.finance.yahoo.com/v7/finance/quote?symbols=${STOCKS.join(',')}`,{signal:AbortSignal.timeout(5000)})).json();
     const results=d?.quoteResponse?.result||[];
-    results.forEach(q=>{
-      const p=q.regularMarketPrice||q.postMarketPrice||q.preMarketPrice;
-      if(p){updateCardPrice(q.symbol,p);gotAny=true;}
-    });
+    if(results.length){
+      results.forEach(q=>{
+        const p=q.regularMarketPrice||q.postMarketPrice||q.preMarketPrice;
+        if(p){updateCardPrice(q.symbol,p);gotAny=true;}
+      });
+      stocksDone=true;
+    }
   }catch{}
+  // Fallback: Alpaca IEX (delayed but better than nothing)
+  if(!stocksDone){
+    try{
+      const d=await(await fetch(`https://data.alpaca.markets/v2/stocks/trades/latest?symbols=${STOCKS.join(',')}&feed=iex`,{headers:HDR,signal:AbortSignal.timeout(5000)})).json();
+      if(d.trades){Object.entries(d.trades).forEach(([s,t])=>{updateCardPrice(s,t.p);gotAny=true;});}
+    }catch{}
+  }
   // Update badge
   const badge=$('price-badge'), dot=$('price-dot'), status=$('price-status');
   if(gotAny){
