@@ -473,9 +473,12 @@ function buildModal(sym,a,cfg,erTs){
   const liveP=livePrices[sym]?.price||a.price;
   const erLbl=erLabel(erTs);
   const erBadge=erLbl?`<span style="display:inline-block;background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.3);border-radius:5px;padding:2px 8px;font-size:12px;margin-left:8px">📅 ${erLbl}</span>`:'';
-  const bullScore=(a.e9>a.e21?1:0)+(a.rsi>52?1:0)+(a.aboveVwap?1:0)+(a.priceUp?1:0)+(a.volRatio>1.5?1:0);
-  const bearScore=(a.e9<a.e21?1:0)+(a.rsi<48?1:0)+(!a.aboveVwap?1:0)+(!a.priceUp?1:0);
-  const dir=bullScore>=4?'bull':bearScore>=4?'bear':'neutral';
+  const bullScore=(a.e9>a.e21?1:0)+(a.e21>a.e50?1:0)+(a.rsi>52&&a.rsi<70?1:0)+(a.aboveVwap?1:0)+(a.priceUp?1:0)+(a.volSpike?1:0)+(a.hhhl?1:0)+(a.breakUp?1:0);
+  const bearScore=(a.e9<a.e21?1:0)+(a.e21<a.e50?1:0)+(a.rsi<48?1:0)+(!a.aboveVwap?1:0)+(!a.priceUp?1:0);
+  // Must pass 5+/8 AND both EMA trend must align for bull; 4+/5 for bear
+  const isBull=bullScore>=5&&a.e9>a.e21&&a.e21>a.e50;
+  const isBear=bearScore>=4&&a.e9<a.e21;
+  const dir=isBull?'bull':isBear?'bear':'neutral';
   const dc=dir==='bull'?'#22c55e':dir==='bear'?'#ef4444':'#64748b';
   const checks=[
     {label:'EMA9 vs EMA21 — short-term momentum',pass:a.e9>a.e21,value:`EMA9 $${a.e9}  vs  EMA21 $${a.e21}`,
@@ -602,8 +605,10 @@ async function loadTickers(){
       const pct=((lp-prev)/prev*100);
       price='$'+(lp<1?lp.toFixed(5):lp.toFixed(2));
       pChg=`<span style="color:${pct>=0?'#22c55e':'#ef4444'};font-size:11px">${pct>=0?'▲ +':'▼ '}${Math.abs(pct).toFixed(2)}%</span>`;
-      const bull=a.e9>a.e21&&a.rsi>52&&a.aboveVwap&&a.priceUp;
-      const bear=a.e9<a.e21&&a.rsi<48&&!a.aboveVwap&&!a.priceUp;
+      const bScore=(a.e9>a.e21?1:0)+(a.e21>a.e50?1:0)+(a.rsi>52&&a.rsi<70?1:0)+(a.aboveVwap?1:0)+(a.priceUp?1:0)+(a.volSpike?1:0)+(a.hhhl?1:0)+(a.breakUp?1:0);
+      const dScore=(a.e9<a.e21?1:0)+(a.e21<a.e50?1:0)+(a.rsi<48?1:0)+(!a.aboveVwap?1:0)+(!a.priceUp?1:0);
+      const bull=bScore>=5&&a.e9>a.e21&&a.e21>a.e50;
+      const bear=dScore>=4&&a.e9<a.e21;
       if(bull&&a.volSpike){dir='bull';arrow='↑';}
       else if(bull){dir='bull';arrow='↗';}
       else if(bear&&a.volSpike){dir='bear';arrow='↓';}
