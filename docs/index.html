@@ -287,28 +287,35 @@ function updateCardPrice(sym, newPrice){
 }
 
 // ── Poll latest prices every 5 seconds ───────────────────────────────────────
+// Binance symbol map for crypto
+const BINANCE_MAP={BTCUSD:'BTCUSDT',ETHUSD:'ETHUSDT',DOGEUSD:'DOGEUSDT',LTCUSD:'LTCUSDT',LINKUSD:'LINKUSDT',SOLUSD:'SOLUSDT',BCHUSD:'BCHUSDT'};
+
 async function pollLivePrices(){
   let gotAny=false;
-  // Stocks batch
+
+  // ── Crypto: Binance public API (free, truly real-time, no key needed) ──
   try{
-    const d=await(await fetch(
-      `https://data.alpaca.markets/v2/stocks/trades/latest?symbols=${STOCKS.join(',')}&feed=iex`,
-      {headers:HDR}
-    )).json();
-    if(d.trades){
-      Object.entries(d.trades).forEach(([s,t])=>{ updateCardPrice(s,t.p); gotAny=true; });
+    const pairs=CRYPTOS.map(s=>BINANCE_MAP[s]).filter(Boolean);
+    const qs=JSON.stringify(pairs);
+    const d=await(await fetch(`https://api.binance.com/api/v3/ticker/price?symbols=${encodeURIComponent(qs)}`)).json();
+    if(Array.isArray(d)){
+      d.forEach(t=>{
+        // reverse-map BTCUSDT → BTCUSD
+        const sym=Object.keys(BINANCE_MAP).find(k=>BINANCE_MAP[k]===t.symbol);
+        if(sym){updateCardPrice(sym,parseFloat(t.price));gotAny=true;}
+      });
     }
   }catch{}
-  // Crypto batch
+
+  // ── Stocks: Yahoo Finance quote (free, ~15s delay, much closer to real price) ──
   try{
-    const cs=CRYPTOS.map(s=>s.slice(0,-3)+'/USD').join(',');
-    const d=await(await fetch(
-      `https://data.alpaca.markets/v1beta3/crypto/us/trades/latest?symbols=${encodeURIComponent(cs)}`,
-      {headers:HDR}
-    )).json();
-    if(d.trades){
-      Object.entries(d.trades).forEach(([s,t])=>{ updateCardPrice(s.replace('/',''),t.p); gotAny=true; });
-    }
+    const syms=STOCKS.join(',');
+    const d=await(await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${syms}`,{signal:AbortSignal.timeout(5000)})).json();
+    const results=d?.quoteResponse?.result||[];
+    results.forEach(q=>{
+      const p=q.regularMarketPrice||q.postMarketPrice||q.preMarketPrice;
+      if(p){updateCardPrice(q.symbol,p);gotAny=true;}
+    });
   }catch{}
   // Update badge
   const badge=$('price-badge'), dot=$('price-dot'), status=$('price-status');
