@@ -143,7 +143,7 @@ const UNIVERSE = {
   KO:{risk:'high',histWin:52,histPnl:0.3},ORCL:{risk:'high',histWin:42,histPnl:3.3},
 };
 
-let KEY='',SEC='',BASE='';
+let KEY='PK7T6WNU6ANNWQXMWFFFSYLKR7',SEC='EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHGoMBtNKDoz6',BASE='https://paper-api.alpaca.markets';
 
 function $ (id) { return document.getElementById(id); }
 function fmt(n) { return '$'+parseFloat(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -329,14 +329,8 @@ function showDash() {
   setInterval(loadAll, 60000);
 }
 
-// Auto-login if saved
-const saved = localStorage.getItem('alp');
-if (saved) {
-  try {
-    ({KEY,SEC,BASE} = JSON.parse(saved));
-    showDash();
-  } catch { localStorage.removeItem('alp'); }
-}
+// Auto-connect on load — no login screen needed
+showDash();
 </script>
 </body>
 </html>
