@@ -360,42 +360,34 @@ function renderTickFeed() {
   if (!tickAnim) scroll();
 }
 
-// ─── Binance WebSocket (crypto live stream) ────────────────────────────────────
-let bWS = null, bLive = false, bRetry = 0;
+// ─── Crypto price polling — Binance REST (CORS-safe, no auth, ~real-time) ────
+// WebSocket ports 443/9443 are blocked on most networks; REST api.binance.com works everywhere
+let bLive = false;
+const BSYMS = Object.values(BMAP).map(s => s.toUpperCase()); // ["BTCUSDT","ETHUSDT",...]
 
-function startBinance() {
-  if (bWS) { try { bWS.close(); } catch {} bWS = null; }
-  const streams = Object.values(BMAP).map(s => s + '@miniTicker').join('/');
-  // Try port 443 first (firewall-safe), then 9443
-  const port = bRetry < 2 ? 443 : 9443;
-  bWS = new WebSocket('wss://stream.binance.com:' + port + '/stream?streams=' + streams);
-  bWS.onopen = () => { bLive = true; bRetry = 0; updateBadge(); };
-  bWS.onmessage = function(e) {
-    try {
-      const msg = JSON.parse(e.data);
-      const d = msg.data || msg;
-      if (d && d.s && d.c) {
-        const sym = BREV[d.s.toLowerCase()];
-        if (sym) onPrice(sym, parseFloat(d.c));
-      }
-    } catch {}
-  };
-  bWS.onclose = () => {
-    bLive = false; bRetry++; updateBadge();
-    setTimeout(startBinance, Math.min(bRetry * 2000, 8000));
-  };
-  bWS.onerror = () => { bLive = false; updateBadge(); };
-}
-
-// ─── CoinGecko fallback (when Binance WS is down) ────────────────────────────
-async function pollGecko() {
-  if (bLive) return;
+async function pollBinance() {
+  try {
+    const url = 'https://api.binance.com/api/v3/ticker/price?symbols=' + encodeURIComponent(JSON.stringify(BSYMS));
+    const d = await (await fetch(url, { signal: AbortSignal.timeout(4000) })).json();
+    if (Array.isArray(d) && d.length) {
+      d.forEach(item => {
+        const sym = BREV[item.symbol.toLowerCase()];
+        if (sym) onPrice(sym, parseFloat(item.price));
+      });
+      bLive = true; updateBadge(); return;
+    }
+  } catch {}
+  // Fallback: CoinGecko
   try {
     const ids = Object.values(GMAP).join(',');
-    const d = await (await fetch('https://api.coingecko.com/api/v3/simple/price?ids=' + ids + '&vs_currencies=usd', { signal: AbortSignal.timeout(6000) })).json();
-    Object.entries(GMAP).forEach(([sym, id]) => { if (d[id] && d[id].usd) onPrice(sym, d[id].usd); });
-  } catch {}
+    const d = await (await fetch('https://api.coingecko.com/api/v3/simple/price?ids=' + ids + '&vs_currencies=usd', { signal: AbortSignal.timeout(5000) })).json();
+    let got = 0;
+    Object.entries(GMAP).forEach(([sym, id]) => { if (d[id] && d[id].usd) { onPrice(sym, d[id].usd); got++; } });
+    bLive = got > 0; updateBadge();
+  } catch { bLive = false; updateBadge(); }
 }
+
+function startBinance() { pollBinance(); } // REST-based, no WS needed
 
 // ─── Stock price polling (Alpaca snapshots every 3s) ─────────────────────────
 let sLive = false;
@@ -778,7 +770,7 @@ async function loadAccount() {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 async function startAll() {
   startBinance();
-  _timers.push(setInterval(pollGecko, 6000));      // crypto fallback every 6s
+  _timers.push(setInterval(pollBinance, 2000));     // crypto every 2s (REST)
   pollStocks();
   _timers.push(setInterval(pollStocks, 3000));      // stocks every 3s
   _timers.push(setInterval(refreshDisplay, 800));   // push LP → DOM every 800ms
