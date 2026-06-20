@@ -154,7 +154,7 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
       <button id="scalp-btn" onclick="toggleScalp()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .2s">⚡ Scalp OFF</button>
       <button onclick="toggleScalpPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Scalp trade log & settings">📋 Trades</button>
       <button id="alert-bell" onclick="toggleAlertPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:color .2s">🔔 Alerts</button>
-      <button onclick="toggleTgPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Telegram phone alerts">✈️ Telegram</button>
+      <button onclick="toggleNtfyPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Phone notifications">📲 ntfy</button>
       <button class="signout" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
@@ -837,11 +837,11 @@ async function sendNtfy(title, body, priority) {
   } catch {}
 }
 
-function toggleTgPanel() {
-  let p = g('tg-panel');
+function toggleNtfyPanel() {
+  let p = g('ntfy-panel');
   if (p) { p.remove(); return; }
   p = document.createElement('div');
-  p.id = 'tg-panel';
+  p.id = 'ntfy-panel';
   p.style.cssText = 'position:fixed;top:54px;right:180px;width:320px;background:#1a1a24;border:1px solid #2d2d3d;border-radius:12px;z-index:200;padding:20px;';
   const saved = ntfyTopic();
   p.innerHTML =
@@ -860,7 +860,7 @@ function toggleTgPanel() {
     '</div><div id="ntfy-status" style="font-size:11px;margin-top:8px;min-height:16px;text-align:center;color:#64748b"></div>';
   document.body.appendChild(p);
   document.addEventListener('click', function out(e) {
-    if (!p.contains(e.target) && !e.target.closest('[onclick="toggleTgPanel()"]')) {
+    if (!p.contains(e.target) && !e.target.closest('[onclick="toggleNtfyPanel()"]')) {
       p.remove(); document.removeEventListener('click', out);
     }
   }, true);
