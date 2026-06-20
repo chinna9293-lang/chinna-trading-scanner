@@ -438,10 +438,14 @@ async function main() {
       const slPx = (finalSignal.price*(1-m*cfg.sl/100)).toFixed(2);
       const stratLabel = finalSignal.strategy + (finalSignal.pattern ? ' ['+finalSignal.pattern+']' : '');
       const isRisky = cfg.risk === 'high';
+      // Expected return per trade = (winRate% × TP) − (lossRate% × SL)
+      const wr = cfg.histWin / 100;
+      const expectedReturn = ((wr * cfg.tp) - ((1 - wr) * cfg.sl)).toFixed(2);
+      const evSign = parseFloat(expectedReturn) >= 0 ? '+' : '';
       const riskLine = isRisky
-        ? `\n⚠️ RISK HEAVY — Historical: ${cfg.histWin}% win rate, ${cfg.histPnl > 0 ? '+' : ''}${cfg.histPnl}% P&L over 45 days`
-        : `\n✅ PROVEN — Historical: ${cfg.histWin}% win rate, +${cfg.histPnl}% P&L over 45 days`;
-      const alertTitle = (isRisky ? '[RISK] ' : '') + dir + ' ' + symbol + ' @ $' + finalSignal.price;
+        ? `\n⚠️ RISK HEAVY\nHistorical: ${cfg.histWin}% win rate | ${cfg.histPnl > 0 ? '+' : ''}${cfg.histPnl}% total P&L (45d)\nExpected return this trade: ${evSign}${expectedReturn}%`
+        : `\n✅ PROVEN WINNER\nHistorical: ${cfg.histWin}% win rate | +${cfg.histPnl}% total P&L (45d)\nExpected return this trade: ${evSign}${expectedReturn}%`;
+      const alertTitle = (isRisky ? '[RISK] ' : '[PROVEN] ') + dir + ' ' + symbol + ' @ $' + finalSignal.price;
       console.log('\n' + symbol, isRisky ? '[RISK HEAVY]' : '[PROVEN]', dir, '@$'+finalSignal.price, '|', stratLabel);
 
       await notify(
