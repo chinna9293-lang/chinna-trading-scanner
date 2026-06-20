@@ -151,6 +151,7 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
         <span class="badge off" id="stat-badge">● Connecting</span>
         <span id="upd-cnt" style="font-size:10px;color:#334155">0 ticks</span>
       </div>
+      <span id="session-badge" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;border:1px solid #475569;color:#475569;letter-spacing:.05em">--</span>
       <button id="scalp-btn" onclick="toggleScalp()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .2s">⚡ Scalp OFF</button>
       <button onclick="toggleScalpPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Scalp trade log & settings">📋 Trades</button>
       <button id="alert-bell" onclick="toggleAlertPanel()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:color .2s">🔔 Alerts</button>
@@ -410,28 +411,65 @@ function startBinance() { pollKraken(); }
 // ─── Stock price polling (Alpaca snapshots every 3s) ─────────────────────────
 let sLive = false;
 
+function getMarketSession() {
+  const now = new Date();
+  const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const day = et.getDay(), h = et.getHours(), m = et.getMinutes(), hm = h * 60 + m;
+  if (day === 0 || day === 6) return 'closed';
+  if (hm >= 240 && hm < 570) return 'premarket';   // 4:00 AM – 9:30 AM ET
+  if (hm >= 570 && hm < 960) return 'open';         // 9:30 AM – 4:00 PM ET
+  if (hm >= 960 && hm < 1200) return 'afterhours';  // 4:00 PM – 8:00 PM ET
+  return 'closed';
+}
+
+function updateSessionBadge() {
+  const s = getMarketSession();
+  const el = g('session-badge');
+  if (!el) return;
+  const map = { open: ['OPEN','#22c55e'], premarket: ['PRE-MKT','#f59e0b'], afterhours: ['AFTER-HRS','#6366f1'], closed: ['CLOSED','#475569'] };
+  const [label, color] = map[s] || ['—','#475569'];
+  el.textContent = label;
+  el.style.color = color;
+  el.style.borderColor = color;
+}
+
 async function pollStocks() {
   try {
-    const url = 'https://data.alpaca.markets/v2/stocks/snapshots?symbols=' + STOCKS.join(',') + '&feed=iex';
+    // SIP feed covers pre-market and after-hours; IEX does not
+    const url = 'https://data.alpaca.markets/v2/stocks/snapshots?symbols=' + STOCKS.join(',') + '&feed=sip';
     const d = await (await fetch(url, { headers: AH, signal: AbortSignal.timeout(5000) })).json();
     let n = 0;
+    const session = getMarketSession();
     Object.entries(d || {}).forEach(([s, snap]) => {
-      const p = snap.latestTrade && snap.latestTrade.p ? snap.latestTrade.p
-               : snap.latestQuote && snap.latestQuote.ap ? snap.latestQuote.ap
-               : snap.dailyBar && snap.dailyBar.c ? snap.dailyBar.c : null;
+      let p = null;
+      if (session === 'premarket') {
+        // Use minute bar from latest trade — SIP latestTrade covers pre-market
+        p = snap.latestTrade && snap.latestTrade.p ? snap.latestTrade.p : null;
+        if (!p) p = snap.prevDailyBar && snap.prevDailyBar.c ? snap.prevDailyBar.c : null;
+      } else if (session === 'afterhours') {
+        p = snap.latestTrade && snap.latestTrade.p ? snap.latestTrade.p : null;
+        if (!p) p = snap.dailyBar && snap.dailyBar.c ? snap.dailyBar.c : null;
+      } else {
+        p = snap.latestTrade && snap.latestTrade.p ? snap.latestTrade.p
+          : snap.latestQuote && snap.latestQuote.ap ? snap.latestQuote.ap
+          : snap.dailyBar && snap.dailyBar.c ? snap.dailyBar.c : null;
+      }
       if (p) { onPrice(s, p); n++; }
     });
-    sLive = n > 0; updateBadge();
+    sLive = n > 0; updateBadge(); updateSessionBadge();
   } catch {
-    // Fallback: Yahoo Finance
+    // Fallback: Yahoo Finance (includes pre/post market prices)
     try {
       const d = await (await fetch('https://query2.finance.yahoo.com/v7/finance/quote?symbols=' + STOCKS.join(','), { signal: AbortSignal.timeout(5000) })).json();
       const results = (d.quoteResponse && d.quoteResponse.result) || [];
       results.forEach(q => {
-        const p = q.regularMarketPrice || q.postMarketPrice || q.preMarketPrice;
+        const session = getMarketSession();
+        const p = session === 'premarket' ? (q.preMarketPrice || q.regularMarketPrice)
+                : session === 'afterhours' ? (q.postMarketPrice || q.regularMarketPrice)
+                : q.regularMarketPrice;
         if (p) { onPrice(q.symbol, p); sLive = true; }
       });
-      updateBadge();
+      updateBadge(); updateSessionBadge();
     } catch { sLive = false; updateBadge(); }
   }
 }
@@ -475,9 +513,9 @@ async function getBars(sym, lim) {
       } catch {}
     }
   } else {
-    for (const pair of [['5Min','sip'],['5Min','iex'],['15Min','sip'],['1Hour','sip']]) {
+    for (const pair of [['5Min','sip'],['15Min','sip'],['1Hour','sip']]) {
       try {
-        const d = await (await fetch('https://data.alpaca.markets/v2/stocks/' + sym + '/bars?timeframe=' + pair[0] + '&limit=' + lim + '&feed=' + pair[1] + '&adjustment=raw', { headers: AH })).json();
+        const d = await (await fetch('https://data.alpaca.markets/v2/stocks/' + sym + '/bars?timeframe=' + pair[0] + '&limit=' + lim + '&feed=' + pair[1] + '&adjustment=raw&extended_hours=true', { headers: AH })).json();
         if ((d.bars || []).length >= 5) return d.bars;
       } catch {}
     }
@@ -950,7 +988,7 @@ async function renderModal(sym) {
       const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols='+encodeURIComponent(s)+'&timeframe=1Hour&limit=50',{headers:AH})).json();
       htfBars = (d.bars && d.bars[s]) || [];
     } else {
-      const d = await (await fetch('https://data.alpaca.markets/v2/stocks/'+sym+'/bars?timeframe=1Hour&limit=50&feed=iex',{headers:AH})).json();
+      const d = await (await fetch('https://data.alpaca.markets/v2/stocks/'+sym+'/bars?timeframe=1Hour&limit=50&feed=sip&adjustment=raw&extended_hours=true',{headers:AH})).json();
       htfBars = d.bars || [];
     }
   } catch {}
