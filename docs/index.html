@@ -764,6 +764,13 @@ async function renderModal(sym) {
   const bars = await getBars(sym, 50);
   liveBars[sym] = bars;
   const a = bars.length >= 5 ? analyse(bars) : null;
+  // Patch stale bar-close with live streaming price so conditions reflect reality
+  if (a && LP[sym] && LP[sym].price) {
+    const lp = LP[sym].price;
+    a.aboveVwap = lp > a.vwap;
+    a.priceUp = lp > a.price;
+    a.price = lp;
+  }
   const cfg = UNI[sym] || null;
   if (!a) {
     g('modal-body').innerHTML = '<div class="mticker">' + ((cfg&&cfg.label)||sym) + '</div>' +
@@ -1124,6 +1131,13 @@ async function loadTickers() {
     let dir = 'neutral', rsi = '—', pxTxt = '—', arrow = '→', chgHtml = '';
     if (bars.length >= 5 && lp) {
       const a = analyse(bars);
+      // Patch with live price so conditions reflect streaming data
+      if (LP[sym] && LP[sym].price) {
+        const liveP = LP[sym].price;
+        a.aboveVwap = liveP > a.vwap;
+        a.priceUp = liveP > a.price;
+        a.price = liveP;
+      }
       rsi = a.rsi;
       const dec = lp<1?5:lp<100?3:2;
       pxTxt = '$' + lp.toFixed(dec);
