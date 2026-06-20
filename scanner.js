@@ -9,26 +9,45 @@ const ALP_SEC = process.env.ALPACA_SECRET;
 const ALP_URL = process.env.ALPACA_BASE_URL || 'https://paper-api.alpaca.markets';
 const DATA    = 'https://data.alpaca.markets';
 
-// ── UNIVERSE — only backtest winners ─────────────────────────────────────────
-// Removed: MSFT(-12%), AVGO(-13%), PG(-13%), UNH(-10%), AMZN(-8%), GOOGL(-7%),
-//          META(-5%), BAC(-6%), NVDA(-1%), HD(-3%), ABBV(-3%), NFLX(-1%)
-// Removed crypto: BCH(-7%), ETH(-2%), BTC(-1%), SOL(+2% borderline)
+// ── UNIVERSE ──────────────────────────────────────────────────────────────────
+// risk:'high' = historically losing in backtest → alert tagged RISK HEAVY
+// histWin = backtest win %, histPnl = total P&L over 45 days
 const UNIVERSE = {
-  // ORB stocks — best performers (58-55% win, positive P&L)
-  LLY:  { strategy:'ORB', tp:2.5, sl:1.5, type:'stock' }, // +13.9%, 55% win → raised TP
-  COST: { strategy:'ORB', tp:2.5, sl:1.0, type:'stock' }, // +9.3%,  58% win → tighter SL
-  XOM:  { strategy:'ORB', tp:2.5, sl:1.2, type:'stock' }, // +6.0%,  58% win
-  V:    { strategy:'ORB', tp:2.0, sl:1.0, type:'stock' }, // +6.9%,  55% win → tighter SL
-  WMT:  { strategy:'ORB', tp:2.0, sl:1.0, type:'stock' }, // +6.3%,  55% win
-  MA:   { strategy:'ORB', tp:2.5, sl:1.2, type:'stock' }, // +5.5%,  52% win
-  CRM:  { strategy:'ORB', tp:2.5, sl:1.5, type:'stock' }, // +9.7%,  55% win
-  // Pattern stocks — high avg win, kept with stricter entry
-  TSLA: { strategy:'Pattern', tp:6.0, sl:2.0, type:'stock' }, // +9.4%, 58% → raised TP
-  AMD:  { strategy:'Pattern', tp:4.0, sl:1.5, type:'stock' }, // +6.8%, avg win +2.6%
-  // Crypto winners only
-  'DOGE/USD': { strategy:'Crypto', tp:10.0, sl:3.0, type:'crypto' }, // +12%, 57% → raised TP
-  'LTC/USD':  { strategy:'Crypto', tp:6.0,  sl:2.0, type:'crypto' }, // +8.2%, 52%
-  'LINK/USD': { strategy:'Crypto', tp:10.0, sl:3.0, type:'crypto' }, // +4.8%, 50% → raised TP
+  // ── PROVEN WINNERS ────────────────────────────────────────────────────────
+  LLY:  { strategy:'ORB',     tp:2.5, sl:1.5, type:'stock',  risk:'low',  histWin:55, histPnl:+14.7 },
+  COST: { strategy:'ORB',     tp:2.5, sl:1.0, type:'stock',  risk:'low',  histWin:58, histPnl:+13.3 },
+  TSLA: { strategy:'Pattern', tp:6.0, sl:2.0, type:'stock',  risk:'low',  histWin:58, histPnl:+10.4 },
+  AMD:  { strategy:'Pattern', tp:4.0, sl:1.5, type:'stock',  risk:'low',  histWin:42, histPnl:+14.9 },
+  XOM:  { strategy:'ORB',     tp:2.5, sl:1.2, type:'stock',  risk:'low',  histWin:58, histPnl:+6.8  },
+  CRM:  { strategy:'ORB',     tp:2.5, sl:1.5, type:'stock',  risk:'low',  histWin:48, histPnl:+6.2  },
+  V:    { strategy:'ORB',     tp:2.0, sl:1.0, type:'stock',  risk:'low',  histWin:52, histPnl:+5.5  },
+  WMT:  { strategy:'ORB',     tp:2.0, sl:1.0, type:'stock',  risk:'low',  histWin:52, histPnl:+3.6  },
+  MA:   { strategy:'ORB',     tp:2.5, sl:1.2, type:'stock',  risk:'low',  histWin:48, histPnl:+2.0  },
+  'DOGE/USD': { strategy:'Crypto', tp:10.0, sl:3.0, type:'crypto', risk:'low',  histWin:57, histPnl:+12.0 },
+  'LTC/USD':  { strategy:'Crypto', tp:6.0,  sl:2.0, type:'crypto', risk:'low',  histWin:52, histPnl:+9.5  },
+  'LINK/USD': { strategy:'Crypto', tp:10.0, sl:3.0, type:'crypto', risk:'low',  histWin:50, histPnl:+3.6  },
+
+  // ── RISK HEAVY — added back, historically losing, trade with caution ───────
+  NVDA: { strategy:'ORB',     tp:2.0, sl:1.5, type:'stock',  risk:'high', histWin:45, histPnl:-1.3  },
+  JPM:  { strategy:'ORB',     tp:2.0, sl:1.5, type:'stock',  risk:'high', histWin:45, histPnl:-0.9  },
+  AAPL: { strategy:'ORB',     tp:1.5, sl:1.0, type:'stock',  risk:'high', histWin:42, histPnl:-0.9  },
+  NFLX: { strategy:'Pattern', tp:3.0, sl:1.5, type:'stock',  risk:'high', histWin:42, histPnl:-1.1  },
+  HD:   { strategy:'ORB',     tp:2.0, sl:1.5, type:'stock',  risk:'high', histWin:52, histPnl:-2.9  },
+  ABBV: { strategy:'ORB',     tp:2.0, sl:1.5, type:'stock',  risk:'high', histWin:39, histPnl:-2.8  },
+  META: { strategy:'ORB',     tp:2.0, sl:1.5, type:'stock',  risk:'high', histWin:42, histPnl:-5.4  },
+  BAC:  { strategy:'ORB',     tp:2.0, sl:1.5, type:'stock',  risk:'high', histWin:45, histPnl:-5.9  },
+  GOOGL:{ strategy:'ORB',     tp:2.0, sl:1.5, type:'stock',  risk:'high', histWin:45, histPnl:-6.7  },
+  AMZN: { strategy:'Pattern', tp:3.0, sl:1.5, type:'stock',  risk:'high', histWin:39, histPnl:-8.0  },
+  UNH:  { strategy:'ORB',     tp:2.0, sl:1.5, type:'stock',  risk:'high', histWin:32, histPnl:-9.8  },
+  MSFT: { strategy:'ORB',     tp:2.0, sl:1.5, type:'stock',  risk:'high', histWin:35, histPnl:-12.4 },
+  PG:   { strategy:'ORB',     tp:1.5, sl:1.0, type:'stock',  risk:'high', histWin:29, histPnl:-12.7 },
+  AVGO: { strategy:'ORB',     tp:2.0, sl:1.5, type:'stock',  risk:'high', histWin:29, histPnl:-13.0 },
+  KO:   { strategy:'ORB',     tp:1.5, sl:1.0, type:'stock',  risk:'high', histWin:52, histPnl:+0.3  },
+  ORCL: { strategy:'ORB',     tp:2.0, sl:1.5, type:'stock',  risk:'high', histWin:42, histPnl:+3.3  },
+  'BTC/USD':  { strategy:'Crypto', tp:5.0,  sl:2.5, type:'crypto', risk:'high', histWin:52, histPnl:-1.4  },
+  'ETH/USD':  { strategy:'Crypto', tp:5.0,  sl:2.5, type:'crypto', risk:'high', histWin:45, histPnl:-2.4  },
+  'SOL/USD':  { strategy:'Crypto', tp:8.0,  sl:3.0, type:'crypto', risk:'high', histWin:48, histPnl:+2.0  },
+  'BCH/USD':  { strategy:'Crypto', tp:5.0,  sl:2.5, type:'crypto', risk:'high', histWin:43, histPnl:-7.1  },
 };
 
 const alpH = { 'APCA-API-KEY-ID': ALP_KEY, 'APCA-API-SECRET-KEY': ALP_SEC };
@@ -418,11 +437,16 @@ async function main() {
       const tpPx = (finalSignal.price*(1+m*cfg.tp/100)).toFixed(2);
       const slPx = (finalSignal.price*(1-m*cfg.sl/100)).toFixed(2);
       const stratLabel = finalSignal.strategy + (finalSignal.pattern ? ' ['+finalSignal.pattern+']' : '');
-      console.log('\n' + symbol, 'SIGNAL:', dir, '@$'+finalSignal.price, '|', stratLabel);
+      const isRisky = cfg.risk === 'high';
+      const riskLine = isRisky
+        ? `\n⚠️ RISK HEAVY — Historical: ${cfg.histWin}% win rate, ${cfg.histPnl > 0 ? '+' : ''}${cfg.histPnl}% P&L over 45 days`
+        : `\n✅ PROVEN — Historical: ${cfg.histWin}% win rate, +${cfg.histPnl}% P&L over 45 days`;
+      const alertTitle = (isRisky ? '[RISK] ' : '') + dir + ' ' + symbol + ' @ $' + finalSignal.price;
+      console.log('\n' + symbol, isRisky ? '[RISK HEAVY]' : '[PROVEN]', dir, '@$'+finalSignal.price, '|', stratLabel);
 
       await notify(
-        dir+' '+symbol+' @ $'+finalSignal.price,
-        'Strategy: '+stratLabel+'\nEntry: $'+finalSignal.price+'\nTarget: $'+tpPx+' (+'+cfg.tp+'%)\nStop: $'+slPx+' (-'+cfg.sl+'%)\n\nWHY:\n'+finalSignal.reason
+        alertTitle,
+        'Strategy: '+stratLabel+'\nEntry: $'+finalSignal.price+'\nTarget: $'+tpPx+' (+'+cfg.tp+'%)\nStop: $'+slPx+' (-'+cfg.sl+'%)'+riskLine+'\n\nWHY:\n'+finalSignal.reason
       );
 
       const fn = cfg.type==='crypto' ? placeCryptoOrder : placeStockOrder;
