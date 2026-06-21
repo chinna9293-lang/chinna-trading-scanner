@@ -28,12 +28,17 @@ async function getBars(symbol, limit) {
     return (d.bars && d.bars[symbol]) || [];
   }
 
-  // Stocks: IEX free feed only has ~15 days; use limit only (no start date, no extended hours)
-  try {
-    const url = `${DATA}/v2/stocks/${symbol}/bars?timeframe=1Hour&limit=${limit}&feed=iex&adjustment=raw`;
-    const d = await (await fetch(url, { headers: alpH })).json();
-    if ((d.bars||[]).length >= 5) return d.bars;
-  } catch(e) { console.log(`    iex error: ${e.message}`); }
+  // Stocks: try both feeds, log full response on failure
+  for (const feed of ['iex', 'sip']) {
+    try {
+      const url = `${DATA}/v2/stocks/${symbol}/bars?timeframe=1Hour&limit=${limit}&feed=${feed}&adjustment=raw`;
+      const r = await fetch(url, { headers: alpH });
+      const d = await r.json();
+      if ((d.bars||[]).length >= 5) return d.bars;
+      if (d.bars && d.bars.length === 0) { console.log(`    ${feed}: 0 bars returned`); }
+      else if (d.message || d.code) { console.log(`    ${feed} error: ${d.message || d.code}`); }
+    } catch(e) { console.log(`    ${feed} fetch error: ${e.message}`); }
+  }
 
   return [];
 }
