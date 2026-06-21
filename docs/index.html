@@ -154,6 +154,8 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 
 /* ── Right: Chart & analysis panel ── */
 .app-chart{flex:1;overflow-y:auto;padding:20px;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,.2) transparent;}
+/* Hide duplicate symbol/price header that buildModal adds (already shown in chart-panel-hdr) */
+.app-chart .mticker,.app-chart .mprice{display:none;}
 .app-chart::-webkit-scrollbar{width:3px;}
 .app-chart::-webkit-scrollbar-thumb{background:rgba(99,102,241,.2);border-radius:2px;}
 .chart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:70%;gap:14px;color:#334155;}
@@ -1534,7 +1536,7 @@ function buildModal(sym, a, cfg, bars, htfA) {
 // ─── Canvas chart drawing ────────────────────────────────────────────────────
 function drawCandleChart(canvas, bars, a) {
   const W = canvas.offsetWidth || 640;
-  const H = 200;
+  const H = 240;
   canvas.width = W * devicePixelRatio;
   canvas.height = H * devicePixelRatio;
   canvas.style.width = W + 'px';
@@ -1543,9 +1545,9 @@ function drawCandleChart(canvas, bars, a) {
   ctx.scale(devicePixelRatio, devicePixelRatio);
   if (bars.length < 2) return;
 
-  const n = Math.min(bars.length, 60);
+  const n = Math.min(bars.length, 40);
   const data = bars.slice(-n);
-  const pad = { l: 4, r: 54, t: 14, b: 18 };
+  const pad = { l: 4, r: 58, t: 14, b: 18 };
   const cw = (W - pad.l - pad.r) / n;
   const hs = data.map(b => b.h), ls = data.map(b => b.l);
   let hi = Math.max(...hs), lo = Math.min(...ls);
@@ -1605,7 +1607,7 @@ function drawCandleChart(canvas, bars, a) {
   ctx.stroke();
 
   // Candles
-  const hw = Math.max(1, cw * 0.34);
+  const hw = Math.max(1.5, cw * 0.40);
   data.forEach((b, i) => {
     const x = xB(i);
     const bull = b.c >= b.o;
@@ -1635,10 +1637,10 @@ function drawRsiChart(canvas, bars) {
   ctx.scale(devicePixelRatio, devicePixelRatio);
   if (bars.length < 14) return;
 
-  const n = Math.min(bars.length, 60);
+  const n = Math.min(bars.length, 40);
   const data = bars.slice(-n);
   const cls = data.map(b => b.c);
-  const pad = { l: 4, r: 54, t: 6, b: 12 };
+  const pad = { l: 4, r: 58, t: 6, b: 12 };
   const cw = (W - pad.l - pad.r) / n;
 
   const rsiArr = cls.map((_, i) => {
@@ -1717,12 +1719,16 @@ async function openChartPanel(sym) {
 }
 
 async function renderChartPanel(sym) {
-  let bars = await getBars(sym, 60);
+  let bars = await getBars(sym, 50);
   liveBars[sym] = bars;
+  // Update the LAST bar's close to live price (don't add a synthetic new bar)
   if (bars.length > 0 && LP[sym] && LP[sym].price) {
     const lp = LP[sym].price;
-    const prev = bars[bars.length - 1];
-    bars = [...bars, { o: prev.c, h: Math.max(prev.c, lp), l: Math.min(prev.c, lp), c: lp, v: prev.v, t: new Date().toISOString() }];
+    const last = { ...bars[bars.length - 1] };
+    last.c = lp;
+    last.h = Math.max(last.h, lp);
+    last.l = Math.min(last.l, lp);
+    bars = [...bars.slice(0, -1), last];
   }
   const a = bars.length >= 5 ? analyse(bars) : null;
   const cfg = UNI[sym] || null;
@@ -1783,11 +1789,12 @@ let modalSym = null, modalTimer = null;
 async function renderModal(sym) {
   let bars = await getBars(sym, 50);
   liveBars[sym] = bars;
-  // Inject live price as synthetic current bar so EMAs + VWAP + conditions all use it
+  // Update last bar's close to live price (avoids a fake extra candle)
   if (bars.length > 0 && LP[sym] && LP[sym].price) {
     const lp = LP[sym].price;
-    const prev = bars[bars.length - 1];
-    bars = [...bars, { o: prev.c, h: Math.max(prev.c, lp), l: Math.min(prev.c, lp), c: lp, v: prev.v, t: new Date().toISOString() }];
+    const last = { ...bars[bars.length - 1] };
+    last.c = lp; last.h = Math.max(last.h, lp); last.l = Math.min(last.l, lp);
+    bars = [...bars.slice(0, -1), last];
   }
   const a = bars.length >= 5 ? analyse(bars) : null;
   // HTF: fetch 1-hour bars for trend alignment
