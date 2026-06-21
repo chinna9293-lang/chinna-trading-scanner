@@ -166,14 +166,19 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 .chart-sym{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.02em;}
 .chart-price-line{font-size:13px;color:#64748b;margin-top:3px;}
 
-/* ── Canvas chart ── */
-.chart-wrap{background:rgba(7,7,15,.7);border:1px solid rgba(30,30,46,.8);border-radius:10px;overflow:hidden;margin-bottom:10px;}
-#chart-canvas{display:block;width:100%;}
-.rsi-wrap{background:rgba(7,7,15,.7);border:1px solid rgba(30,30,46,.8);border-radius:10px;overflow:hidden;margin-bottom:16px;}
-#rsi-canvas{display:block;width:100%;}
-.chart-legend{display:flex;gap:14px;padding:6px 10px;background:rgba(7,7,15,.5);font-size:9px;}
-.chart-legend span{display:flex;align-items:center;gap:4px;color:#64748b;}
-.legend-dot{width:10px;height:2px;border-radius:1px;display:inline-block;}
+/* ── LW Chart containers ── */
+.chart-wrap{background:rgba(7,7,15,.7);border:1px solid rgba(30,30,46,.8);border-radius:10px 10px 0 0;overflow:hidden;position:relative;}
+#chart-container{height:320px;width:100%;}
+.rsi-wrap{background:rgba(7,7,15,.7);border:1px solid rgba(30,30,46,.8);border-top:none;border-radius:0 0 10px 10px;overflow:hidden;margin-bottom:14px;}
+#rsi-container{height:72px;width:100%;}
+.chart-legend{display:flex;gap:10px;flex-wrap:wrap;padding:5px 10px;background:rgba(7,7,15,.5);font-size:9px;border-left:1px solid rgba(30,30,46,.8);border-right:1px solid rgba(30,30,46,.8);}
+.chart-legend span{display:flex;align-items:center;gap:4px;color:#64748b;white-space:nowrap;}
+
+/* ── Compact admin metrics ── */
+.mcard{background:linear-gradient(135deg,rgba(26,26,40,.85),rgba(15,15,28,.85));border:1px solid rgba(99,102,241,.1);border-radius:8px;padding:6px 8px;position:relative;overflow:hidden;}
+.mcard .ml{font-size:8px;color:#475569;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;font-weight:600;}
+.mcard .mv{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.02em;line-height:1.2;}
+.mcard .ms{font-size:8px;color:#475569;margin-top:1px;}
 
 /* ── Card (for sidebar) ── */
 .card{background:linear-gradient(135deg,rgba(20,20,34,.9),rgba(12,12,24,.9));border:1px solid rgba(99,102,241,.1);border-radius:10px;padding:12px;margin-bottom:10px;position:relative;overflow:hidden;}
@@ -394,12 +399,12 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
       </div>
       <div class="sidebar-sections">
         <span class="s-title" onclick="toggleSection('sec-pos')">Open Positions</span>
-        <div class="s-section" id="sec-pos">
+        <div class="s-section collapsed" id="sec-pos">
           <div id="pos-body" style="font-size:11px"><div class="empty">No open positions</div></div>
         </div>
 
-        <span class="s-title" style="color:#a855f7" onclick="toggleSection('sec-pol')">🏛️ Congress Trades</span>
-        <div class="s-section" id="sec-pol">
+        <span class="s-title collapsed" style="color:#a855f7" onclick="toggleSection('sec-pol')">🏛️ Congress Trades</span>
+        <div class="s-section collapsed" id="sec-pol">
           <div style="display:flex;gap:8px;margin:4px 0 6px">
             <span id="pol-buy-count" style="font-size:10px;color:#22c55e;font-weight:700"></span>
             <span id="pol-sell-count" style="font-size:10px;color:#ef4444;font-weight:700"></span>
@@ -1502,14 +1507,21 @@ function buildModal(sym, a, cfg, bars, htfA) {
     '</p></div>' +
 
     (cfg ?
-      '<div class="stitle">Backtest (45 days)</div><div class="nbox">' +
-      '<div class="hrow"><span style="color:#94a3b8">Win rate</span><span style="color:'+(hw>=55?'#22c55e':hw>=45?'#f59e0b':'#ef4444')+'">'+hw+'%</span></div>' +
-      '<div class="pbar"><div class="pfill" style="width:'+hw+'%;background:'+(hw>=55?'#22c55e':hw>=45?'#f59e0b':'#ef4444')+'"></div></div>' +
-      '<div class="hrow" style="margin-top:8px"><span style="color:#94a3b8">Total P&L</span><span class="'+(hp>=0?'g':'r')+'">'+(hp>=0?'+':'')+hp+'%</span></div>' +
-      '<div class="hrow"><span style="color:#94a3b8">Expected return/trade</span><span style="color:'+(parseFloat(ev)>=0?'#22c55e':'#ef4444')+'">'+(parseFloat(ev)>=0?'+':'')+ev+'%</span></div>' +
-      '<div class="hrow"><span style="color:#94a3b8">TP / SL</span><span style="color:#818cf8">+'+tp+'% / -'+sl+'%</span></div>' +
-      '<div class="hrow"><span style="color:#94a3b8">Rating</span><span class="'+(risk==='low'?'g':'a')+'">'+(risk==='low'?'✅ PROVEN WINNER':'⚠️ RISK HEAVY')+'</span></div></div>'
-    : '<div class="stitle" style="margin-top:14px">Searched ticker</div><div class="nbox"><p style="color:#64748b">Not in watchlist — analysis based on live chart data only.</p></div>') +
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0">' +
+      '<div style="background:rgba(15,15,28,.8);border:1px solid rgba(99,102,241,.1);border-radius:7px;padding:7px;text-align:center">' +
+      '<div style="font-size:8px;color:#475569;text-transform:uppercase;margin-bottom:2px">Win Rate</div>' +
+      '<div style="font-size:15px;font-weight:800;color:'+(hw>=55?'#22c55e':hw>=45?'#f59e0b':'#ef4444')+'">'+hw+'%</div></div>' +
+      '<div style="background:rgba(15,15,28,.8);border:1px solid rgba(99,102,241,.1);border-radius:7px;padding:7px;text-align:center">' +
+      '<div style="font-size:8px;color:#475569;text-transform:uppercase;margin-bottom:2px">P&L</div>' +
+      '<div style="font-size:15px;font-weight:800;color:'+(hp>=0?'#22c55e':'#ef4444')+'">'+(hp>=0?'+':'')+hp+'%</div></div>' +
+      '<div style="background:rgba(15,15,28,.8);border:1px solid rgba(99,102,241,.1);border-radius:7px;padding:7px;text-align:center">' +
+      '<div style="font-size:8px;color:#475569;text-transform:uppercase;margin-bottom:2px">EV/Trade</div>' +
+      '<div style="font-size:15px;font-weight:800;color:'+(parseFloat(ev)>=0?'#22c55e':'#ef4444')+'">'+(parseFloat(ev)>=0?'+':'')+ev+'%</div></div>' +
+      '<div style="background:rgba(15,15,28,.8);border:1px solid rgba(99,102,241,.1);border-radius:7px;padding:7px;text-align:center">' +
+      '<div style="font-size:8px;color:#475569;text-transform:uppercase;margin-bottom:2px">Rating</div>' +
+      '<div style="font-size:12px;font-weight:800;color:'+(risk==='low'?'#22c55e':'#f59e0b')+'">'+(risk==='low'?'✅ LOW':'⚠️ RISK')+'</div></div>' +
+      '</div>'
+    : '') +
 
     // Manual scalp buttons
     '<div class="stitle">Manual Scalp Trade (Paper)</div>' +
@@ -1561,59 +1573,111 @@ function initLWChart(containerId, bars, a) {
   if (!container || !bars.length) return;
   if (lwChart) { try { lwChart.remove(); } catch {} lwChart = null; }
 
-  const chartOpts = {
-    width: container.offsetWidth,
-    height: 280,
+  // autoSize fills container without needing offsetWidth at paint time
+  lwChart = LightweightCharts.createChart(container, {
+    autoSize: true,
     layout: { background: { color: 'transparent' }, textColor: '#64748b', fontSize: 10 },
-    grid: { vertLines: { color: 'rgba(30,30,46,.5)' }, horzLines: { color: 'rgba(30,30,46,.5)' } },
-    crosshair: { mode: 1 },
-    rightPriceScale: { borderColor: 'rgba(30,30,46,.6)', scaleMargins: { top: 0.08, bottom: 0.08 } },
+    grid: { vertLines: { color: 'rgba(30,30,46,.45)' }, horzLines: { color: 'rgba(30,30,46,.45)' } },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    rightPriceScale: { borderColor: 'rgba(30,30,46,.6)', scaleMargins: { top: 0.08, bottom: 0.18 } },
     timeScale: { borderColor: 'rgba(30,30,46,.6)', timeVisible: true, secondsVisible: false },
     handleScroll: true, handleScale: true,
-  };
-  lwChart = LightweightCharts.createChart(container, chartOpts);
+  });
 
-  new ResizeObserver(entries => {
-    if (lwChart) lwChart.applyOptions({ width: entries[0].contentRect.width });
-  }).observe(container);
+  const toTime = t => { const ms = new Date(t).getTime(); return isNaN(ms) ? 0 : Math.floor(ms/1000); };
 
-  // Candlesticks
+  // ── Candlesticks ──
   const cs = lwChart.addCandlestickSeries({
     upColor: '#22c55e', downColor: '#ef4444',
     borderVisible: false, wickUpColor: '#22c55e', wickDownColor: '#ef4444',
   });
-  const toTime = t => {
-    const ms = new Date(t).getTime();
-    return isNaN(ms) ? 0 : Math.floor(ms / 1000);
-  };
   cs.setData(bars.map(b => ({ time: toTime(b.t), open: b.o, high: b.h, low: b.l, close: b.c })));
 
-  // EMA9
-  let e9v = bars[0].c;
-  const e9s = lwChart.addLineSeries({ color: '#22c55e', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-  e9s.setData(bars.map(b => { e9v = b.c*(2/10)+e9v*(1-2/10); return { time: toTime(b.t), value: +e9v.toFixed(5) }; }));
+  // ── EMAs: 9 (green), 21 (orange), 50 (blue/dashed) ──
+  let e9v = bars[0].c, e21v = bars[0].c, e50v = bars[0].c;
+  const e9pts = [], e21pts = [], e50pts = [];
+  bars.forEach(b => {
+    e9v  = b.c*(2/10) + e9v*(1-2/10);
+    e21v = b.c*(2/22) + e21v*(1-2/22);
+    e50v = b.c*(2/51) + e50v*(1-2/51);
+    const t = toTime(b.t);
+    e9pts.push({time:t, value:+e9v.toFixed(6)});
+    e21pts.push({time:t, value:+e21v.toFixed(6)});
+    e50pts.push({time:t, value:+e50v.toFixed(6)});
+  });
+  const lineSeries = (color, width, style) => lwChart.addLineSeries({
+    color, lineWidth: width, lineStyle: style||0,
+    priceLineVisible:false, lastValueVisible:false, crosshairMarkerVisible:false
+  });
+  lineSeries('#22c55e', 1.5).setData(e9pts);
+  lineSeries('#fb923c', 1.5).setData(e21pts);
+  lineSeries('rgba(96,165,250,.55)', 1, 2).setData(e50pts);
 
-  // EMA21
-  let e21v = bars[0].c;
-  const e21s = lwChart.addLineSeries({ color: '#fb923c', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-  e21s.setData(bars.map(b => { e21v = b.c*(2/22)+e21v*(1-2/22); return { time: toTime(b.t), value: +e21v.toFixed(5) }; }));
+  // ── Bollinger Bands (20-period, 2σ) ──
+  const closes = bars.map(b => b.c);
+  const bbU = [], bbL = [];
+  bars.forEach((b, i) => {
+    const sl = closes.slice(Math.max(0, i-19), i+1);
+    const m = sl.reduce((s,v)=>s+v,0)/sl.length;
+    const sd = Math.sqrt(sl.reduce((s,v)=>s+(v-m)**2,0)/sl.length);
+    const t = toTime(b.t);
+    bbU.push({time:t, value:+(m+2*sd).toFixed(6)});
+    bbL.push({time:t, value:+(m-2*sd).toFixed(6)});
+  });
+  lineSeries('rgba(99,102,241,.35)', 1, 1).setData(bbU);
+  lineSeries('rgba(99,102,241,.35)', 1, 1).setData(bbL);
 
-  // Swing Hi / Lo price lines
+  // ── VWAP (session cumulative) ──
+  let cumPV = 0, cumV = 0;
+  const vwapPts = bars.map(b => {
+    cumPV += ((b.h+b.l+b.c)/3) * (b.v||1);
+    cumV  += (b.v||1);
+    return {time: toTime(b.t), value: +(cumPV/cumV).toFixed(6)};
+  });
+  lineSeries('#fbbf24', 1.5, 0).setData(vwapPts);
+
+  // ── Key levels as price lines ──
   if (a) {
-    cs.createPriceLine({ price: a.sH, color: 'rgba(99,102,241,.7)', lineStyle: 2, lineWidth: 1, title: 'Swing Hi' });
-    cs.createPriceLine({ price: a.sL, color: 'rgba(99,102,241,.7)', lineStyle: 2, lineWidth: 1, title: 'Swing Lo' });
-    // If there's a signal, show TP/SL lines
+    cs.createPriceLine({ price: a.sH, color: 'rgba(99,102,241,.8)', lineStyle: 2, lineWidth: 1, title: '⬛ R ' + a.sH });
+    cs.createPriceLine({ price: a.sL, color: 'rgba(99,102,241,.8)', lineStyle: 2, lineWidth: 1, title: '⬛ S ' + a.sL });
+    if (a.vwap) cs.createPriceLine({ price: a.vwap, color: 'rgba(251,191,36,.5)', lineStyle: 1, lineWidth: 1, title: 'VWAP ' + a.vwap });
+
     const dir = getDir(a);
     const cfg = UNI[a._sym] || null;
     const tp = cfg ? cfg.tp : 2.5, sl = cfg ? cfg.sl : 1.5;
+
     if (dir === 'bull') {
-      cs.createPriceLine({ price: +(a.price*(1+tp/100)).toFixed(5), color: 'rgba(34,197,94,.6)', lineStyle: 3, lineWidth: 1, title: 'TP +'+tp+'%' });
-      cs.createPriceLine({ price: +(a.price*(1-sl/100)).toFixed(5), color: 'rgba(239,68,68,.6)', lineStyle: 3, lineWidth: 1, title: 'SL -'+sl+'%' });
+      cs.createPriceLine({ price: +(a.price*(1+tp/100)).toFixed(6), color: '#22c55e', lineStyle: 3, lineWidth: 2, title: '🎯 TP +'+tp+'%' });
+      cs.createPriceLine({ price: +(a.price*(1-sl/100)).toFixed(6), color: '#ef4444', lineStyle: 3, lineWidth: 2, title: '⛔ SL -'+sl+'%' });
     } else if (dir === 'bear') {
-      cs.createPriceLine({ price: +(a.price*(1-tp/100)).toFixed(5), color: 'rgba(34,197,94,.6)', lineStyle: 3, lineWidth: 1, title: 'TP -'+tp+'%' });
-      cs.createPriceLine({ price: +(a.price*(1+sl/100)).toFixed(5), color: 'rgba(239,68,68,.6)', lineStyle: 3, lineWidth: 1, title: 'SL +'+sl+'%' });
+      cs.createPriceLine({ price: +(a.price*(1-tp/100)).toFixed(6), color: '#22c55e', lineStyle: 3, lineWidth: 2, title: '🎯 TP -'+tp+'%' });
+      cs.createPriceLine({ price: +(a.price*(1+sl/100)).toFixed(6), color: '#ef4444', lineStyle: 3, lineWidth: 2, title: '⛔ SL +'+sl+'%' });
+    }
+
+    // ── Price projection (dashed line after last bar) ──
+    if (dir !== 'neutral' && bars.length > 1) {
+      const lastBar = bars[bars.length-1];
+      const t0 = toTime(lastBar.t);
+      const barSec = t0 - toTime(bars[bars.length-2].t);
+      const pct = dir === 'bull' ? tp/2 : -tp/2;
+      // 3-step projection with slight curve
+      const p1 = +(a.price * (1 + pct*0.4/100)).toFixed(6);
+      const p2 = +(a.price * (1 + pct*0.9/100)).toFixed(6);
+      const p3 = +(a.price * (1 + pct*1.0/100)).toFixed(6);
+      const projColor = dir === 'bull' ? 'rgba(34,197,94,.7)' : 'rgba(239,68,68,.7)';
+      const proj = lwChart.addLineSeries({ color: projColor, lineWidth: 2, lineStyle: 3,
+        priceLineVisible:false, lastValueVisible:true, crosshairMarkerVisible:true,
+        lastPriceAnimation: LightweightCharts.LastPriceAnimationMode && LightweightCharts.LastPriceAnimationMode.Continuous,
+      });
+      proj.setData([
+        { time: t0,                value: +a.price.toFixed(6) },
+        { time: t0 + barSec,       value: p1 },
+        { time: t0 + barSec*3,     value: p2 },
+        { time: t0 + barSec*5,     value: p3 },
+      ]);
     }
   }
+
   lwChart.timeScale().fitContent();
 }
 
@@ -1623,18 +1687,14 @@ function initRsiChart(containerId, bars) {
   if (lwRsiChart) { try { lwRsiChart.remove(); } catch {} lwRsiChart = null; }
 
   lwRsiChart = LightweightCharts.createChart(container, {
-    width: container.offsetWidth, height: 80,
+    autoSize: true,
     layout: { background: { color: 'transparent' }, textColor: '#475569', fontSize: 9 },
-    grid: { vertLines: { color: 'rgba(30,30,46,.3)' }, horzLines: { color: 'rgba(30,30,46,.3)' } },
-    crosshair: { mode: 1 },
-    rightPriceScale: { borderColor: 'rgba(30,30,46,.5)', scaleMargins: { top: 0.1, bottom: 0.1 } },
-    timeScale: { borderColor: 'rgba(30,30,46,.5)', timeVisible: false, visible: false },
-    handleScroll: true, handleScale: false,
+    grid: { vertLines: { color: 'rgba(30,30,46,.25)' }, horzLines: { color: 'rgba(30,30,46,.25)' } },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    rightPriceScale: { borderColor: 'rgba(30,30,46,.5)', scaleMargins: { top: 0.05, bottom: 0.05 } },
+    timeScale: { visible: false },
+    handleScroll: false, handleScale: false,
   });
-
-  new ResizeObserver(entries => {
-    if (lwRsiChart) lwRsiChart.applyOptions({ width: entries[0].contentRect.width });
-  }).observe(container);
 
   const cls = bars.map(b => b.c);
   const toTime = t => Math.floor(new Date(t).getTime() / 1000);
@@ -1648,8 +1708,8 @@ function initRsiChart(containerId, bars) {
 
   const rsiSeries = lwRsiChart.addLineSeries({ color: '#818cf8', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
   rsiSeries.setData(rsiData);
-  rsiSeries.createPriceLine({ price: 65, color: 'rgba(239,68,68,.4)', lineStyle: 1, lineWidth: 1, title: '65' });
-  rsiSeries.createPriceLine({ price: 45, color: 'rgba(34,197,94,.4)', lineStyle: 1, lineWidth: 1, title: '45' });
+  rsiSeries.createPriceLine({ price: 65, color: 'rgba(239,68,68,.5)', lineStyle: 1, lineWidth: 1, title: 'OB 65' });
+  rsiSeries.createPriceLine({ price: 45, color: 'rgba(34,197,94,.5)', lineStyle: 1, lineWidth: 1, title: 'OS 45' });
   lwRsiChart.timeScale().fitContent();
 }
 
@@ -1852,13 +1912,19 @@ async function renderChartPanel(sym, tf) {
     '<button onclick="renderChartPanel(\'' + sym + '\',currentTf)" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#64748b;padding:5px 10px;border-radius:6px;font-size:10px;cursor:pointer">↻</button>' +
     '</div>' +
     '</div>' +
-    '<div class="chart-wrap"><div id="chart-container" style="height:280px"></div></div>' +
-    '<div style="display:flex;gap:12px;padding:5px 10px;background:rgba(7,7,15,.5);font-size:9px;border:1px solid rgba(30,30,46,.6);border-top:none;border-radius:0 0 10px 10px;margin-bottom:10px">' +
-    '<span style="color:#22c55e">— EMA9</span><span style="color:#fb923c">— EMA21</span>' +
-    '<span style="color:#818cf8">-- Swing Hi/Lo</span><span style="color:rgba(34,197,94,.6)">-- TP</span><span style="color:rgba(239,68,68,.6)">-- SL</span>' +
-    '<span style="color:#334155;margin-left:auto">Scroll to zoom · Drag to pan</span>' +
+    '<div class="chart-wrap"><div id="chart-container"></div></div>' +
+    '<div class="chart-legend">' +
+    '<span style="color:#22c55e">— EMA9</span>' +
+    '<span style="color:#fb923c">— EMA21</span>' +
+    '<span style="color:rgba(96,165,250,.7)">-- EMA50</span>' +
+    '<span style="color:#fbbf24">— VWAP</span>' +
+    '<span style="color:rgba(99,102,241,.6)">· BB</span>' +
+    '<span style="color:rgba(99,102,241,.7)">-- S/R</span>' +
+    '<span style="color:#22c55e">-- TP</span>' +
+    '<span style="color:#ef4444">-- SL</span>' +
+    '<span style="color:#334155;margin-left:auto">scroll=zoom · drag=pan</span>' +
     '</div>' +
-    '<div class="rsi-wrap" style="margin-bottom:16px"><div id="rsi-container" style="height:80px"></div></div>' +
+    '<div class="rsi-wrap"><div id="rsi-container"></div></div>' +
     buildModal(sym, a, cfg, bars, null);
 
   setTimeout(() => {
