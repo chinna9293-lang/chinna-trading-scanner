@@ -148,6 +148,17 @@ td{padding:10px 8px 10px 0;border-top:1px solid rgba(30,30,46,.8);color:#cbd5e1;
 .tc.neutral{border-left:3px solid rgba(71,85,105,.5);}
 .tname{font-size:13px;font-weight:800;color:#fff;letter-spacing:-.01em;}
 .er-badge{font-size:9px;background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25);padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:700;}
+.pol-badge{font-size:9px;background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3);padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:700;}
+.pol-panel{background:linear-gradient(135deg,rgba(20,20,34,.9),rgba(12,12,24,.9));border:1px solid rgba(168,85,247,.15);border-radius:14px;padding:20px;margin-bottom:20px;position:relative;overflow:hidden;}
+.pol-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(168,85,247,.3),transparent);}
+.pol-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(30,30,46,.6);font-size:12px;}
+.pol-row:last-child{border-bottom:none;}
+.pol-ticker{font-weight:800;color:#fff;width:52px;flex-shrink:0;}
+.pol-name{color:#94a3b8;flex:1;}
+.pol-amt{color:#a855f7;font-weight:700;font-size:10px;white-space:nowrap;}
+.pol-date{color:#334155;font-size:10px;white-space:nowrap;}
+.pol-party-R{color:#ef4444;font-weight:700;font-size:10px;}
+.pol-party-D{color:#60a5fa;font-weight:700;font-size:10px;}
 .tpx{font-size:16px;font-weight:800;color:#fff;margin:6px 0 2px;transition:color .4s;letter-spacing:-.02em;}
 .tpx.fu{color:#22c55e!important;}
 .tpx.fd{color:#ef4444!important;}
@@ -334,6 +345,11 @@ td{padding:10px 8px 10px 0;border-top:1px solid rgba(30,30,46,.8);color:#cbd5e1;
     </div>
 
     <div class="card admin-only"><h3>Open Positions</h3><div id="pos-body"><div class="empty">No open positions</div></div></div>
+
+    <div class="pol-panel">
+      <h3 style="font-size:11px;color:#a855f7;margin-bottom:14px;text-transform:uppercase;letter-spacing:.08em;font-weight:700">🏛️ Congress Buys — Last 60 Days (STOCK Act Disclosures)</h3>
+      <div id="pol-panel-body"><div class="empty">Loading political trades...</div></div>
+    </div>
 
     <div class="card admin-only">
       <h3>All Trades</h3>
@@ -611,6 +627,80 @@ function fmtP(n) { return (n>=0?'+':'') + parseFloat(n).toFixed(2) + '%'; }
 
 // ─── Live price store ─────────────────────────────────────────────────────────
 const LP = {};  // sym → {price, prev}
+
+// ─── Political trades (Congress STOCK Act disclosures) ────────────────────────
+let POLITICAL_BUYS = {};  // sym → [{rep, party, date, range, amount}]
+
+async function loadPoliticalTrades() {
+  try {
+    // Quiver Quant free endpoint — no API key needed, server returns CORS headers
+    const proxy = 'https://corsproxy.io/?' + encodeURIComponent('https://api.quiverquant.com/beta/live/congresstrading');
+    const r = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+    const data = await r.json();
+    const OUR = Object.keys(UNI).map(s => s.replace('USD',''));
+    const cutoff = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000); // last 60 days
+    POLITICAL_BUYS = {};
+    data.forEach(t => {
+      if (t.Transaction !== 'Purchase') return;
+      if (new Date(t.TransactionDate) < cutoff) return;
+      // match ticker to our universe (stocks direct, crypto not applicable)
+      const sym = t.Ticker;
+      if (!UNI[sym] && !UNI[sym + 'USD']) return;
+      const key = UNI[sym] ? sym : sym + 'USD';
+      if (!POLITICAL_BUYS[key]) POLITICAL_BUYS[key] = [];
+      POLITICAL_BUYS[key].push({
+        rep:    t.Representative,
+        party:  t.Party,
+        date:   t.TransactionDate,
+        range:  t.Range,
+        amount: parseFloat(t.Amount) || 0,
+      });
+    });
+    renderPoliticalPanel();
+    // patch badges into existing card DOM (cards are built once in loadTickers)
+    document.querySelectorAll('.tc').forEach(card => {
+      const onclick = card.getAttribute('onclick') || '';
+      const m = onclick.match(/openModal\('([^']+)'\)/);
+      if (!m) return;
+      const sym = m[1];
+      const buys = POLITICAL_BUYS[sym];
+      const tname = card.querySelector('.tname');
+      if (!tname) return;
+      const existing = card.querySelector('.pol-badge');
+      if (buys && buys.length) {
+        if (!existing) {
+          const b = document.createElement('span');
+          b.className = 'pol-badge';
+          b.textContent = '🏛️ ' + buys.length;
+          tname.after(b);
+        }
+      } else if (existing) {
+        existing.remove();
+      }
+    });
+    console.log('[pol] loaded', Object.keys(POLITICAL_BUYS).length, 'tickers with congress buys');
+  } catch(e) { console.warn('[pol] failed:', e.message); }
+}
+
+function renderPoliticalPanel() {
+  const el = document.getElementById('pol-panel-body');
+  if (!el) return;
+  const entries = [];
+  Object.entries(POLITICAL_BUYS).forEach(([sym, buys]) => {
+    buys.forEach(b => entries.push({ sym, ...b }));
+  });
+  entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+  if (!entries.length) { el.innerHTML = '<div class="empty">No recent congress buys in our universe</div>'; return; }
+  el.innerHTML = entries.slice(0, 20).map(e =>
+    `<div class="pol-row">
+      <span class="pol-ticker">🏛️ ${e.sym}</span>
+      <span class="pol-name">${e.rep}</span>
+      <span class="pol-party-${e.party}">${e.party}</span>
+      <span class="pol-amt">${e.range}</span>
+      <span class="pol-date">${e.date}</span>
+    </div>`
+  ).join('');
+}
 let tickCount = 0;
 const TICKS = []; // rolling tick log
 
@@ -1796,10 +1886,12 @@ async function loadTickers() {
       ? '<span style="font-size:9px;background:rgba(245,158,11,.12);color:#f59e0b;padding:1px 5px;border-radius:10px">RISK</span>'
       : '<span style="font-size:9px;background:rgba(99,102,241,.12);color:#818cf8;padding:1px 5px;border-radius:10px">PROVEN</span>';
     const erBadge = '';
+    const polBuys = POLITICAL_BUYS[sym] || [];
+    const polBadge = polBuys.length ? '<span class="pol-badge">🏛️ ' + polBuys.length + '</span>' : '';
     cards.push(
       '<div class="tc ' + dir + '" onclick="openModal(\'' + sym + '\')">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
-      '<div><span class="tname">' + label + '</span>' + erBadge + '</div>' + rb + '</div>' +
+      '<div><span class="tname">' + label + '</span>' + erBadge + polBadge + '</div>' + rb + '</div>' +
       '<div class="tpx" data-px="' + sym + '">' + pxTxt + ' <span style="font-size:16px;color:'+dc+'">' + arrow + '</span></div>' +
       '<div style="min-height:16px;margin-bottom:3px"><span data-chg="' + sym + '">' + chgHtml + '</span>' +
       ' <span style="font-size:11px;color:#475569">RSI ' + rsi + '</span></div>' +
@@ -1886,6 +1978,8 @@ async function startAll() {
   _timers.push(setInterval(loadNews, 300000));      // refresh news every 5 min
   await loadAccount();
   await loadTickers();
+  loadPoliticalTrades();
+  _timers.push(setInterval(loadPoliticalTrades, 30 * 60 * 1000)); // refresh every 30 min
 }
 
 if (sessionStorage.getItem('ct') === '1') startAll();
