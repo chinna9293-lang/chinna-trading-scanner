@@ -13,11 +13,11 @@ const ALP_KEY = process.env.ALPACA_KEY    || 'PK7T6WNU6ANNWQXMWFFFSYLKR7';
 const ALP_SEC = process.env.ALPACA_SECRET || 'EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHGoMBtNKDoz6';
 const DATA    = 'https://data.alpaca.markets';
 
-// Universe: removed chronic losers. TSLA also removed (0%WR in filtered backtest).
-// Keeping only assets with proven quality signals under strict filters.
+// Stocks: only assets with >60%WR under quality filters in 3-month tests.
+// Crypto: 6-month window gives ~2x signals; crypto markets 24/7 so older data is more relevant.
+// Removed: TSLA(50%/neutral), AMD(25% under filters), NFLX(33-50% poor quality).
 const UNIVERSE = {
-  LLY:'stock', COST:'stock', AMD:'stock',
-  CRM:'stock', WMT:'stock', META:'stock', GOOGL:'stock', NFLX:'stock',
+  LLY:'stock', COST:'stock', CRM:'stock', WMT:'stock', META:'stock', GOOGL:'stock',
   'DOGE/USD':'crypto','LTC/USD':'crypto','LINK/USD':'crypto',
   'BTC/USD':'crypto','ETH/USD':'crypto','SOL/USD':'crypto',
 };
@@ -26,13 +26,13 @@ const alpH = { 'APCA-API-KEY-ID': ALP_KEY, 'APCA-API-SECRET-KEY': ALP_SEC };
 async function getBars(symbol, limit) {
   if (symbol.includes('/')) {
     const sym   = symbol.replace('/','%2F');
-    const start = new Date(Date.now()-180*86400000).toISOString().slice(0,10); // 6 months
+    const start = new Date(Date.now()-180*86400000).toISOString().slice(0,10); // 6mo — crypto 24/7 so older data still valid
     const url   = `${DATA}/v1beta3/crypto/us/bars?symbols=${sym}&timeframe=1Hour&limit=${limit}&start=${start}`;
     const d     = await (await fetch(url,{headers:alpH})).json();
     return (d.bars&&d.bars[symbol])||[];
   }
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1h&range=6mo`; // 6 months
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1h&range=3mo`; // 3mo — recent stock signals only
     const d   = await (await fetch(url,{headers:{'User-Agent':'Mozilla/5.0'}})).json();
     const res = d?.chart?.result?.[0]; if (!res) return [];
     const ts  = res.timestamp||[];
