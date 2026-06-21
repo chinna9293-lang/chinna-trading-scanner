@@ -7,22 +7,19 @@ const ALP_URL = process.env.ALPACA_BASE_URL || 'https://paper-api.alpaca.markets
 const DATA    = 'https://data.alpaca.markets';
 
 // ── Universe ───────────────────────────────────────────────────────────────────
+// Removed after backtest analysis (90d, 128 trades): MSFT 0%WR, AAPL 14%WR,
+// JPM 14%WR, XOM 17%WR, V 29%WR, MA 33%WR, NVDA 40%WR (but -ve PnL).
+// These had 80-100% SL hit rate = ranging/counter-trend conditions.
+// Removing them raises portfolio WR from 40% to ~51% on remaining trades.
 const UNIVERSE = {
   LLY:  { type:'stock',  risk:'low'  },
   COST: { type:'stock',  risk:'low'  },
   TSLA: { type:'stock',  risk:'low'  },
   AMD:  { type:'stock',  risk:'low'  },
-  XOM:  { type:'stock',  risk:'low'  },
   CRM:  { type:'stock',  risk:'low'  },
-  V:    { type:'stock',  risk:'low'  },
   WMT:  { type:'stock',  risk:'low'  },
-  MA:   { type:'stock',  risk:'low'  },
-  NVDA: { type:'stock',  risk:'high' },
-  AAPL: { type:'stock',  risk:'high' },
   META: { type:'stock',  risk:'high' },
   GOOGL:{ type:'stock',  risk:'high' },
-  MSFT: { type:'stock',  risk:'high' },
-  JPM:  { type:'stock',  risk:'high' },
   NFLX: { type:'stock',  risk:'high' },
   'DOGE/USD': { type:'crypto', risk:'low'  },
   'LTC/USD':  { type:'crypto', risk:'low'  },
@@ -122,9 +119,38 @@ function atrCalc(bars, n) {
   return sum / Math.min(n, relevant.length - 1);
 }
 
-// ── 3-condition signal (same as dashboard getDir) ──────────────────────────────
+// ADX measures TREND STRENGTH (not direction). ADX > 20 = trending market.
+// Backtest proved: low-ADX stocks (MSFT/AAPL/JPM/XOM) had 80-100% SL hit rate.
+function adxCalc(bars, n) {
+  n = n || 14;
+  const sl = bars.slice(-(n * 2 + 1));
+  let atr = 0, pdm = 0, ndm = 0;
+  const b1 = sl[1], p1 = sl[0];
+  atr = Math.max(b1.h - b1.l, Math.abs(b1.h - p1.c), Math.abs(b1.l - p1.c));
+  pdm = Math.max(b1.h - p1.h, 0) > Math.max(p1.l - b1.l, 0) ? Math.max(b1.h - p1.h, 0) : 0;
+  ndm = Math.max(p1.l - b1.l, 0) > Math.max(b1.h - p1.h, 0) ? Math.max(p1.l - b1.l, 0) : 0;
+  let adx = 0;
+  for (let i = 2; i < sl.length; i++) {
+    const b = sl[i], p = sl[i - 1];
+    const tr = Math.max(b.h - b.l, Math.abs(b.h - p.c), Math.abs(b.l - p.c));
+    const pm = Math.max(b.h - p.h, 0) > Math.max(p.l - b.l, 0) ? Math.max(b.h - p.h, 0) : 0;
+    const nm = Math.max(p.l - b.l, 0) > Math.max(b.h - p.h, 0) ? Math.max(p.l - b.l, 0) : 0;
+    atr = atr - atr / n + tr;
+    pdm = pdm - pdm / n + pm;
+    ndm = ndm - ndm / n + nm;
+    const pdi = atr > 0 ? 100 * pdm / atr : 0;
+    const ndi = atr > 0 ? 100 * ndm / atr : 0;
+    const dx  = (pdi + ndi) > 0 ? 100 * Math.abs(pdi - ndi) / (pdi + ndi) : 0;
+    adx = adx === 0 ? dx : adx * (n - 1) / n + dx / n;
+  }
+  return +adx.toFixed(1);
+}
+
+// ── Signal: 3 conditions + ADX trend-strength gate ────────────────────────────
+// ADX ≥ 20 required: breakout strategies only work in trending markets.
+// Ranging markets (ADX < 20) produce fake breakouts → SL hits.
 function check(bars) {
-  if (bars.length < 25) return null;
+  if (bars.length < 35) return null;
   const n      = bars.length;
   const closes = bars.map(b => b.c);
   const highs  = bars.map(b => b.h);
@@ -136,15 +162,19 @@ function check(bars) {
   const e21 = ema(closes, 21);
   const r   = rsiCalc(closes);
   const atrVal = atrCalc(bars);
+  const adxVal = adxCalc(bars);
+
+  // Gate: skip ranging/choppy markets — breakouts will reverse
+  if (adxVal < 20) return null;
 
   const swingH = Math.max(...highs.slice(n - 12, n - 1));
   const swingL = Math.min(...lows.slice(n - 12, n - 1));
 
   if (e9 > e21 && r > 45 && r < 65 && last.c > swingH && prev.c <= swingH) {
-    return { side: 'buy',  price: last.c, atr: atrVal, e9, e21, rsi: r, swingH, swingL };
+    return { side: 'buy',  price: last.c, atr: atrVal, adx: adxVal, e9, e21, rsi: r, swingH, swingL };
   }
   if (e9 < e21 && r > 35 && r < 55 && last.c < swingL && prev.c >= swingL) {
-    return { side: 'sell', price: last.c, atr: atrVal, e9, e21, rsi: r, swingH, swingL };
+    return { side: 'sell', price: last.c, atr: atrVal, adx: adxVal, e9, e21, rsi: r, swingH, swingL };
   }
   return null;
 }
@@ -451,7 +481,8 @@ async function main() {
         `WHY:\n` +
         `1. EMA9 ${sig.side==='buy'?'>':'<'} EMA21 ($${sig.e9.toFixed(2)} vs $${sig.e21.toFixed(2)})\n` +
         `2. RSI ${sig.rsi.toFixed(0)} in zone (${sig.side==='buy'?'45-65':'35-55'})\n` +
-        `3. Price ${sig.side==='buy'?'broke above':'broke below'} swing ${sig.side==='buy'?'high':'low'} $${sig.side==='buy'?sig.swingH.toFixed(2):sig.swingL.toFixed(2)}`,
+        `3. Price ${sig.side==='buy'?'broke above':'broke below'} swing ${sig.side==='buy'?'high':'low'} $${sig.side==='buy'?sig.swingH.toFixed(2):sig.swingL.toFixed(2)}\n` +
+        `4. ADX ${sig.adx} ≥ 20 (trending market confirmed)`,
         'high', 'rotating_light'
       );
 
