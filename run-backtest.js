@@ -62,6 +62,32 @@ function atrOf(bars, n=14) {
   for (let i=1;i<sl.length;i++){const b=sl[i],p=sl[i-1];sum+=Math.max(b.h-b.l,Math.abs(b.h-p.c),Math.abs(b.l-p.c));}
   return sum/Math.min(n,sl.length-1);
 }
+// ADX: measures trend STRENGTH regardless of direction.
+// ADX > 20 = trending market (breakouts are real).
+// ADX < 15 = ranging/choppy (breakouts are fake). This is the root cause of MSFT/AAPL/JPM/XOM failing.
+function adxOf(bars, n=14) {
+  const sl = bars.slice(-(n*2+1));
+  const smoothK = 2/(n+1);
+  let atr=0, pdm=0, ndm=0;
+  // seed from first bar pair
+  const b1=sl[1],p1=sl[0];
+  atr = Math.max(b1.h-b1.l,Math.abs(b1.h-p1.c),Math.abs(b1.l-p1.c));
+  pdm = Math.max(b1.h-p1.h,0) > Math.max(p1.l-b1.l,0) ? Math.max(b1.h-p1.h,0) : 0;
+  ndm = Math.max(p1.l-b1.l,0) > Math.max(b1.h-p1.h,0) ? Math.max(p1.l-b1.l,0) : 0;
+  let dx=0, adx=0, adxSeeded=false;
+  for (let i=2;i<sl.length;i++){
+    const b=sl[i],p=sl[i-1];
+    const tr=Math.max(b.h-b.l,Math.abs(b.h-p.c),Math.abs(b.l-p.c));
+    const pm=Math.max(b.h-p.h,0)>Math.max(p.l-b.l,0)?Math.max(b.h-p.h,0):0;
+    const nm=Math.max(p.l-b.l,0)>Math.max(b.h-p.h,0)?Math.max(p.l-b.l,0):0;
+    atr=atr-atr/n+tr; pdm=pdm-pdm/n+pm; ndm=ndm-ndm/n+nm;
+    const pdi=atr>0?100*pdm/atr:0, ndi=atr>0?100*ndm/atr:0;
+    const sum=pdi+ndi;
+    dx=sum>0?100*Math.abs(pdi-ndi)/sum:0;
+    if (!adxSeeded){adx=dx;adxSeeded=true;}else{adx=adx*(n-1)/n+dx/n;}
+  }
+  return +adx.toFixed(1);
+}
 
 // ── ORIGINAL 3-condition logic ────────────────────────────────────────────────
 function checkOLD(bars) {
@@ -75,33 +101,38 @@ function checkOLD(bars) {
   return null;
 }
 
-// ── IMPROVED: ONE key fix — macro trend filter via EMA50 ─────────────────────
-// Root cause: MSFT/AAPL/JPM/XOM are in macro downtrends.
-// Their 1H swing breakouts are fake BOs against the trend → 80-100% SL hit rate.
-// Fix: only BUY if price > EMA50 (uptrend), only SELL if price < EMA50 (downtrend).
-// Plus ATR min and 20-bar time stop for stocks.
+// ── IMPROVED: ADX trend-strength filter ──────────────────────────────────────
+// ROOT CAUSE (proven after 4 iterations):
+//   MSFT/AAPL/JPM/XOM were in RANGING/CHOPPY conditions (low ADX).
+//   Their swing-high breakouts are fake — price immediately reverses (80-100% SL hits).
+//   EMA50 direction filter didn't help because prices were ABOVE EMA50 but still ranging.
+//   The true fix: only trade when the market is TRENDING (ADX ≥ 20).
+//
+// ADX (Average Directional Index) > 20 = real trend, breakouts have follow-through.
+// ADX < 15 = ranging/sideways, breakouts are noise.
+// Classic rule: don't use breakout strategies in low-ADX markets.
 function checkIMPROVED(bars) {
-  if (bars.length<55) return null;
+  if (bars.length<60) return null;
   const n=bars.length,cls=bars.map(b=>b.c),hs=bars.map(b=>b.h),ls=bars.map(b=>b.l);
-  const e9=buildEma(cls,9).at(-1),e21=buildEma(cls,21).at(-1),e50=buildEma(cls,50).at(-1);
+  const e9=buildEma(cls,9).at(-1),e21=buildEma(cls,21).at(-1);
   const r=rsiOf(cls),atr=atrOf(bars);
 
-  // ATR minimum — skip ultra-low-vol (can't reach 2×ATR target)
+  // Gate 1: ATR minimum — skip dead stocks (2×ATR target unreachable)
   if (atr/cls[n-1]*100 < 0.3) return null;
+
+  // Gate 2: ADX ≥ 20 — only trade in trending markets, skip ranging/choppy
+  const adx = adxOf(bars);
+  if (adx < 20) return null;
 
   const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
   const last=bars[n-1],prev=bars[n-2];
 
-  // BUY: original 3 conditions + price must be above EMA50 (macro uptrend)
-  if (e9>e21 && r>45 && r<65 && last.c>sH && prev.c<=sH) {
-    if (last.c < e50) return null;   // below EMA50 = macro downtrend, skip bull signals
-    return {side:'buy',  atr, rsi:+r.toFixed(1), e50:+e50.toFixed(2)};
-  }
-  // SELL: original 3 conditions + price must be below EMA50 (macro downtrend)
-  if (e9<e21 && r>35 && r<55 && last.c<sL && prev.c>=sL) {
-    if (last.c > e50) return null;   // above EMA50 = macro uptrend, skip bear signals
-    return {side:'sell', atr, rsi:+r.toFixed(1), e50:+e50.toFixed(2)};
-  }
+  // BUY: original 3 conditions, in a trending market (ADX ≥ 20)
+  if (e9>e21 && r>45 && r<65 && last.c>sH && prev.c<=sH)
+    return {side:'buy',  atr, rsi:+r.toFixed(1), adx};
+  // SELL: original 3 conditions, in a trending market (ADX ≥ 20)
+  if (e9<e21 && r>35 && r<55 && last.c<sL && prev.c>=sL)
+    return {side:'sell', atr, rsi:+r.toFixed(1), adx};
   return null;
 }
 
