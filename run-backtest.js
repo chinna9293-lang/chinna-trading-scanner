@@ -13,11 +13,11 @@ const ALP_KEY = process.env.ALPACA_KEY    || 'PK7T6WNU6ANNWQXMWFFFSYLKR7';
 const ALP_SEC = process.env.ALPACA_SECRET || 'EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHGoMBtNKDoz6';
 const DATA    = 'https://data.alpaca.markets';
 
+// Universe pruned based on 90-day backtest: removed MSFT(0%WR), AAPL(14%), JPM(14%),
+// XOM(17%), V(29%), MA(33%), NVDA(40%-ve PnL) — all had 70-100% SL hit rate.
 const UNIVERSE = {
-  LLY:'stock', COST:'stock', TSLA:'stock', AMD:'stock', XOM:'stock',
-  CRM:'stock', V:'stock', WMT:'stock', MA:'stock',
-  NVDA:'stock', AAPL:'stock', META:'stock', GOOGL:'stock', MSFT:'stock',
-  JPM:'stock', NFLX:'stock',
+  LLY:'stock', COST:'stock', TSLA:'stock', AMD:'stock',
+  CRM:'stock', WMT:'stock', META:'stock', GOOGL:'stock', NFLX:'stock',
   'DOGE/USD':'crypto','LTC/USD':'crypto','LINK/USD':'crypto',
   'BTC/USD':'crypto','ETH/USD':'crypto','SOL/USD':'crypto',
 };
@@ -111,28 +111,35 @@ function checkOLD(bars) {
 // ADX (Average Directional Index) > 20 = real trend, breakouts have follow-through.
 // ADX < 15 = ranging/sideways, breakouts are noise.
 // Classic rule: don't use breakout strategies in low-ADX markets.
+// ITER 1 filters: pruned universe + ADX≥25 + EMA21 slope + tighter RSI (52-62/38-48)
 function checkIMPROVED(bars) {
   if (bars.length<60) return null;
   const n=bars.length,cls=bars.map(b=>b.c),hs=bars.map(b=>b.h),ls=bars.map(b=>b.l);
-  const e9=buildEma(cls,9).at(-1),e21=buildEma(cls,21).at(-1);
-  const r=rsiOf(cls),atr=atrOf(bars);
+  const e9arr=buildEma(cls,9), e21arr=buildEma(cls,21);
+  const e9=e9arr.at(-1), e21=e21arr.at(-1);
+  const r=rsiOf(cls), atr=atrOf(bars);
 
-  // Gate 1: ATR minimum — skip dead stocks (2×ATR target unreachable)
+  // Gate 1: ATR min 0.3%
   if (atr/cls[n-1]*100 < 0.3) return null;
-
-  // Gate 2: ADX ≥ 20 — only trade in trending markets, skip ranging/choppy
+  // Gate 2: ADX ≥ 25 — stronger trend required (was 20)
   const adx = adxOf(bars);
-  if (adx < 20) return null;
+  if (adx < 25) return null;
+  // Gate 3: EMA21 slope — must be moving in signal direction
+  const e21Slope = e21arr[n-1] - e21arr[Math.max(0,n-6)];
 
   const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
   const last=bars[n-1],prev=bars[n-2];
 
-  // BUY: original 3 conditions, in a trending market (ADX ≥ 20)
-  if (e9>e21 && r>45 && r<65 && last.c>sH && prev.c<=sH)
-    return {side:'buy',  atr, rsi:+r.toFixed(1), adx};
-  // SELL: original 3 conditions, in a trending market (ADX ≥ 20)
-  if (e9<e21 && r>35 && r<55 && last.c<sL && prev.c>=sL)
-    return {side:'sell', atr, rsi:+r.toFixed(1), adx};
+  // BUY: tighter RSI 52-62 + EMA21 rising
+  if (e9>e21 && r>52 && r<62 && last.c>sH && prev.c<=sH) {
+    if (e21Slope<=0) return null;
+    return {side:'buy',  atr, rsi:+r.toFixed(1), adx, e21s:+e21Slope.toFixed(3)};
+  }
+  // SELL: tighter RSI 38-48 + EMA21 falling
+  if (e9<e21 && r>38 && r<48 && last.c<sL && prev.c>=sL) {
+    if (e21Slope>=0) return null;
+    return {side:'sell', atr, rsi:+r.toFixed(1), adx, e21s:+e21Slope.toFixed(3)};
+  }
   return null;
 }
 
