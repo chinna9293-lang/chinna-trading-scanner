@@ -7,189 +7,234 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬡</text></svg>">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f13;color:#e2e8f0;min-height:100vh;}
-/* login */
-.lw{display:flex;align-items:center;justify-content:center;min-height:100vh;}
-.lb{background:#1a1a24;border:1px solid #2d2d3d;border-radius:14px;padding:36px 32px;width:360px;}
-.ll{text-align:center;font-size:32px;margin-bottom:6px;}
-.lt{text-align:center;font-size:18px;font-weight:700;color:#fff;margin-bottom:4px;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#07070f;color:#e2e8f0;min-height:100vh;}
+
+/* ── Background ambient glow ── */
+body::before{content:'';position:fixed;top:-20%;left:-10%;width:50vw;height:50vh;background:radial-gradient(ellipse,rgba(99,102,241,.07) 0%,transparent 70%);pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:40vh;background:radial-gradient(ellipse,rgba(139,92,246,.05) 0%,transparent 70%);pointer-events:none;z-index:0;}
+
+/* ── Login ── */
+.lw{display:flex;align-items:center;justify-content:center;min-height:100vh;position:relative;z-index:1;}
+.lb{
+  background:linear-gradient(135deg,rgba(26,26,40,.95),rgba(15,15,28,.95));
+  border:1px solid rgba(99,102,241,.2);
+  border-radius:20px;padding:40px 36px;width:380px;
+  box-shadow:0 32px 64px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04),inset 0 1px 0 rgba(255,255,255,.06);
+  backdrop-filter:blur(20px);
+}
+.ll{text-align:center;font-size:36px;margin-bottom:8px;filter:drop-shadow(0 0 12px rgba(99,102,241,.6));}
+.lt{text-align:center;font-size:20px;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:-.02em;}
 .ls{text-align:center;font-size:13px;color:#64748b;margin-bottom:28px;}
-.llab{font-size:12px;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
-.linp{width:100%;background:#0f0f13;border:1px solid #2d2d3d;border-radius:8px;padding:11px 14px;color:#e2e8f0;font-size:14px;margin-bottom:16px;outline:none;}
-.linp:focus{border-color:#6366f1;}
-.lbtn{width:100%;background:#6366f1;color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;}
-.lbtn:hover{background:#4f46e5;}
+.llab{font-size:11px;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+.linp{width:100%;background:rgba(7,7,15,.8);border:1px solid rgba(99,102,241,.15);border-radius:10px;padding:12px 14px;color:#e2e8f0;font-size:14px;margin-bottom:16px;outline:none;transition:border-color .2s,box-shadow .2s;}
+.linp:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12);}
+.lbtn{
+  width:100%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:10px;
+  padding:13px;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;
+  box-shadow:0 8px 24px rgba(99,102,241,.35);transition:all .2s;letter-spacing:.02em;
+}
+.lbtn:hover{background:linear-gradient(135deg,#4f46e5,#7c3aed);box-shadow:0 12px 32px rgba(99,102,241,.5);transform:translateY(-1px);}
+.lbtn:active{transform:translateY(0);}
 .lerr{color:#ef4444;font-size:13px;text-align:center;margin-top:12px;min-height:18px;}
-/* header */
-.hdr{background:#1a1a24;border-bottom:1px solid #2d2d3d;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;}
-.logo{font-size:16px;font-weight:600;color:#fff;}.logo span{color:#6366f1;}
-.hdr-r{display:flex;align-items:center;gap:14px;}
-.stat{display:flex;align-items:center;gap:7px;font-size:12px;color:#94a3b8;}
-.dot{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite;}
+
+/* ── Header ── */
+.hdr{
+  background:linear-gradient(180deg,rgba(15,15,28,1),rgba(10,10,20,.97));
+  border-bottom:1px solid rgba(99,102,241,.12);
+  padding:12px 24px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;
+  box-shadow:0 4px 32px rgba(0,0,0,.5);
+  backdrop-filter:blur(16px);
+}
+.logo{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;color:#fff;}
+.logo-icon{
+  width:30px;height:30px;border-radius:8px;
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  box-shadow:0 4px 12px rgba(99,102,241,.45);
+}
+.hdr-r{display:flex;align-items:center;gap:10px;}
+.stat{display:flex;align-items:center;gap:7px;font-size:12px;color:#64748b;}
+.dot{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite;flex-shrink:0;}
 .dot.off{background:#f59e0b;}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.badge{font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid;}
-.badge.on{background:rgba(34,197,94,.12);color:#22c55e;border-color:rgba(34,197,94,.25);}
-.badge.off{background:rgba(245,158,11,.12);color:#f59e0b;border-color:rgba(245,158,11,.25);}
-.signout{background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,.4)}50%{opacity:.6;box-shadow:0 0 0 4px rgba(34,197,94,0)}}
+.badge{font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid;font-weight:600;}
+.badge.on{background:rgba(34,197,94,.1);color:#22c55e;border-color:rgba(34,197,94,.25);}
+.badge.off{background:rgba(245,158,11,.1);color:#f59e0b;border-color:rgba(245,158,11,.25);}
+.signout{background:transparent;border:1px solid rgba(71,85,105,.4);color:#475569;padding:5px 12px;border-radius:8px;font-size:12px;cursor:pointer;transition:all .2s;}
 .signout:hover{border-color:#ef4444;color:#ef4444;}
-/* dash */
-.dash{padding:24px;max-width:1400px;margin:0 auto;}
-.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
-.mcard{background:#1a1a24;border:1px solid #2d2d3d;border-radius:10px;padding:16px 20px;}
-.mcard .ml{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
-.mcard .mv{font-size:24px;font-weight:700;color:#fff;}
-.mcard .ms{font-size:12px;color:#64748b;margin-top:4px;}
+
+/* ── Dashboard layout ── */
+.dash{padding:24px;max-width:1400px;margin:0 auto;position:relative;z-index:1;}
+
+/* ── Metric cards ── */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.mcard{
+  background:linear-gradient(135deg,rgba(26,26,40,.8),rgba(15,15,28,.8));
+  border:1px solid rgba(99,102,241,.1);border-radius:14px;padding:18px 20px;
+  position:relative;overflow:hidden;transition:border-color .2s,transform .2s;
+  box-shadow:0 4px 24px rgba(0,0,0,.3);
+}
+.mcard::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(99,102,241,.3),transparent);}
+.mcard:hover{border-color:rgba(99,102,241,.25);transform:translateY(-2px);}
+.mcard .ml{font-size:10px;color:#475569;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-weight:600;}
+.mcard .mv{font-size:26px;font-weight:800;color:#fff;letter-spacing:-.02em;}
+.mcard .ms{font-size:11px;color:#475569;margin-top:6px;}
 .g{color:#22c55e!important;}.r{color:#ef4444!important;}.a{color:#f59e0b!important;}
-.card{background:#1a1a24;border:1px solid #2d2d3d;border-radius:10px;padding:20px;margin-bottom:24px;}
-.card h3{font-size:12px;color:#64748b;margin-bottom:14px;text-transform:uppercase;letter-spacing:.05em;}
+
+/* ── Cards ── */
+.card{
+  background:linear-gradient(135deg,rgba(20,20,34,.9),rgba(12,12,24,.9));
+  border:1px solid rgba(99,102,241,.1);border-radius:14px;padding:20px;margin-bottom:20px;
+  box-shadow:0 4px 32px rgba(0,0,0,.35);position:relative;overflow:hidden;
+}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(99,102,241,.2),transparent);}
+.card h3{font-size:11px;color:#475569;margin-bottom:16px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+
+/* ── Tables ── */
 table{width:100%;border-collapse:collapse;font-size:13px;}
-th{text-align:left;color:#64748b;font-size:11px;text-transform:uppercase;padding:0 6px 10px 0;letter-spacing:.04em;cursor:pointer;white-space:nowrap;}
+th{text-align:left;color:#475569;font-size:10px;text-transform:uppercase;padding:0 8px 12px 0;letter-spacing:.06em;cursor:pointer;white-space:nowrap;font-weight:600;}
 th:hover{color:#94a3b8;}
-td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-align:middle;}
-/* tick feed */
-/* News strip */
-.news-bar{background:#0a0a10;border-bottom:1px solid #1e1e2e;padding:0 14px;height:28px;overflow:hidden;display:flex;align-items:center;gap:10px;}
-.news-label{font-size:10px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;flex-shrink:0;}
+td{padding:10px 8px 10px 0;border-top:1px solid rgba(30,30,46,.8);color:#cbd5e1;vertical-align:middle;}
+
+/* ── News bar ── */
+.news-bar{background:rgba(5,5,12,.9);border-bottom:1px solid rgba(30,30,46,.6);padding:0 14px;height:28px;overflow:hidden;display:flex;align-items:center;gap:10px;position:relative;z-index:1;}
+.news-label{font-size:10px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;flex-shrink:0;}
 .news-scroll{overflow:hidden;flex:1;}
 .news-track{display:inline-flex;white-space:nowrap;animation:newsroll 60s linear infinite;}
 .news-track:hover{animation-play-state:paused;}
 @keyframes newsroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 .ni{display:inline-flex;align-items:center;gap:8px;padding:0 20px;}
 .ns{font-size:10px;color:#6366f1;font-weight:700;text-transform:uppercase;}
-.nh{font-size:11px;color:#94a3b8;}
-.nt{font-size:10px;color:#334155;}
+.nh{font-size:11px;color:#64748b;}
+.nt{font-size:10px;color:#2d2d4d;}
 .nd{color:#1e1e2e;padding:0 6px;}
-.tick-wrap{overflow:hidden;height:30px;background:#0a0a10;border:1px solid #1e1e2e;border-radius:6px;margin-bottom:14px;display:flex;align-items:center;}
+
+/* ── Ticker tape ── */
+.tick-wrap{overflow:hidden;height:32px;background:rgba(5,5,12,.8);border:1px solid rgba(30,30,46,.6);border-radius:8px;margin-bottom:16px;display:flex;align-items:center;}
 .tick-track{display:flex;gap:0;white-space:nowrap;will-change:transform;}
-.tick-item{display:inline-flex;align-items:center;gap:5px;padding:0 14px;font-size:11px;border-right:1px solid #1e1e2e;}
-.tick-item .tsym{font-weight:700;color:#94a3b8;}
+.tick-item{display:inline-flex;align-items:center;gap:5px;padding:0 14px;font-size:11px;border-right:1px solid rgba(30,30,46,.6);}
+.tick-item .tsym{font-weight:700;color:#64748b;}
 .tick-item .tprice{font-weight:700;}
 .tick-item.up .tprice{color:#22c55e;}
 .tick-item.dn .tprice{color:#ef4444;}
-.tick-item.flat .tprice{color:#64748b;}
-.tick-item .ttime{font-size:10px;color:#334155;}
-/* search */
-.search-row{display:flex;gap:10px;margin-bottom:14px;}
-.sinp{flex:1;background:#0f0f13;border:1px solid #2d2d3d;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:14px;outline:none;}
-.sinp:focus{border-color:#6366f1;}
-.sbtn{background:#6366f1;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;}
-.sbtn:hover{background:#4f46e5;}
-/* grid */
-.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px;}
-.tc{background:#0f0f13;border:1px solid #2d2d3d;border-radius:8px;padding:12px;cursor:pointer;transition:border-color .15s;}
-.tc:hover{border-color:#6366f1;}
-.tc.bull{border-left:3px solid #22c55e;}
-.tc.bear{border-left:3px solid #ef4444;}
-.tc.neutral{border-left:3px solid #475569;}
-.tname{font-size:13px;font-weight:700;color:#fff;}
-.er-badge{font-size:9px;background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.3);padding:1px 5px;border-radius:4px;margin-left:4px;}
-.tpx{font-size:15px;font-weight:700;color:#fff;margin:5px 0 2px;transition:color .4s;}
+.tick-item.flat .tprice{color:#475569;}
+.tick-item .ttime{font-size:10px;color:#2d2d4d;}
+
+/* ── Search ── */
+.search-row{display:flex;gap:10px;margin-bottom:16px;}
+.sinp{flex:1;background:rgba(7,7,15,.8);border:1px solid rgba(99,102,241,.15);border-radius:10px;padding:11px 14px;color:#e2e8f0;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;}
+.sinp:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.1);}
+.sbtn{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:10px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,.3);transition:all .2s;}
+.sbtn:hover{box-shadow:0 6px 24px rgba(99,102,241,.5);transform:translateY(-1px);}
+
+/* ── Ticker grid ── */
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));gap:10px;}
+.tc{
+  background:linear-gradient(135deg,rgba(15,15,28,.9),rgba(10,10,20,.9));
+  border:1px solid rgba(71,85,105,.2);border-radius:12px;padding:14px;cursor:pointer;
+  transition:all .2s;position:relative;overflow:hidden;
+}
+.tc::after{content:'';position:absolute;inset:0;border-radius:12px;opacity:0;transition:opacity .2s;background:linear-gradient(135deg,rgba(99,102,241,.06),transparent);}
+.tc:hover{border-color:rgba(99,102,241,.4);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4);}
+.tc:hover::after{opacity:1;}
+.tc.bull{border-left:3px solid #22c55e;background:linear-gradient(135deg,rgba(5,46,22,.4),rgba(10,10,20,.9));}
+.tc.bull:hover{border-color:#22c55e;box-shadow:0 8px 24px rgba(34,197,94,.12);}
+.tc.bear{border-left:3px solid #ef4444;background:linear-gradient(135deg,rgba(45,10,10,.4),rgba(10,10,20,.9));}
+.tc.bear:hover{border-color:#ef4444;box-shadow:0 8px 24px rgba(239,68,68,.12);}
+.tc.neutral{border-left:3px solid rgba(71,85,105,.5);}
+.tname{font-size:13px;font-weight:800;color:#fff;letter-spacing:-.01em;}
+.er-badge{font-size:9px;background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25);padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:700;}
+.tpx{font-size:16px;font-weight:800;color:#fff;margin:6px 0 2px;transition:color .4s;letter-spacing:-.02em;}
 .tpx.fu{color:#22c55e!important;}
 .tpx.fd{color:#ef4444!important;}
-.empty{color:#475569;font-size:13px;text-align:center;padding:24px;}
-/* sort chips */
+.empty{color:#334155;font-size:13px;text-align:center;padding:32px;}
+
+/* ── Sort chips ── */
 .chips{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
-.chips span{font-size:11px;color:#64748b;text-transform:uppercase;}
-.chip{background:#0f0f13;border:1px solid #2d2d3d;color:#94a3b8;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;}
-.chip:hover,.chip.on{background:#6366f1;border-color:#6366f1;color:#fff;}
-/* modal */
-.mbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center;}
+.chips span{font-size:10px;color:#475569;text-transform:uppercase;font-weight:600;letter-spacing:.06em;}
+.chip{background:rgba(15,15,28,.8);border:1px solid rgba(71,85,105,.25);color:#64748b;padding:5px 12px;border-radius:8px;font-size:11px;cursor:pointer;transition:all .2s;font-weight:600;}
+.chip:hover,.chip.on{background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.4);color:#818cf8;}
+
+/* ── Modal ── */
+.mbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
 .mbg.open{display:flex;}
-.modal{background:#1a1a24;border:1px solid #2d2d3d;border-radius:14px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:28px;position:relative;}
-.mcl{position:absolute;top:16px;right:18px;background:none;border:none;color:#64748b;font-size:22px;cursor:pointer;}
-.mcl:hover{color:#fff;}
-.modal-drag-handle{display:none;width:40px;height:4px;background:#475569;border-radius:2px;margin:0 auto 16px;cursor:grab;}
-.modal-close-bar{display:none;width:100%;margin-top:20px;padding:14px;background:#1e1e2e;border:1px solid #2d2d3d;border-radius:10px;color:#94a3b8;font-size:15px;font-weight:600;cursor:pointer;letter-spacing:.03em;}
-.modal-close-bar:active{background:#2d2d3d;color:#fff;}
+.modal{
+  background:linear-gradient(135deg,rgba(20,20,36,.98),rgba(12,12,24,.98));
+  border:1px solid rgba(99,102,241,.15);border-radius:18px;
+  width:580px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:32px;position:relative;
+  box-shadow:0 40px 80px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.04);
+}
+.modal::-webkit-scrollbar{width:4px;}
+.modal::-webkit-scrollbar-track{background:transparent;}
+.modal::-webkit-scrollbar-thumb{background:rgba(99,102,241,.3);border-radius:2px;}
+.mcl{position:absolute;top:18px;right:20px;background:rgba(71,85,105,.15);border:1px solid rgba(71,85,105,.2);color:#64748b;font-size:18px;cursor:pointer;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.mcl:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#ef4444;}
+.modal-drag-handle{display:none;width:40px;height:4px;background:rgba(71,85,105,.4);border-radius:2px;margin:0 auto 20px;}
+.modal-close-bar{display:none;width:100%;margin-top:20px;padding:14px;background:rgba(30,30,46,.6);border:1px solid rgba(71,85,105,.2);border-radius:12px;color:#64748b;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;}
+.modal-close-bar:active{background:rgba(30,30,46,.9);color:#fff;}
 @media(max-width:768px){
   .modal-drag-handle{display:block;}
   .modal-close-bar{display:block;}
   .mcl{display:none;}
 }
-.mticker{font-size:22px;font-weight:800;color:#fff;margin-bottom:4px;}
-.mprice{font-size:15px;color:#94a3b8;margin-bottom:18px;}
-.mdir{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:10px;margin-bottom:18px;}
-.mdir.bull{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);}
-.mdir.bear{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);}
-.mdir.neutral{background:rgba(100,116,139,.08);border:1px solid rgba(100,116,139,.2);}
-.mdir h4{font-size:15px;font-weight:700;}
-.mdir p{font-size:12px;color:#94a3b8;margin-top:2px;}
-.stitle{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#475569;margin:16px 0 8px;}
+.mticker{font-size:24px;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:-.02em;}
+.mprice{font-size:15px;color:#64748b;margin-bottom:20px;}
+.mdir{display:flex;align-items:center;gap:12px;padding:16px 18px;border-radius:12px;margin-bottom:20px;}
+.mdir.bull{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.18);box-shadow:inset 0 1px 0 rgba(34,197,94,.08);}
+.mdir.bear{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.18);box-shadow:inset 0 1px 0 rgba(239,68,68,.08);}
+.mdir.neutral{background:rgba(71,85,105,.07);border:1px solid rgba(71,85,105,.18);}
+.mdir h4{font-size:16px;font-weight:800;letter-spacing:-.01em;}
+.mdir p{font-size:12px;color:#64748b;margin-top:3px;}
+.stitle{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#334155;margin:18px 0 10px;font-weight:700;}
 .crow{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:13px;}
-.ci{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px;}
-.ci.p{background:rgba(34,197,94,.15);color:#22c55e;}
-.ci.f{background:rgba(239,68,68,.15);color:#ef4444;}
-.cl{color:#cbd5e1;line-height:1.4;}
-.cl strong{color:#fff;}
-.cl small{display:block;color:#64748b;font-size:11px;margin-top:2px;}
-.nbox{background:#0f0f13;border:1px solid #2d2d3d;border-radius:8px;padding:14px 16px;margin-top:6px;}
-.nbox p{font-size:13px;color:#94a3b8;line-height:1.7;}
-.hrow{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #1e1e2e;}
+.ci{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px;font-weight:700;}
+.ci.p{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.2);}
+.ci.f{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.2);}
+.cl{color:#94a3b8;line-height:1.5;}
+.cl strong{color:#e2e8f0;}
+.cl small{display:block;color:#475569;font-size:11px;margin-top:3px;}
+.nbox{background:rgba(7,7,15,.6);border:1px solid rgba(30,30,46,.8);border-radius:10px;padding:14px 16px;margin-top:8px;}
+.nbox p{font-size:13px;color:#64748b;line-height:1.7;}
+.hrow{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid rgba(30,30,46,.6);}
 .hrow:last-child{border-bottom:none;}
-.pbar{height:6px;background:#1e1e2e;border-radius:3px;margin-top:8px;overflow:hidden;}
+.pbar{height:6px;background:rgba(30,30,46,.8);border-radius:3px;margin-top:8px;overflow:hidden;}
 .pfill{height:100%;border-radius:3px;}
-.atab{flex:1;padding:9px;border:none;border-bottom:2px solid transparent;background:transparent;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
-.atab.active{color:#6366f1;border-bottom-color:#6366f1;}
-.auth-tabs{display:flex;margin-bottom:18px;border-bottom:1px solid #2d2d3d;}
-.pending-box{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:14px;text-align:center;color:#f59e0b;font-size:13px;margin-top:8px;}
+.atab{flex:1;padding:10px;border:none;border-bottom:2px solid transparent;background:transparent;color:#475569;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
+.atab.active{color:#818cf8;border-bottom-color:#6366f1;}
+.auth-tabs{display:flex;margin-bottom:20px;border-bottom:1px solid rgba(30,30,46,.8);}
+.pending-box{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:14px;text-align:center;color:#f59e0b;font-size:13px;margin-top:8px;}
 
 /* ── Mobile responsive ── */
 @media(max-width:768px){
-  /* Login box */
-  .lb{width:92vw;padding:28px 20px;}
-
-  /* Header */
+  .lb{width:92vw;padding:32px 20px;}
   .hdr{padding:10px 14px;flex-wrap:wrap;gap:8px;}
   .hdr-r{flex-wrap:wrap;gap:8px;}
   .hdr-r button{font-size:11px;padding:5px 9px;}
   .stat{font-size:11px;}
   #session-badge{display:none;}
-
-  /* Dashboard padding */
   .dash{padding:12px;}
-
-  /* Metrics: 2 columns on tablet, 1 on phone */
-  .metrics{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;}
-  .mcard .mv{font-size:18px;}
-
-  /* Cards */
+  .metrics{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+  .mcard .mv{font-size:20px;}
   .card{padding:14px;margin-bottom:14px;}
-
-  /* Ticker grid — 2 per row minimum */
-  .tgrid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;}
-
-  /* Search row */
+  .tgrid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;}
   .search-row{flex-direction:column;gap:8px;}
   .sbtn{width:100%;}
-
-  /* Modal */
-  .modal{width:100%;max-width:100%;max-height:95vh;border-radius:10px 10px 0 0;padding:20px 16px;position:fixed;bottom:0;left:0;right:0;top:auto;}
+  .modal{width:100%;max-width:100%;max-height:95vh;border-radius:18px 18px 0 0;padding:24px 18px;position:fixed;bottom:0;left:0;right:0;top:auto;}
   .mbg{align-items:flex-end;}
-
-  /* Tables — horizontal scroll */
   .card > div{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   table{min-width:500px;}
-
-  /* Chips */
   .chips{gap:6px;}
   .chip{padding:4px 8px;font-size:10px;}
-
-  /* News bar — hide on very small screens */
   .news-bar{padding:0 8px;}
   .ni{padding:0 12px;}
 }
 
 @media(max-width:480px){
-  /* Single column metrics on phones */
   .metrics{grid-template-columns:1fr 1fr;}
   .mcard{padding:12px 14px;}
-  .mcard .mv{font-size:16px;}
-
-  /* Ticker grid — 2 columns */
+  .mcard .mv{font-size:18px;}
   .tgrid{grid-template-columns:repeat(2,1fr);}
-
-  /* Header — hide non-essential buttons, keep core ones */
   #alert-bell span,#scalp-btn span{display:none;}
 }
 </style>
@@ -240,7 +285,7 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
 <!-- DASHBOARD -->
 <div id="pg-dash" style="display:none">
   <div class="hdr">
-    <div class="logo"><span>⬡</span> Trading Dashboard</div>
+    <div class="logo"><div class="logo-icon">⬡</div> Trading Dashboard</div>
     <div class="hdr-r">
       <div class="stat">
         <div class="dot" id="dot"></div>
@@ -276,7 +321,7 @@ td{padding:9px 6px 9px 0;border-top:1px solid #1e1e2e;color:#cbd5e1;vertical-ali
     </div>
 
     <div class="card">
-      <h3>Live Market — Binance stream for crypto · 3s poll for stocks</h3>
+      <h3>Live Market — Kraken for crypto · Alpaca for stocks</h3>
       <div class="tick-wrap"><div class="tick-track" id="tick-track"><span style="font-size:11px;color:#334155;padding:0 14px">Waiting for first tick...</span></div></div>
       <div class="search-row">
         <input class="sinp" id="s-sym" placeholder="Search any ticker — ETC, SOFI, BTC, PLTR…" onkeydown="if(event.key==='Enter')doSearch()"/>
@@ -648,83 +693,115 @@ function renderTickFeed() {
   if (!tickAnim) scroll();
 }
 
-// ─── Crypto price polling — Binance REST (CORS-safe, no auth, ~real-time) ────
-// WebSocket ports 443/9443 are blocked on most networks; REST api.binance.com works everywhere
-let bLive = false;
+// ─── Live streaming — Kraken WS (crypto) + Alpaca WS (stocks) ───────────────
+let bLive = false, sLive = false;
+let _krakenWS = null, _alpacaWS = null;
 
-async function pollKraken() {
-  // Kraken public API — full CORS support, works from GitHub Pages, not region-blocked
-  try {
-    const pairs = Object.values(KMAP).join(',');
-    const d = await (await fetch('https://api.kraken.com/0/public/Ticker?pair=' + pairs, { signal: AbortSignal.timeout(5000) })).json();
-    if (d.result) {
-      let got = 0;
-      Object.entries(d.result).forEach(([krakenSym, data]) => {
-        const sym = KREV[krakenSym];
-        if (sym && data.c && data.c[0]) { onPrice(sym, parseFloat(data.c[0])); got++; }
-      });
-      bLive = got > 0; updateBadge();
-    }
-  } catch { bLive = false; updateBadge(); }
+// Kraken WS pair names (different from REST)
+const KMAP_WS = {BTCUSD:'XBT/USD',ETHUSD:'ETH/USD',DOGEUSD:'XDG/USD',LTCUSD:'LTC/USD',LINKUSD:'LINK/USD',SOLUSD:'SOL/USD',BCHUSD:'BCH/USD'};
+const KREV_WS  = {'XBT/USD':'BTCUSD','ETH/USD':'ETHUSD','XDG/USD':'DOGEUSD','LTC/USD':'LTCUSD','LINK/USD':'LINKUSD','SOL/USD':'SOLUSD','BCH/USD':'BCHUSD'};
+
+let _krakenPollTimer = null;
+function startKrakenStream() {
+  if (_krakenWS) { try { _krakenWS.onclose = null; _krakenWS.close(); } catch {} }
+  if (_krakenPollTimer) { clearInterval(_krakenPollTimer); _krakenPollTimer = null; }
+
+  const ws = new WebSocket('wss://ws.kraken.com');
+  _krakenWS = ws;
+
+  // If WS doesn't open within 6s, fall back to REST polling
+  const timeout = setTimeout(() => {
+    if (ws.readyState !== 1) { ws.close(); fallbackKrakenPoll(); }
+  }, 6000);
+
+  ws.onopen = () => {
+    clearTimeout(timeout);
+    ws.send(JSON.stringify({ event:'subscribe', pair: Object.values(KMAP_WS), subscription:{ name:'ticker' } }));
+  };
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (!Array.isArray(msg)) return;
+    const [, data, chanName, pair] = msg;
+    if (chanName !== 'ticker' || !data || !data.c) return;
+    const sym = KREV_WS[pair];
+    if (sym) { onPrice(sym, parseFloat(data.c[0])); bLive = true; updateBadge(); }
+  };
+  ws.onclose = () => {
+    clearTimeout(timeout);
+    bLive = false; updateBadge();
+    setTimeout(startKrakenStream, 5000);
+  };
+  ws.onerror = () => { clearTimeout(timeout); ws.close(); };
 }
 
-function startBinance() { pollKraken(); }
-
-// ─── Stock price polling (Alpaca snapshots every 3s) ─────────────────────────
-let sLive = false;
-
-function getMarketSession() {
-  const now = new Date();
-  const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-  const day = et.getDay(), h = et.getHours(), m = et.getMinutes(), hm = h * 60 + m;
-  if (day === 0 || day === 6) return 'closed';
-  if (hm >= 240 && hm < 570) return 'premarket';   // 4:00 AM – 9:30 AM ET
-  if (hm >= 570 && hm < 960) return 'open';         // 9:30 AM – 4:00 PM ET
-  if (hm >= 960 && hm < 1200) return 'afterhours';  // 4:00 PM – 8:00 PM ET
-  return 'closed';
-}
-
-function updateSessionBadge() {
-  const s = getMarketSession();
-  const el = g('session-badge');
-  if (!el) return;
-  const map = { open: ['OPEN','#22c55e'], premarket: ['PRE-MKT','#f59e0b'], afterhours: ['AFTER-HRS','#6366f1'], closed: ['CLOSED','#475569'] };
-  const [label, color] = map[s] || ['—','#475569'];
-  el.textContent = label;
-  el.style.color = color;
-  el.style.borderColor = color;
-}
-
-async function pollStocks() {
-  try {
-    // SIP feed covers pre-market and after-hours; IEX does not
-    const url = 'https://data.alpaca.markets/v2/stocks/snapshots?symbols=' + STOCKS.join(',') + '&feed=sip';
-    const d = await (await fetch(url, { headers: AH, signal: AbortSignal.timeout(5000) })).json();
-    let n = 0;
-    const session = getMarketSession();
-    Object.entries(d || {}).forEach(([s, snap]) => {
-      let p = null;
-      if (session === 'premarket') {
-        // Use minute bar from latest trade — SIP latestTrade covers pre-market
-        p = snap.latestTrade && snap.latestTrade.p ? snap.latestTrade.p : null;
-        if (!p) p = snap.prevDailyBar && snap.prevDailyBar.c ? snap.prevDailyBar.c : null;
-      } else if (session === 'afterhours') {
-        p = snap.latestTrade && snap.latestTrade.p ? snap.latestTrade.p : null;
-        if (!p) p = snap.dailyBar && snap.dailyBar.c ? snap.dailyBar.c : null;
-      } else {
-        p = snap.latestTrade && snap.latestTrade.p ? snap.latestTrade.p
-          : snap.latestQuote && snap.latestQuote.ap ? snap.latestQuote.ap
-          : snap.dailyBar && snap.dailyBar.c ? snap.dailyBar.c : null;
-      }
-      if (p) { onPrice(s, p); n++; }
-    });
-    sLive = n > 0; updateBadge(); updateSessionBadge();
-  } catch {
-    // Fallback: Yahoo Finance (includes pre/post market prices)
+async function fallbackKrakenPoll() {
+  // REST fallback when WS is blocked
+  const poll = async () => {
     try {
-      const d = await (await fetch('https://query2.finance.yahoo.com/v7/finance/quote?symbols=' + STOCKS.join(','), { signal: AbortSignal.timeout(5000) })).json();
-      const results = (d.quoteResponse && d.quoteResponse.result) || [];
-      results.forEach(q => {
+      const pairs = Object.values(KMAP).join(',');
+      const d = await (await fetch('https://api.kraken.com/0/public/Ticker?pair=' + pairs, { signal: AbortSignal.timeout(5000) })).json();
+      if (d.result) {
+        Object.entries(d.result).forEach(([k, v]) => {
+          const sym = KREV[k];
+          if (sym && v.c?.[0]) { onPrice(sym, parseFloat(v.c[0])); bLive = true; }
+        });
+        updateBadge();
+      }
+    } catch { bLive = false; updateBadge(); }
+  };
+  await poll();
+  _krakenPollTimer = setInterval(poll, 5000);
+}
+
+function startAlpacaStream() {
+  if (_alpacaWS) { try { _alpacaWS.close(); } catch {} }
+  const ws = new WebSocket('wss://stream.data.alpaca.markets/v2/iex');
+  _alpacaWS = ws;
+  ws.onopen = () => {
+    ws.send(JSON.stringify({ action:'auth', key: AH['APCA-API-KEY-ID'], secret: AH['APCA-API-SECRET-KEY'] }));
+  };
+  ws.onmessage = (e) => {
+    const msgs = JSON.parse(e.data);
+    msgs.forEach(msg => {
+      if (msg.T === 'success' && msg.msg === 'authenticated') {
+        ws.send(JSON.stringify({ action:'subscribe', trades: STOCKS, quotes: [] }));
+      }
+      if (msg.T === 't' && msg.S && msg.p) {
+        onPrice(msg.S, msg.p);
+        sLive = true; updateBadge(); updateSessionBadge();
+      }
+    });
+  };
+  ws.onclose = () => {
+    sLive = false; updateBadge();
+    // During market hours, reconnect; outside hours fall back to snapshot poll
+    const s = getMarketSession();
+    if (s === 'open' || s === 'premarket' || s === 'afterhours') {
+      setTimeout(startAlpacaStream, 4000);
+    } else {
+      // Market closed — poll snapshots every 30s for last price
+      pollSnapshot();
+      setTimeout(startAlpacaStream, 30000);
+    }
+  };
+  ws.onerror = () => ws.close();
+}
+
+// Snapshot fallback for closed market / pre-market seed prices
+async function pollSnapshot() {
+  try {
+    const url = 'https://data.alpaca.markets/v2/stocks/snapshots?symbols=' + STOCKS.join(',') + '&feed=iex';
+    const d = await (await fetch(url, { headers: AH, signal: AbortSignal.timeout(6000) })).json();
+    Object.entries(d || {}).forEach(([s, snap]) => {
+      const p = snap.latestTrade?.p || snap.latestQuote?.ap || snap.dailyBar?.c;
+      if (p) { onPrice(s, p); sLive = true; }
+    });
+    updateBadge(); updateSessionBadge();
+  } catch {
+    // Yahoo Finance fallback
+    try {
+      const d = await (await fetch('https://query2.finance.yahoo.com/v7/finance/quote?symbols=' + STOCKS.join(','), { signal: AbortSignal.timeout(6000) })).json();
+      (d?.quoteResponse?.result || []).forEach(q => {
         const session = getMarketSession();
         const p = session === 'premarket' ? (q.preMarketPrice || q.regularMarketPrice)
                 : session === 'afterhours' ? (q.postMarketPrice || q.regularMarketPrice)
@@ -732,8 +809,28 @@ async function pollStocks() {
         if (p) { onPrice(q.symbol, p); sLive = true; }
       });
       updateBadge(); updateSessionBadge();
-    } catch { sLive = false; updateBadge(); }
+    } catch {}
   }
+}
+
+function getMarketSession() {
+  const now = new Date();
+  const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const day = et.getDay(), h = et.getHours(), m = et.getMinutes(), hm = h * 60 + m;
+  if (day === 0 || day === 6) return 'closed';
+  if (hm >= 240 && hm < 570) return 'premarket';
+  if (hm >= 570 && hm < 960) return 'open';
+  if (hm >= 960 && hm < 1200) return 'afterhours';
+  return 'closed';
+}
+
+function updateSessionBadge() {
+  const s = getMarketSession();
+  const el = g('session-badge');
+  if (!el) return;
+  const map = { open:['OPEN','#22c55e'], premarket:['PRE-MKT','#f59e0b'], afterhours:['AFTER-HRS','#6366f1'], closed:['CLOSED','#475569'] };
+  const [label, color] = map[s] || ['—','#475569'];
+  el.textContent = label; el.style.color = color; el.style.borderColor = color;
 }
 
 function updateBadge() {
@@ -741,23 +838,24 @@ function updateBadge() {
   const t = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   if (bLive && sLive) {
     dot.className = 'dot'; badge.className = 'badge on'; badge.textContent = '● Live';
-    txt.textContent = 'Binance stream + stocks · ' + t;
+    txt.textContent = 'Kraken WS + Alpaca stream · ' + t;
   } else if (bLive) {
     dot.className = 'dot'; badge.className = 'badge on'; badge.textContent = '● Crypto Live';
-    txt.textContent = 'Binance streaming · stocks connecting · ' + t;
+    txt.textContent = 'Kraken streaming · stocks connecting · ' + t;
   } else if (sLive) {
-    dot.className = 'dot off'; badge.className = 'badge off'; badge.textContent = '● Polling';
-    txt.textContent = 'Stocks 3s · crypto reconnecting · ' + t;
+    dot.className = 'dot off'; badge.className = 'badge off'; badge.textContent = '● Stocks Live';
+    txt.textContent = 'Alpaca stream · crypto reconnecting · ' + t;
   } else {
     dot.className = 'dot off'; badge.className = 'badge off'; badge.textContent = '● Connecting';
-    txt.textContent = 'Connecting to price feeds...';
+    txt.textContent = 'Connecting to streams...';
   }
 }
 
 let _timers = [];
 function stopAll() {
   _timers.forEach(clearInterval); _timers = [];
-  if (bWS) { try { bWS.close(); } catch {} bWS = null; }
+  if (_krakenWS) { try { _krakenWS.onclose = null; _krakenWS.close(); } catch {} _krakenWS = null; }
+  if (_alpacaWS) { try { _alpacaWS.onclose = null; _alpacaWS.close(); } catch {} _alpacaWS = null; }
   if (tickAnim) { cancelAnimationFrame(tickAnim); tickAnim = null; }
 }
 
@@ -1742,11 +1840,11 @@ async function loadAccount() {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 async function startAll() {
-  startBinance();
-  _timers.push(setInterval(pollKraken, 5000));      // crypto every 5s (Kraken)
-  pollStocks();
-  _timers.push(setInterval(pollStocks, 3000));      // stocks every 3s
-  _timers.push(setInterval(refreshDisplay, 800));   // push LP → DOM every 800ms
+  startKrakenStream();                               // crypto — Kraken WebSocket
+  pollSnapshot();                                    // seed stock prices immediately
+  startAlpacaStream();                               // stocks — Alpaca WebSocket stream
+  _timers.push(setInterval(pollSnapshot, 30000));    // snapshot refresh every 30s (keep prices fresh when WS is quiet)
+  _timers.push(setInterval(refreshDisplay, 400));    // push LP → DOM every 400ms (faster than before)
   _timers.push(setInterval(loadAccount, 30000));    // account every 30s
   loadNews();
   _timers.push(setInterval(loadNews, 300000));      // refresh news every 5 min
