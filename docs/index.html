@@ -90,7 +90,10 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 .acct-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
 .sidebar-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px;}
 .sidebar-sections{}
-.s-title{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#334155;margin:12px 0 6px;font-weight:700;}
+.s-title{display:flex;justify-content:space-between;align-items:center;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#334155;margin:12px 0 6px;font-weight:700;cursor:pointer;user-select:none;padding:4px 2px;border-radius:4px;transition:color .15s;}
+.s-title:hover{color:#64748b;}
+.s-title::after{content:'▾';font-size:10px;opacity:.6;transition:transform .2s;}
+.s-title.collapsed::after{transform:rotate(-90deg);}
 
 /* ── Metric cards ── */
 .mcard{background:linear-gradient(135deg,rgba(26,26,40,.85),rgba(15,15,28,.85));border:1px solid rgba(99,102,241,.1);border-radius:10px;padding:10px 12px;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.3);}
@@ -247,11 +250,18 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
 .tf-chip{padding:3px 8px;font-size:10px;}
 
 /* ── Collapsible sidebar sections ── */
-.s-section{overflow:hidden;transition:max-height .3s ease;max-height:2000px;}
-.s-section.collapsed{max-height:0;}
-.s-title{cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;}
-.s-title::after{content:'▾';color:#475569;font-size:10px;transition:transform .2s;}
-.s-title.collapsed::after{content:'▸';}
+.s-section{overflow:hidden;transition:max-height .35s cubic-bezier(.4,0,.2,1);max-height:2000px;}
+.s-section.collapsed{max-height:0!important;}
+
+/* ── Trump indicator badge ── */
+.trump-badge{font-size:7px;background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:1px 4px;border-radius:3px;margin-left:3px;font-weight:800;vertical-align:middle;}
+.trump-badge.bull{background:rgba(34,197,94,.15);color:#22c55e;border-color:rgba(34,197,94,.3);}
+#trump-panel{background:rgba(7,7,15,.6);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px;max-height:160px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(239,68,68,.2) transparent;}
+.trump-post{padding:5px 0;border-bottom:1px solid rgba(30,30,46,.5);font-size:9px;color:#64748b;line-height:1.4;}
+.trump-post:last-child{border-bottom:none;}
+.trump-post .t-tickers{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;}
+.trump-post .t-ticker{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.25);padding:1px 5px;border-radius:4px;font-weight:700;cursor:pointer;font-size:8px;}
+.trump-post .t-time{color:#334155;float:right;}
 
 /* Utility */
 .admin-only{}
@@ -383,12 +393,12 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
         <div class="mcard"><div class="ml">Positions</div><div class="mv" id="m-pos">—</div><div class="ms" id="m-pos-s">—</div></div>
       </div>
       <div class="sidebar-sections">
-        <span class="s-title" onclick="toggleSection('sec-pos','this')">Open Positions</span>
+        <span class="s-title" onclick="toggleSection('sec-pos')">Open Positions</span>
         <div class="s-section" id="sec-pos">
           <div id="pos-body" style="font-size:11px"><div class="empty">No open positions</div></div>
         </div>
 
-        <span class="s-title" style="color:#a855f7" onclick="toggleSection('sec-pol','this')">🏛️ Congress Trades</span>
+        <span class="s-title" style="color:#a855f7" onclick="toggleSection('sec-pol')">🏛️ Congress Trades</span>
         <div class="s-section" id="sec-pol">
           <div style="display:flex;gap:8px;margin:4px 0 6px">
             <span id="pol-buy-count" style="font-size:10px;color:#22c55e;font-weight:700"></span>
@@ -398,7 +408,16 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
           <div class="pol-scroll"><div id="pol-panel-body"><div class="empty">Loading...</div></div></div>
         </div>
 
-        <span class="s-title collapsed" onclick="toggleSection('sec-trades','this')">All Trades</span>
+        <span class="s-title" onclick="toggleSection('sec-trump')">🦅 Trump Indicator</span>
+        <div class="s-section" id="sec-trump">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <span style="font-size:9px;color:#475569">Truth Social · auto-refresh 5min</span>
+            <button onclick="trumpLastFetch=0;loadTrumpPosts()" style="background:none;border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:4px;padding:2px 7px;font-size:9px;cursor:pointer">↻</button>
+          </div>
+          <div id="trump-panel"><div class="empty" style="font-size:9px">Loading...</div></div>
+        </div>
+
+        <span class="s-title collapsed" onclick="toggleSection('sec-trades')">All Trades</span>
         <div class="s-section collapsed" id="sec-trades">
           <div class="chips" style="margin:6px 0 8px">
             <div class="chip on" id="ch-date" onclick="sortBy('date')">Date</div>
@@ -1428,7 +1447,7 @@ function buildModal(sym, a, cfg, bars, htfA) {
     '<strong style="font-size:16px;color:'+signalColor+'">'+signal+'</strong>' +
     '</div>' +
     '<p style="font-size:12px;color:#94a3b8;margin:0 0 8px">'+signalMsg+'</p>' +
-    ((signal==='STRONG BUY'||signal==='BUY'||signal==='STRONG SHORT'||signal==='SHORT') ?
+    ((signal==='BUY'||signal==='SELL') ?
       '<div style="display:flex;gap:16px;font-size:12px">' +
       '<span>Entry <strong style="color:#fff">$'+liveP.toFixed(dec2)+'</strong></span>' +
       '<span>TP <strong style="color:#22c55e">$'+tpPrice+'</strong> (+'+tp+'%)</span>' +
@@ -1637,12 +1656,109 @@ function initRsiChart(containerId, bars) {
 async function changeTf(tf) {
   if (!chartPanelSym) return;
   currentTf = tf;
-  document.querySelectorAll('.tf-chip').forEach(c => c.classList.remove('on'));
-  const el = document.getElementById('tf-' + tf);
-  if (el) el.classList.add('on');
-  const panel = g('app-chart');
-  if (panel) panel.querySelector('#chart-container').innerHTML = '<div class="empty">Loading…</div>';
+  // Destroy existing LW charts to prevent memory leak
+  if (lwChart) { try { lwChart.remove(); } catch {} lwChart = null; }
+  if (lwRsiChart) { try { lwRsiChart.remove(); } catch {} lwRsiChart = null; }
   await renderChartPanel(chartPanelSym, tf);
+}
+
+// ─── Trump Social Media Stock Indicator ───────────────────────────────────────
+let TRUMP_DATA = {};   // sym → [{text, date, sentiment}]
+let trumpLastFetch = 0;
+
+async function loadTrumpPosts() {
+  if (Date.now() - trumpLastFetch < 5 * 60 * 1000) return; // cache 5 min
+  trumpLastFetch = Date.now();
+  try {
+    // Truth Social RSS via CORS proxy
+    const rssUrl = 'https://truthsocial.com/@realDonaldTrump.rss';
+    const r = await fetch('https://corsproxy.io/?' + encodeURIComponent(rssUrl), { signal: AbortSignal.timeout(8000) });
+    const text = await r.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, 'application/xml');
+    const items = Array.from(doc.querySelectorAll('item')).slice(0, 20);
+    const allSyms = [...Object.keys(UNI), 'DJT', 'TRUMP', 'MSTR', 'COIN', 'HOOD'];
+    TRUMP_DATA = {};
+    const posts = [];
+    items.forEach(item => {
+      const title = (item.querySelector('title')?.textContent || '').toUpperCase();
+      const desc  = (item.querySelector('description')?.textContent || '').replace(/<[^>]+>/g,'').toUpperCase();
+      const date  = item.querySelector('pubDate')?.textContent || '';
+      const text  = title + ' ' + desc;
+      // Find $TICKER or known ticker mentions
+      const found = new Set();
+      allSyms.forEach(sym => {
+        const clean = sym.replace('USD','');
+        if (text.includes('$'+clean) || new RegExp('\\b'+clean+'\\b').test(text)) {
+          found.add(sym);
+        }
+      });
+      // Detect extra $ tickers in post
+      const extraMatches = text.match(/\$([A-Z]{1,6})/g) || [];
+      extraMatches.forEach(m => found.add(m.slice(1)));
+      // Simple sentiment: positive words → bull
+      const bullWords = ['GREAT','WINNING','STRONG','BUY','INVEST','BOOM','BEST','AMAZING'];
+      const bearWords = ['TERRIBLE','FAILING','WEAK','SELL','SHORT','CRASH','BAD','LOSER'];
+      const bullScore = bullWords.filter(w => text.includes(w)).length;
+      const bearScore = bearWords.filter(w => text.includes(w)).length;
+      const sentiment = bullScore > bearScore ? 'bull' : bearScore > bullScore ? 'bear' : 'neutral';
+      const shortText = (title.slice(0,80) + (title.length > 80 ? '…' : ''));
+      const timeAgo = formatTrumpAge(new Date(date));
+      if (found.size > 0) {
+        posts.push({ text: shortText, tickers: [...found], sentiment, timeAgo });
+        found.forEach(sym => {
+          if (!TRUMP_DATA[sym]) TRUMP_DATA[sym] = [];
+          TRUMP_DATA[sym].push({ text: shortText, sentiment, timeAgo });
+        });
+      } else {
+        posts.push({ text: shortText, tickers: [], sentiment, timeAgo });
+      }
+    });
+    renderTrumpPanel(posts.slice(0, 8));
+    // Re-render badges on ticker list
+    document.querySelectorAll('#tgrid .tc').forEach(row => {
+      const sym = row.dataset.sym;
+      const badge = row.querySelector('.trump-badge');
+      if (TRUMP_DATA[sym]) {
+        if (!badge) {
+          const nameEl = row.querySelector('.tname');
+          if (nameEl) nameEl.insertAdjacentHTML('afterend', trumpBadgeHtml(sym));
+        }
+      } else if (badge) badge.remove();
+    });
+  } catch(e) {
+    const panel = g('trump-panel');
+    if (panel) panel.innerHTML = '<div class="empty" style="font-size:9px">Could not load Truth Social feed</div>';
+  }
+}
+
+function formatTrumpAge(d) {
+  if (!d || isNaN(d)) return '';
+  const diff = (Date.now() - d) / 60000;
+  if (diff < 60) return Math.round(diff) + 'm ago';
+  if (diff < 1440) return Math.round(diff/60) + 'h ago';
+  return Math.round(diff/1440) + 'd ago';
+}
+
+function trumpBadgeHtml(sym) {
+  const entries = TRUMP_DATA[sym] || [];
+  const sent = entries[0]?.sentiment || 'neutral';
+  return '<span class="trump-badge '+(sent==='bull'?'bull':'')+'" title="Trump mentioned '+(UNI[sym]?.label||sym)+'">🦅 DJT</span>';
+}
+
+function renderTrumpPanel(posts) {
+  const panel = g('trump-panel');
+  if (!panel) return;
+  if (!posts || !posts.length) { panel.innerHTML = '<div class="empty" style="font-size:9px">No recent posts with ticker mentions</div>'; return; }
+  panel.innerHTML = posts.map(p =>
+    '<div class="trump-post">' +
+    '<span class="t-time">' + p.timeAgo + '</span>' +
+    p.text.toLowerCase().replace(/^\w/,c=>c.toUpperCase()) +
+    (p.tickers.length ? '<div class="t-tickers">' + p.tickers.map(t =>
+      '<span class="t-ticker" onclick="openModal(\''+t+'\')">' + t + '</span>'
+    ).join('') + '</div>' : '') +
+    '</div>'
+  ).join('');
 }
 
 // ─── Collapsible sidebar sections ─────────────────────────────────────────────
@@ -1746,9 +1862,14 @@ async function renderChartPanel(sym, tf) {
     buildModal(sym, a, cfg, bars, null);
 
   setTimeout(() => {
+    if (typeof LightweightCharts === 'undefined') {
+      const el = document.getElementById('chart-container');
+      if (el) el.innerHTML = '<div class="empty" style="padding:40px;color:#ef4444">Chart library failed to load — check network connection</div>';
+      return;
+    }
     initLWChart('chart-container', bars, a);
     initRsiChart('rsi-container', bars);
-  }, 0);
+  }, 80);
 }
 
 // ─── Dynamic modal with live price + auto-refresh ─────────────────────────────
@@ -2179,6 +2300,8 @@ async function loadTickers() {
       : '<span style="font-size:9px;background:rgba(99,102,241,.12);color:#818cf8;padding:1px 5px;border-radius:10px">PROVEN</span>';
     const polBuys = POLITICAL_BUYS[sym] || [];
     const polBadge = polBuys.length ? '<span class="pol-badge">🏛️ ' + polBuys.length + '</span>' : '';
+    const trumpMentions = TRUMP_DATA[sym];
+    const trumpBadge = trumpMentions ? trumpBadgeHtml(sym) : '';
     const isCrypto = sym.endsWith('USD') && sym.length > 3;
     const rsiNum = typeof rsi === 'number' ? rsi : -1;
     const rsiClass = rsiNum > 65 ? 'hot' : rsiNum > 45 ? 'ok' : '';
@@ -2188,7 +2311,7 @@ async function loadTickers() {
     cards.push(
       '<div class="tc ' + dir + '" data-sym="' + sym + '" data-dir="' + dir + '" data-crypto="' + isCrypto + '" onclick="openModal(\'' + sym + '\')">' +
       '<div class="tr-sym">' +
-      '<span class="tname">' + label + '</span>' + polBadge +
+      '<span class="tname">' + label + '</span>' + polBadge + trumpBadge +
       '<span class="tr-sub">' + cfg.hw + '% win</span>' +
       '</div>' +
       '<div class="tr-price">' +
@@ -2281,7 +2404,9 @@ async function startAll() {
   await loadAccount();
   await loadTickers();
   loadPoliticalTrades();
-  _timers.push(setInterval(loadPoliticalTrades, 30 * 60 * 1000)); // refresh every 30 min
+  _timers.push(setInterval(loadPoliticalTrades, 30 * 60 * 1000));
+  loadTrumpPosts();
+  _timers.push(setInterval(loadTrumpPosts, 5 * 60 * 1000)); // refresh every 5 min
 }
 
 if (sessionStorage.getItem('ct') === '1') startAll();
