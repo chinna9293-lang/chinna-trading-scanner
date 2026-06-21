@@ -130,16 +130,16 @@ function checkIMPROVED(bars) {
 
   const last=bars[n-1], prev=bars[n-2];
 
-  // Gate 3: Volume — breakout bar must have above-average volume (1.3x)
+  // Gate 3: Volume — 1.15x avg (was 1.3x; LLY/WMT had no signals at 1.3x)
   const vAvg = vs.slice(-11,-1).filter(v=>v>0).reduce((a,b)=>a+b,0) /
                (vs.slice(-11,-1).filter(v=>v>0).length||1);
   const vRatio = vAvg>0 ? vs[n-1]/vAvg : 1;
-  if (vRatio < 1.3) return null;
+  if (vRatio < 1.15) return null;
 
-  // Gate 4: Candle body > 40% of range (conviction candle, not doji/wick)
+  // Gate 4: Candle body > 35% of range (was 40%; allow slightly smaller bodies)
   const range = (last.h-last.l)||0.001;
   const body  = Math.abs(last.c-last.o)/range;
-  if (body < 0.40) return null;
+  if (body < 0.35) return null;
 
   const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
 
