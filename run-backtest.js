@@ -111,35 +111,44 @@ function checkOLD(bars) {
 // ADX (Average Directional Index) > 20 = real trend, breakouts have follow-through.
 // ADX < 15 = ranging/sideways, breakouts are noise.
 // Classic rule: don't use breakout strategies in low-ADX markets.
-// ITER 1 filters: pruned universe + ADX≥25 + EMA21 slope + tighter RSI (52-62/38-48)
+// ITER 2: pruned universe + ADX≥22 + volume spike + strong candle body
+// Hypothesis: fake breakouts happen on LOW volume + weak candle bodies.
+// Real breakouts have conviction (volume > 1.3x avg, body > 40% of range).
+// EMA21 slope removed — proven to filter out winners (LLY, WMT, NFLX) in iter1.
 function checkIMPROVED(bars) {
   if (bars.length<60) return null;
   const n=bars.length,cls=bars.map(b=>b.c),hs=bars.map(b=>b.h),ls=bars.map(b=>b.l);
-  const e9arr=buildEma(cls,9), e21arr=buildEma(cls,21);
-  const e9=e9arr.at(-1), e21=e21arr.at(-1);
+  const vs=bars.map(b=>b.v||0);
+  const e9=buildEma(cls,9).at(-1), e21=buildEma(cls,21).at(-1);
   const r=rsiOf(cls), atr=atrOf(bars);
 
   // Gate 1: ATR min 0.3%
   if (atr/cls[n-1]*100 < 0.3) return null;
-  // Gate 2: ADX ≥ 25 — stronger trend required (was 20)
+  // Gate 2: ADX ≥ 22
   const adx = adxOf(bars);
-  if (adx < 25) return null;
-  // Gate 3: EMA21 slope — must be moving in signal direction
-  const e21Slope = e21arr[n-1] - e21arr[Math.max(0,n-6)];
+  if (adx < 22) return null;
+
+  const last=bars[n-1], prev=bars[n-2];
+
+  // Gate 3: Volume — breakout bar must have above-average volume (1.3x)
+  const vAvg = vs.slice(-11,-1).filter(v=>v>0).reduce((a,b)=>a+b,0) /
+               (vs.slice(-11,-1).filter(v=>v>0).length||1);
+  const vRatio = vAvg>0 ? vs[n-1]/vAvg : 1;
+  if (vRatio < 1.3) return null;
+
+  // Gate 4: Candle body > 40% of range (conviction candle, not doji/wick)
+  const range = (last.h-last.l)||0.001;
+  const body  = Math.abs(last.c-last.o)/range;
+  if (body < 0.40) return null;
 
   const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
-  const last=bars[n-1],prev=bars[n-2];
 
-  // BUY: tighter RSI 52-62 + EMA21 rising
-  if (e9>e21 && r>52 && r<62 && last.c>sH && prev.c<=sH) {
-    if (e21Slope<=0) return null;
-    return {side:'buy',  atr, rsi:+r.toFixed(1), adx, e21s:+e21Slope.toFixed(3)};
-  }
-  // SELL: tighter RSI 38-48 + EMA21 falling
-  if (e9<e21 && r>38 && r<48 && last.c<sL && prev.c>=sL) {
-    if (e21Slope>=0) return null;
-    return {side:'sell', atr, rsi:+r.toFixed(1), adx, e21s:+e21Slope.toFixed(3)};
-  }
+  // BUY: RSI 50-63 + bullish candle + volume
+  if (e9>e21 && r>50 && r<63 && last.c>sH && prev.c<=sH && last.c>last.o)
+    return {side:'buy',  atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2), body:+body.toFixed(2)};
+  // SELL: RSI 37-50 + bearish candle + volume
+  if (e9<e21 && r>37 && r<50 && last.c<sL && prev.c>=sL && last.c<last.o)
+    return {side:'sell', atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2), body:+body.toFixed(2)};
   return null;
 }
 
