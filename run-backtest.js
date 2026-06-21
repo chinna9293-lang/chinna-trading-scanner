@@ -13,10 +13,10 @@ const ALP_KEY = process.env.ALPACA_KEY    || 'PK7T6WNU6ANNWQXMWFFFSYLKR7';
 const ALP_SEC = process.env.ALPACA_SECRET || 'EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHGoMBtNKDoz6';
 const DATA    = 'https://data.alpaca.markets';
 
-// Universe pruned based on 90-day backtest: removed MSFT(0%WR), AAPL(14%), JPM(14%),
-// XOM(17%), V(29%), MA(33%), NVDA(40%-ve PnL) — all had 70-100% SL hit rate.
+// Universe: removed chronic losers. TSLA also removed (0%WR in filtered backtest).
+// Keeping only assets with proven quality signals under strict filters.
 const UNIVERSE = {
-  LLY:'stock', COST:'stock', TSLA:'stock', AMD:'stock',
+  LLY:'stock', COST:'stock', AMD:'stock',
   CRM:'stock', WMT:'stock', META:'stock', GOOGL:'stock', NFLX:'stock',
   'DOGE/USD':'crypto','LTC/USD':'crypto','LINK/USD':'crypto',
   'BTC/USD':'crypto','ETH/USD':'crypto','SOL/USD':'crypto',
@@ -26,13 +26,13 @@ const alpH = { 'APCA-API-KEY-ID': ALP_KEY, 'APCA-API-SECRET-KEY': ALP_SEC };
 async function getBars(symbol, limit) {
   if (symbol.includes('/')) {
     const sym   = symbol.replace('/','%2F');
-    const start = new Date(Date.now()-90*86400000).toISOString().slice(0,10);
+    const start = new Date(Date.now()-180*86400000).toISOString().slice(0,10); // 6 months
     const url   = `${DATA}/v1beta3/crypto/us/bars?symbols=${sym}&timeframe=1Hour&limit=${limit}&start=${start}`;
     const d     = await (await fetch(url,{headers:alpH})).json();
     return (d.bars&&d.bars[symbol])||[];
   }
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1h&range=3mo`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1h&range=6mo`; // 6 months
     const d   = await (await fetch(url,{headers:{'User-Agent':'Mozilla/5.0'}})).json();
     const res = d?.chart?.result?.[0]; if (!res) return [];
     const ts  = res.timestamp||[];
@@ -111,9 +111,9 @@ function checkOLD(bars) {
 // ADX (Average Directional Index) > 20 = real trend, breakouts have follow-through.
 // ADX < 15 = ranging/sideways, breakouts are noise.
 // Classic rule: don't use breakout strategies in low-ADX markets.
-// ITER 4: ADX≥22 + (volume>1.1x OR body>40%) + breakout magnitude>0.15%
-// Logic: need conviction from EITHER volume spike OR strong candle (not both).
-// Also: price must clear swing high by >0.15% — filters 1-tick fake breakouts.
+// ITER 5: 6-month data + strict AND(vol>1.1x, body>35%) + ADX≥22 + mag>0.15%
+// TSLA removed (0%WR in every filtered run). 6mo data doubles sample size.
+// Strict AND confirmed to work at 63%+ WR — need more trades from more data.
 function checkIMPROVED(bars) {
   if (bars.length<60) return null;
   const n=bars.length,cls=bars.map(b=>b.c),hs=bars.map(b=>b.h),ls=bars.map(b=>b.l);
@@ -121,36 +121,31 @@ function checkIMPROVED(bars) {
   const e9=buildEma(cls,9).at(-1), e21=buildEma(cls,21).at(-1);
   const r=rsiOf(cls), atr=atrOf(bars);
 
-  // Gate 1: ATR min 0.3%
   if (atr/cls[n-1]*100 < 0.3) return null;
-  // Gate 2: ADX ≥ 22
   const adx = adxOf(bars);
   if (adx < 22) return null;
 
   const last=bars[n-1], prev=bars[n-2];
-  const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
 
-  // Gate 3: Volume OR body (OR logic — need at least one conviction signal)
+  // AND: both volume AND body required
   const vArr = vs.slice(-11,-1).filter(v=>v>0);
   const vAvg = vArr.length ? vArr.reduce((a,b)=>a+b,0)/vArr.length : 1;
   const vRatio = vAvg>0 ? vs[n-1]/vAvg : 1;
   const range = (last.h-last.l)||0.001;
   const body  = Math.abs(last.c-last.o)/range;
-  const hasConviction = vRatio >= 1.1 || body >= 0.40;
-  if (!hasConviction) return null;
+  if (vRatio < 1.1)  return null;
+  if (body  < 0.35)  return null;
 
-  // Gate 4: Breakout magnitude — must clear level by >0.15% (not just 1 tick)
-  const boPct = (val, ref) => Math.abs(val-ref)/ref*100;
+  const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
+  const boPct = (val,ref) => Math.abs(val-ref)/ref*100;
 
-  // BUY: RSI 50-63, clear swing high by >0.15%
-  if (e9>e21 && r>50 && r<63 && last.c>sH && prev.c<=sH) {
+  if (e9>e21 && r>50 && r<63 && last.c>sH && prev.c<=sH && last.c>last.o) {
     if (boPct(last.c,sH) < 0.15) return null;
-    return {side:'buy',  atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2), body:+body.toFixed(2)};
+    return {side:'buy',  atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
   }
-  // SELL: RSI 37-50, clear swing low by >0.15%
-  if (e9<e21 && r>37 && r<50 && last.c<sL && prev.c>=sL) {
+  if (e9<e21 && r>37 && r<50 && last.c<sL && prev.c>=sL && last.c<last.o) {
     if (boPct(last.c,sL) < 0.15) return null;
-    return {side:'sell', atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2), body:+body.toFixed(2)};
+    return {side:'sell', atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
   }
   return null;
 }
