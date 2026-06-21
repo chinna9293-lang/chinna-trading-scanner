@@ -28,17 +28,23 @@ async function getBars(symbol, limit) {
     return (d.bars && d.bars[symbol]) || [];
   }
 
-  // Stocks: try both feeds, log full response on failure
-  for (const feed of ['iex', 'sip']) {
-    try {
-      const url = `${DATA}/v2/stocks/${symbol}/bars?timeframe=1Hour&limit=${limit}&feed=${feed}&adjustment=raw`;
-      const r = await fetch(url, { headers: alpH });
-      const d = await r.json();
-      if ((d.bars||[]).length >= 5) return d.bars;
-      if (d.bars && d.bars.length === 0) { console.log(`    ${feed}: 0 bars returned`); }
-      else if (d.message || d.code) { console.log(`    ${feed} error: ${d.message || d.code}`); }
-    } catch(e) { console.log(`    ${feed} fetch error: ${e.message}`); }
-  }
+  // Stocks: Yahoo Finance free API — 3mo of 1H bars, no auth needed
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1h&range=3mo`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const d = await r.json();
+    const result = d?.chart?.result?.[0];
+    if (!result) return [];
+    const ts    = result.timestamp || [];
+    const q     = result.indicators?.quote?.[0] || {};
+    const opens = q.open || [], highs = q.high || [], lows = q.low || [], closes = q.close || [], vols = q.volume || [];
+    const bars  = [];
+    for (let i = 0; i < ts.length; i++) {
+      if (!closes[i]) continue;
+      bars.push({ t: new Date(ts[i]*1000).toISOString(), o: opens[i]||closes[i], h: highs[i]||closes[i], l: lows[i]||closes[i], c: closes[i], v: vols[i]||0 });
+    }
+    if (bars.length >= 5) return bars.slice(-limit);
+  } catch(e) { console.log(`    yahoo error: ${e.message}`); }
 
   return [];
 }
