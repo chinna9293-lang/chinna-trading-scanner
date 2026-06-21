@@ -243,6 +243,16 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
 .auth-tabs{display:flex;margin-bottom:20px;border-bottom:1px solid rgba(30,30,46,.8);}
 .pending-box{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:14px;text-align:center;color:#f59e0b;font-size:13px;margin-top:8px;}
 
+/* ── TF chips ── */
+.tf-chip{padding:3px 8px;font-size:10px;}
+
+/* ── Collapsible sidebar sections ── */
+.s-section{overflow:hidden;transition:max-height .3s ease;max-height:2000px;}
+.s-section.collapsed{max-height:0;}
+.s-title{cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;}
+.s-title::after{content:'▾';color:#475569;font-size:10px;transition:transform .2s;}
+.s-title.collapsed::after{content:'▸';}
+
 /* Utility */
 .admin-only{}
 
@@ -287,6 +297,8 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
   #alert-bell span,#scalp-btn span{display:none;}
 }
 </style>
+<!-- Lightweight Charts (interactive candlestick) -->
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -371,25 +383,31 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
         <div class="mcard"><div class="ml">Positions</div><div class="mv" id="m-pos">—</div><div class="ms" id="m-pos-s">—</div></div>
       </div>
       <div class="sidebar-sections">
-        <span class="s-title">Open Positions</span>
-        <div id="pos-body" style="font-size:11px"><div class="empty">No open positions</div></div>
-
-        <span class="s-title" style="color:#a855f7">🏛️ Congress Trades</span>
-        <div style="display:flex;gap:8px;margin-bottom:6px">
-          <span id="pol-buy-count" style="font-size:10px;color:#22c55e;font-weight:700"></span>
-          <span id="pol-sell-count" style="font-size:10px;color:#ef4444;font-weight:700"></span>
+        <span class="s-title" onclick="toggleSection('sec-pos','this')">Open Positions</span>
+        <div class="s-section" id="sec-pos">
+          <div id="pos-body" style="font-size:11px"><div class="empty">No open positions</div></div>
         </div>
-        <div class="pol-hdr"><span>Ticker</span><span>Rep</span><span>P</span><span>Date</span></div>
-        <div class="pol-scroll"><div id="pol-panel-body"><div class="empty">Loading...</div></div></div>
 
-        <span class="s-title">All Trades</span>
-        <div class="chips" style="margin-bottom:8px">
-          <div class="chip on" id="ch-date" onclick="sortBy('date')">Date</div>
-          <div class="chip" id="ch-sym" onclick="sortBy('sym')">Sym</div>
-          <div class="chip" id="ch-side" onclick="sortBy('side')">Buy</div>
-          <div class="chip" id="ch-price" onclick="sortBy('price')">$</div>
+        <span class="s-title" style="color:#a855f7" onclick="toggleSection('sec-pol','this')">🏛️ Congress Trades</span>
+        <div class="s-section" id="sec-pol">
+          <div style="display:flex;gap:8px;margin:4px 0 6px">
+            <span id="pol-buy-count" style="font-size:10px;color:#22c55e;font-weight:700"></span>
+            <span id="pol-sell-count" style="font-size:10px;color:#ef4444;font-weight:700"></span>
+          </div>
+          <div class="pol-hdr"><span>Ticker</span><span>Rep</span><span>P</span><span>Date</span></div>
+          <div class="pol-scroll"><div id="pol-panel-body"><div class="empty">Loading...</div></div></div>
         </div>
-        <div id="ord-body" style="overflow-x:auto"><div class="empty">Loading...</div></div>
+
+        <span class="s-title collapsed" onclick="toggleSection('sec-trades','this')">All Trades</span>
+        <div class="s-section collapsed" id="sec-trades">
+          <div class="chips" style="margin:6px 0 8px">
+            <div class="chip on" id="ch-date" onclick="sortBy('date')">Date</div>
+            <div class="chip" id="ch-sym" onclick="sortBy('sym')">Sym</div>
+            <div class="chip" id="ch-side" onclick="sortBy('side')">Buy</div>
+            <div class="chip" id="ch-price" onclick="sortBy('price')">$</div>
+          </div>
+          <div id="ord-body" style="overflow-x:auto"><div class="empty">Loading...</div></div>
+        </div>
       </div>
     </div>
 
@@ -1224,11 +1242,10 @@ function analyse(bars) {
   };
 }
 
-function getDir(a, htfBull) {
-  const bs = (a.e9>a.e21?1:0)+(a.e21>a.e50?1:0)+(a.rsi>52&&a.rsi<70?1:0)+(a.aboveVwap?1:0)+(a.priceUp?1:0)+(a.vSpike?1:0)+(a.hhhl?1:0)+(a.breakUp?1:0)+(a.macdBull?1:0)+(a.aboveBbMid?1:0)+(a.obvRising?1:0)+(a.stochBull?1:0);
-  const ds = (a.e9<a.e21?1:0)+(a.e21<a.e50?1:0)+(a.rsi<48?1:0)+(!a.aboveVwap?1:0)+(!a.priceUp?1:0)+(a.macdBear?1:0)+(!a.aboveBbMid?1:0)+(a.obvFalling?1:0);
-  if (bs >= 7 && a.e9>a.e21 && a.e21>a.e50) return 'bull';
-  if (ds >= 5 && a.e9<a.e21) return 'bear';
+// Simplified 3-condition logic — mirrors scanner.js exactly
+function getDir(a) {
+  if (a.e9 > a.e21 && a.rsi > 45 && a.rsi < 65 && a.price > a.sH) return 'bull';
+  if (a.e9 < a.e21 && a.rsi > 35 && a.rsi < 55 && a.price < a.sL) return 'bear';
   return 'neutral';
 }
 
@@ -1351,29 +1368,22 @@ function buildModal(sym, a, cfg, bars, htfA) {
   const htfAligned = htfDir === dir && dir !== 'neutral';
   const htfColor = htfDir==='bull'?'#22c55e':htfDir==='bear'?'#ef4444':'#64748b';
 
+  // ── 3-condition logic (mirrors scanner.js) ───────────────────────────────────
   const bullChecks = [
-    {l:'EMA9 > EMA21',pass:a.e9>a.e21,v:'$'+a.e9+' vs $'+a.e21,n:a.e9>a.e21?'Short-term trend UP':'Need EMA9 to cross above EMA21 ($'+(a.e21-a.e9).toFixed(2)+' gap)'},
-    {l:'EMA21 > EMA50',pass:a.e21>a.e50,v:'$'+a.e21+' vs $'+a.e50,n:a.e21>a.e50?'Medium-term trend UP':'EMA21 still below EMA50 — broad trend bearish'},
-    {l:'RSI 52–70',pass:a.rsi>52&&a.rsi<70,v:'RSI '+a.rsi,n:a.rsi<52?'Too weak — needs 52+':a.rsi>=70?'Overbought '+a.rsi+' — wait for cooldown':'Buy zone ✓'},
-    {l:'MACD Bullish',pass:a.macdBull,v:'MACD '+a.macdLine.toFixed(2)+' vs Sig '+a.macdSig.toFixed(2),n:a.macdBull?'MACD above signal & rising ✓':'MACD below signal — no momentum yet'},
-    {l:'Above VWAP',pass:a.aboveVwap,v:'$'+liveP.toFixed(2)+' vs VWAP $'+a.vwap,n:a.aboveVwap?'Institutions buying above VWAP ✓':'$'+(a.vwap-liveP).toFixed(2)+' below VWAP'},
-    {l:'Above BB Middle',pass:a.aboveBbMid,v:'BB Mid $'+a.bbMid+' · Width '+a.bbWidth+'%',n:a.aboveBbMid?(a.bbSqueeze?'Squeeze breakout forming ✓':'Above midline — bulls in control ✓'):'Below BB midline — bearish bias'},
-    {l:'OBV Rising',pass:a.obvRising,v:a.obvRising?'Accumulation':'Distribution',n:a.obvRising?'Volume confirms buying pressure ✓':'OBV falling — smart money selling'},
-    {l:'Stochastic Bullish',pass:a.stochBull,v:'%K '+a.stochK+' vs %D '+a.stochD,n:a.stochBull?'%K above %D, not overbought ✓':a.stochK>=80?'Overbought '+a.stochK+' — wait for pullback':'%K below %D — no bullish cross yet'},
-    {l:'Volume spike 2.5x',pass:a.vSpike,v:a.vRat+'x avg',n:a.vSpike?a.vRat+'x — strong conviction ✓':'Only '+a.vRat+'x, need 2.5x+ for real move'},
-    {l:'HH + HL structure',pass:a.hhhl,v:a.hhhl?'Confirmed':'Not forming',n:a.hhhl?'Higher highs & higher lows ✓':'Need 3 bars of higher highs and lows'},
-    {l:'Breakout above swing high',pass:a.breakUp,v:'Swing high $'+a.sH,n:a.breakUp?'Broke $'+a.sH+' ✓':'$'+Math.abs(a.sH-liveP).toFixed(2)+' away from breakout'},
-    {l:'Strong bullish candle',pass:a.strongC,v:'Body '+a.body+'% of range',n:a.strongC?'Strong body — conviction candle ✓':'Only '+a.body+'% — indecision candle'},
+    { l:'EMA9 > EMA21', pass:a.e9>a.e21, v:'$'+a.e9+' vs $'+a.e21,
+      n: a.e9>a.e21 ? 'Uptrend — short-term above mid-term ✓' : 'Downtrend — EMA9 $'+(a.e21-a.e9).toFixed(2)+' below EMA21' },
+    { l:'RSI 45–65', pass:a.rsi>45&&a.rsi<65, v:'RSI '+a.rsi,
+      n: a.rsi<45 ? 'Too weak ('+a.rsi+') — wait for 45+' : a.rsi>=65 ? 'Overbought ('+a.rsi+') — wait for cooldown below 65' : 'Momentum sweet spot ✓' },
+    { l:'Price above swing high', pass:a.price>a.sH, v:'$'+a.price.toFixed(liveP<1?5:2)+' vs swing high $'+a.sH,
+      n: a.price>a.sH ? 'Breakout — resistance turned support ✓' : '$'+(a.sH-a.price).toFixed(liveP<1?5:2)+' below breakout level $'+a.sH },
   ];
   const bearChecks = [
-    {l:'EMA9 < EMA21',pass:a.e9<a.e21,v:'$'+a.e9+' vs $'+a.e21,n:a.e9<a.e21?'Short-term trend DOWN ✓':'EMA9 still above EMA21 — not bearish yet'},
-    {l:'EMA21 < EMA50',pass:a.e21<a.e50,v:'$'+a.e21+' vs $'+a.e50,n:a.e21<a.e50?'Broad trend DOWN ✓':'EMA21 above EMA50 — broad trend still bullish'},
-    {l:'RSI < 48',pass:a.rsi<48,v:'RSI '+a.rsi,n:a.rsi<48?'Weak momentum ✓':'RSI '+a.rsi+' — not yet in bear zone'},
-    {l:'MACD Bearish',pass:a.macdBear,v:'MACD '+a.macdLine.toFixed(2)+' vs Sig '+a.macdSig.toFixed(2),n:a.macdBear?'MACD below signal & falling ✓':'MACD still bullish — no bear momentum'},
-    {l:'Below VWAP',pass:!a.aboveVwap,v:'$'+liveP.toFixed(2)+' vs VWAP $'+a.vwap,n:!a.aboveVwap?'Below VWAP — sellers in control ✓':'Still above VWAP — not bearish'},
-    {l:'Below BB Middle',pass:!a.aboveBbMid,v:'BB Mid $'+a.bbMid,n:!a.aboveBbMid?'Below midline — bearish bias ✓':'Above BB midline — still bullish'},
-    {l:'OBV Falling',pass:a.obvFalling,v:a.obvFalling?'Distribution':'Accumulation',n:a.obvFalling?'Volume confirms selling pressure ✓':'OBV rising — buyers still active'},
-    {l:'Price declining',pass:!a.priceUp,v:!a.priceUp?'Price falling':'Price rising',n:!a.priceUp?'Downward price action ✓':'Price still rising — not bearish'},
+    { l:'EMA9 < EMA21', pass:a.e9<a.e21, v:'$'+a.e9+' vs $'+a.e21,
+      n: a.e9<a.e21 ? 'Downtrend confirmed ✓' : 'EMA9 still above EMA21 — trend not bearish' },
+    { l:'RSI 35–55', pass:a.rsi>35&&a.rsi<55, v:'RSI '+a.rsi,
+      n: a.rsi<35 ? 'Oversold ('+a.rsi+') — bounce risk' : a.rsi>=55 ? 'Too strong ('+a.rsi+') — not bearish yet' : 'Weak momentum zone ✓' },
+    { l:'Price below swing low', pass:a.price<a.sL, v:'$'+a.price.toFixed(liveP<1?5:2)+' vs swing low $'+a.sL,
+      n: a.price<a.sL ? 'Breakdown — support broken ✓' : '$'+(a.price-a.sL).toFixed(liveP<1?5:2)+' above breakdown level $'+a.sL },
   ];
   const bPassed = bullChecks.filter(c=>c.pass).length;
   const dPassed = bearChecks.filter(c=>c.pass).length;
@@ -1387,57 +1397,25 @@ function buildModal(sym, a, cfg, bars, htfA) {
       '<small>'+c.n+'</small></div></div>';
   }
 
-  // ── Trade signal logic ──────────────────────────────────────────────────────
-  const bullPatterns = patterns.filter(p => p.dir === 'bull');
-  const bearPatterns = patterns.filter(p => p.dir === 'bear');
-  const highConfBull = bullPatterns.filter(p => p.conf === 'High');
-  const highConfBear = bearPatterns.filter(p => p.conf === 'High');
-  const rsiOk = a.rsi > 52 && a.rsi < 70;
-  const rsiOversold = a.rsi < 35;
-  const rsiOverbought = a.rsi >= 70;
-  const rsiBearOk = a.rsi < 48;
-
-  let signal = 'WAIT', signalColor = '#f59e0b', signalBg = 'rgba(245,158,11,.08)', signalBorder = 'rgba(245,158,11,.25)';
-  let signalIcon = '⏳', signalMsg = '', waitReasons = [];
-
-  if (dir === 'bull') {
-    if (!rsiOk) waitReasons.push(rsiOverbought ? 'RSI '+a.rsi+' overbought — wait for RSI to cool below 70' : 'RSI '+a.rsi+' too weak — wait for RSI above 52');
-    if (!a.aboveVwap) waitReasons.push('Price below VWAP $'+a.vwap+' — wait for price to reclaim VWAP');
-    if (!a.vSpike && bullPatterns.length === 0) waitReasons.push('No volume spike and no pattern confirmation yet');
-    if (bPassed >= 9 && rsiOk && a.aboveVwap && a.macdBull && (a.vSpike || bullPatterns.length > 0) && (!htfA || htfDir !== 'bear')) {
-      signal = 'STRONG BUY'; signalColor = '#22c55e'; signalBg = 'rgba(34,197,94,.1)'; signalBorder = 'rgba(34,197,94,.3)'; signalIcon = '🟢';
-      signalMsg = bPassed+'/12 conditions · MACD ✓ · '+(htfAligned?'HTF aligned ✓ · ':'')+( bullPatterns.length?bullPatterns[0].name+' · ':'')+' Entry now';
-      waitReasons = [];
-    } else if (bPassed >= 7 && (rsiOk || !rsiOverbought) && a.aboveVwap) {
-      signal = 'BUY'; signalColor = '#4ade80'; signalBg = 'rgba(34,197,94,.07)'; signalBorder = 'rgba(34,197,94,.2)'; signalIcon = '🟩';
-      signalMsg = bPassed+'/12 conditions, above VWAP'+(waitReasons.length?' — caution: '+waitReasons[0]:'');
-      waitReasons = [];
-    } else {
-      signal = 'WAIT — setup forming'; signalIcon = '⏳';
-      signalMsg = 'Bull direction but not ready: '+waitReasons.join(' · ');
-    }
-  } else if (dir === 'bear') {
-    if (!rsiBearOk) waitReasons.push('RSI '+a.rsi+' not weak enough — wait for RSI below 48');
-    if (a.aboveVwap) waitReasons.push('Price still above VWAP — wait for break below $'+a.vwap);
-    if (dPassed >= 6 && rsiBearOk && !a.aboveVwap && a.macdBear && (a.vSpike || bearPatterns.length > 0)) {
-      signal = 'STRONG SHORT'; signalColor = '#ef4444'; signalBg = 'rgba(239,68,68,.1)'; signalBorder = 'rgba(239,68,68,.3)'; signalIcon = '🔴';
-      signalMsg = dPassed+'/8 bear conditions · MACD ✓ · '+(bearPatterns.length?bearPatterns[0].name+' · ':'')+' Short entry now';
-      waitReasons = [];
-    } else if (dPassed >= 5 && !a.aboveVwap) {
-      signal = 'SHORT'; signalColor = '#f87171'; signalBg = 'rgba(239,68,68,.07)'; signalBorder = 'rgba(239,68,68,.2)'; signalIcon = '🟥';
-      signalMsg = dPassed+'/8 bear conditions, below VWAP'+(waitReasons.length?' — caution: '+waitReasons[0]:'');
-      waitReasons = [];
-    } else {
-      signal = 'WAIT — bearish lean'; signalIcon = '⏳';
-      signalMsg = 'Bear direction but incomplete: '+waitReasons.join(' · ');
-    }
+  // ── Signal: all 3 conditions must pass ───────────────────────────────────────
+  let signal, signalColor, signalBg, signalBorder, signalIcon, signalMsg;
+  if (bPassed === 3) {
+    signal='BUY'; signalColor='#22c55e'; signalBg='rgba(34,197,94,.1)'; signalBorder='rgba(34,197,94,.3)'; signalIcon='🟢';
+    signalMsg='All 3 bull conditions met — EMA uptrend + RSI in zone + price above swing high';
+  } else if (dPassed === 3) {
+    signal='SELL'; signalColor='#ef4444'; signalBg='rgba(239,68,68,.1)'; signalBorder='rgba(239,68,68,.3)'; signalIcon='🔴';
+    signalMsg='All 3 bear conditions met — EMA downtrend + RSI in zone + price below swing low';
+  } else if (bPassed === 2) {
+    const miss = bullChecks.find(c=>!c.pass);
+    signal='WATCH — BULL'; signalColor='#4ade80'; signalBg='rgba(34,197,94,.07)'; signalBorder='rgba(34,197,94,.2)'; signalIcon='👀';
+    signalMsg='2/3 bull conditions — waiting for: '+( miss?miss.l:'—');
+  } else if (dPassed === 2) {
+    const miss = bearChecks.find(c=>!c.pass);
+    signal='WATCH — BEAR'; signalColor='#f87171'; signalBg='rgba(239,68,68,.07)'; signalBorder='rgba(239,68,68,.2)'; signalIcon='👀';
+    signalMsg='2/3 bear conditions — waiting for: '+(miss?miss.l:'—');
   } else {
-    signal = 'NO TRADE'; signalColor = '#64748b'; signalBg = 'rgba(100,116,139,.07)'; signalBorder = 'rgba(100,116,139,.2)'; signalIcon = '⬜';
-    const missing = [];
-    if (bPassed < 7) missing.push('need '+(7-bPassed)+' more bull conditions ('+bPassed+'/12)');
-    if (!a.aboveVwap) missing.push('below VWAP');
-    if (rsiOverbought) missing.push('RSI overbought');
-    signalMsg = 'No clear direction — '+( missing.length ? missing.join(', ') : 'market undecided');
+    signal='NO SIGNAL'; signalColor='#64748b'; signalBg='rgba(100,116,139,.07)'; signalBorder='rgba(100,116,139,.2)'; signalIcon='⬜';
+    signalMsg='No setup — Bull '+bPassed+'/3 · Bear '+dPassed+'/3 · Change timeframe or wait for setup';
   }
 
   const dec2 = liveP < 1 ? 5 : 2;
@@ -1478,26 +1456,20 @@ function buildModal(sym, a, cfg, bars, htfA) {
 
     '<div class="mdir '+dir+'"><div style="font-size:36px;color:'+dc+';line-height:1">'+(dir==='bull'?'↑':dir==='bear'?'↓':'→')+'</div>' +
     '<div><h4 style="color:'+dc+'">'+dir.toUpperCase()+'</h4>' +
-    '<p>Bull '+bPassed+'/12 · Bear '+dPassed+'/8 · '+(dir==='neutral'?'Waiting — no conviction yet':dir==='bull'?'BUY setup forming':'SELL pressure dominant')+'</p></div></div>' +
-
-    // HTF alignment bar
-    '<div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">' +
-    '<span style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em">1H HTF</span>' +
-    (htfA
-      ? '<span style="color:'+htfColor+';font-weight:700">'+(htfDir==='bull'?'↑ BULLISH':htfDir==='bear'?'↓ BEARISH':'→ NEUTRAL')+'</span>' +
-        '<span style="font-size:11px;color:#64748b">EMA9 $'+htfA.e9+' · EMA21 $'+htfA.e21+' · RSI '+htfA.rsi+'</span>' +
-        '<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:'+(htfAligned?'rgba(34,197,94,.15)':'rgba(239,68,68,.1)')+';color:'+(htfAligned?'#22c55e':'#f59e0b')+'">'+(htfAligned?'✓ Aligned with 5min':'⚠ Diverging from 5min')+'</span>'
-      : '<span style="font-size:11px;color:#475569">No 1H data available</span>') +
-    '</div>' +
+    '<p style="font-size:12px;color:#64748b;margin-top:3px">EMA9 $'+a.e9+' · EMA21 $'+a.e21+' · RSI '+a.rsi+'</p></div></div>' +
 
     tradeBoxHtml +
 
-    // Two-column conditions
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">' +
-    '<div><div class="stitle" style="margin-top:0;color:#22c55e">▲ BULL CONDITIONS ('+bPassed+'/8)</div>' +
-    bullChecks.map(cRow).join('') + '</div>' +
-    '<div><div class="stitle" style="margin-top:0;color:#ef4444">▼ BEAR CONDITIONS ('+dPassed+'/5)</div>' +
-    bearChecks.map(cRow).join('') + '</div>' +
+    // 3-condition checklist side by side
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">' +
+    '<div>' +
+    '<div class="stitle" style="margin-top:0;color:#22c55e">▲ BUY CONDITIONS ('+bPassed+'/3)</div>' +
+    bullChecks.map(cRow).join('') +
+    '</div>' +
+    '<div>' +
+    '<div class="stitle" style="margin-top:0;color:#ef4444">▼ SELL CONDITIONS ('+dPassed+'/3)</div>' +
+    bearChecks.map(cRow).join('') +
+    '</div>' +
     '</div>' +
 
     '<div class="stitle">Chart Pattern Recognition</div>' + patHtml +
@@ -1533,156 +1505,153 @@ function buildModal(sym, a, cfg, bars, htfA) {
     '<p style="font-size:10px;color:#334155;text-align:center">Paper trades only · bracket order with TP/SL auto-set</p>';
 }
 
-// ─── Canvas chart drawing ────────────────────────────────────────────────────
-function drawCandleChart(canvas, bars, a) {
-  const W = canvas.offsetWidth || 640;
-  const H = 240;
-  canvas.width = W * devicePixelRatio;
-  canvas.height = H * devicePixelRatio;
-  canvas.style.width = W + 'px';
-  canvas.style.height = H + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.scale(devicePixelRatio, devicePixelRatio);
-  if (bars.length < 2) return;
+// ─── Lightweight Charts interactive chart ─────────────────────────────────────
+let lwChart = null, lwRsiChart = null;
+let currentTf = '5Min';
 
-  const n = Math.min(bars.length, 40);
-  const data = bars.slice(-n);
-  const pad = { l: 4, r: 58, t: 14, b: 18 };
-  const cw = (W - pad.l - pad.r) / n;
-  const hs = data.map(b => b.h), ls = data.map(b => b.l);
-  let hi = Math.max(...hs), lo = Math.min(...ls);
-  const range = hi - lo || hi * 0.01;
-  hi += range * 0.1; lo -= range * 0.08;
-  const yS = y => pad.t + (H - pad.t - pad.b) * (1 - (y - lo) / (hi - lo));
-  const xB = i => pad.l + (i + 0.5) * cw;
+const TF_OPTIONS = [
+  { label:'1M', val:'1Min' }, { label:'5M', val:'5Min' }, { label:'15M', val:'15Min' },
+  { label:'1H', val:'1Hour' }, { label:'4H', val:'4Hour' }, { label:'1D', val:'1Day' }
+];
 
-  // Grid
-  ctx.lineWidth = 0.5;
-  for (let i = 0; i <= 3; i++) {
-    const y = pad.t + (H - pad.t - pad.b) * (i / 3);
-    const price = hi - (hi - lo) * (i / 3);
-    ctx.strokeStyle = 'rgba(30,30,46,.7)';
-    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
-    ctx.fillStyle = '#334155'; ctx.font = '8px sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText('$' + (price < 10 ? price.toFixed(4) : price < 100 ? price.toFixed(2) : Math.round(price)), W - pad.r + 3, y + 3);
-  }
-
-  // Swing high/low
-  if (a) {
-    ctx.setLineDash([3, 4]); ctx.lineWidth = 1;
-    if (a.sH && a.sH > lo && a.sH < hi) {
-      ctx.strokeStyle = 'rgba(99,102,241,.5)';
-      const sy = yS(a.sH);
-      ctx.beginPath(); ctx.moveTo(pad.l, sy); ctx.lineTo(W - pad.r, sy); ctx.stroke();
-      ctx.fillStyle = '#818cf8'; ctx.fillText('R $' + a.sH, W - pad.r + 3, sy - 1);
+async function getBarsForTf(sym, tf, lim) {
+  lim = lim || 100;
+  const isCrypto = sym.endsWith('USD') && sym.length > 3;
+  const days = tf === '1Day' ? 200 : tf === '4Hour' ? 60 : tf === '1Hour' ? 20 : 10;
+  const start = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  if (isCrypto) {
+    const s = sym.slice(0,-3) + '/USD';
+    try {
+      const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=' + encodeURIComponent(s) + '&timeframe=' + tf + '&limit=' + lim + '&start=' + start, { headers: AH })).json();
+      return (d.bars && d.bars[s]) || [];
+    } catch { return []; }
+  } else {
+    for (const feed of ['sip','iex']) {
+      try {
+        const url = 'https://data.alpaca.markets/v2/stocks/' + sym + '/bars?timeframe=' + tf + '&limit=' + lim + '&feed=' + feed + '&adjustment=raw&start=' + start + '&extended_hours=true';
+        const d = await (await fetch(url, { headers: AH })).json();
+        if ((d.bars || []).length >= 5) return d.bars;
+      } catch {}
     }
-    if (a.sL && a.sL > lo && a.sL < hi) {
-      ctx.strokeStyle = 'rgba(99,102,241,.5)';
-      const sy = yS(a.sL);
-      ctx.beginPath(); ctx.moveTo(pad.l, sy); ctx.lineTo(W - pad.r, sy); ctx.stroke();
-      ctx.fillStyle = '#818cf8'; ctx.fillText('S $' + a.sL, W - pad.r + 3, sy + 8);
-    }
-    ctx.setLineDash([]);
+    return [];
   }
-
-  // Build EMA arrays
-  let e9 = data[0].c, e21 = data[0].c;
-  const e9pts = [], e21pts = [];
-  data.forEach((b, i) => {
-    e9  = b.c * (2/10)  + e9  * (1 - 2/10);
-    e21 = b.c * (2/22)  + e21 * (1 - 2/22);
-    e9pts.push({ x: xB(i), y: yS(e9) });
-    e21pts.push({ x: xB(i), y: yS(e21) });
-  });
-
-  // EMA21 (orange)
-  ctx.strokeStyle = 'rgba(251,146,60,.75)'; ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  e21pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-  ctx.stroke();
-  // EMA9 (green)
-  ctx.strokeStyle = 'rgba(34,197,94,.75)'; ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  e9pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-  ctx.stroke();
-
-  // Candles
-  const hw = Math.max(1.5, cw * 0.40);
-  data.forEach((b, i) => {
-    const x = xB(i);
-    const bull = b.c >= b.o;
-    ctx.strokeStyle = bull ? 'rgba(34,197,94,.8)' : 'rgba(239,68,68,.8)';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x, yS(b.h)); ctx.lineTo(x, yS(b.l)); ctx.stroke();
-    ctx.fillStyle = bull ? 'rgba(34,197,94,.85)' : 'rgba(239,68,68,.85)';
-    const top = Math.min(yS(b.o), yS(b.c));
-    const ht = Math.max(1, Math.abs(yS(b.o) - yS(b.c)));
-    ctx.fillRect(x - hw, top, hw * 2, ht);
-  });
-
-  // Legend
-  ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
-  ctx.fillStyle = 'rgba(34,197,94,.9)'; ctx.fillText('EMA9', pad.l + 4, pad.t + 10);
-  ctx.fillStyle = 'rgba(251,146,60,.9)'; ctx.fillText('EMA21', pad.l + 46, pad.t + 10);
 }
 
-function drawRsiChart(canvas, bars) {
-  const W = canvas.offsetWidth || 640;
-  const H = 56;
-  canvas.width = W * devicePixelRatio;
-  canvas.height = H * devicePixelRatio;
-  canvas.style.width = W + 'px';
-  canvas.style.height = H + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.scale(devicePixelRatio, devicePixelRatio);
-  if (bars.length < 14) return;
+function initLWChart(containerId, bars, a) {
+  const container = document.getElementById(containerId);
+  if (!container || !bars.length) return;
+  if (lwChart) { try { lwChart.remove(); } catch {} lwChart = null; }
 
-  const n = Math.min(bars.length, 40);
-  const data = bars.slice(-n);
-  const cls = data.map(b => b.c);
-  const pad = { l: 4, r: 58, t: 6, b: 12 };
-  const cw = (W - pad.l - pad.r) / n;
+  const chartOpts = {
+    width: container.offsetWidth,
+    height: 280,
+    layout: { background: { color: 'transparent' }, textColor: '#64748b', fontSize: 10 },
+    grid: { vertLines: { color: 'rgba(30,30,46,.5)' }, horzLines: { color: 'rgba(30,30,46,.5)' } },
+    crosshair: { mode: 1 },
+    rightPriceScale: { borderColor: 'rgba(30,30,46,.6)', scaleMargins: { top: 0.08, bottom: 0.08 } },
+    timeScale: { borderColor: 'rgba(30,30,46,.6)', timeVisible: true, secondsVisible: false },
+    handleScroll: true, handleScale: true,
+  };
+  lwChart = LightweightCharts.createChart(container, chartOpts);
 
-  const rsiArr = cls.map((_, i) => {
-    if (i < 1) return 50;
+  new ResizeObserver(entries => {
+    if (lwChart) lwChart.applyOptions({ width: entries[0].contentRect.width });
+  }).observe(container);
+
+  // Candlesticks
+  const cs = lwChart.addCandlestickSeries({
+    upColor: '#22c55e', downColor: '#ef4444',
+    borderVisible: false, wickUpColor: '#22c55e', wickDownColor: '#ef4444',
+  });
+  const toTime = t => {
+    const ms = new Date(t).getTime();
+    return isNaN(ms) ? 0 : Math.floor(ms / 1000);
+  };
+  cs.setData(bars.map(b => ({ time: toTime(b.t), open: b.o, high: b.h, low: b.l, close: b.c })));
+
+  // EMA9
+  let e9v = bars[0].c;
+  const e9s = lwChart.addLineSeries({ color: '#22c55e', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+  e9s.setData(bars.map(b => { e9v = b.c*(2/10)+e9v*(1-2/10); return { time: toTime(b.t), value: +e9v.toFixed(5) }; }));
+
+  // EMA21
+  let e21v = bars[0].c;
+  const e21s = lwChart.addLineSeries({ color: '#fb923c', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+  e21s.setData(bars.map(b => { e21v = b.c*(2/22)+e21v*(1-2/22); return { time: toTime(b.t), value: +e21v.toFixed(5) }; }));
+
+  // Swing Hi / Lo price lines
+  if (a) {
+    cs.createPriceLine({ price: a.sH, color: 'rgba(99,102,241,.7)', lineStyle: 2, lineWidth: 1, title: 'Swing Hi' });
+    cs.createPriceLine({ price: a.sL, color: 'rgba(99,102,241,.7)', lineStyle: 2, lineWidth: 1, title: 'Swing Lo' });
+    // If there's a signal, show TP/SL lines
+    const dir = getDir(a);
+    const cfg = UNI[a._sym] || null;
+    const tp = cfg ? cfg.tp : 2.5, sl = cfg ? cfg.sl : 1.5;
+    if (dir === 'bull') {
+      cs.createPriceLine({ price: +(a.price*(1+tp/100)).toFixed(5), color: 'rgba(34,197,94,.6)', lineStyle: 3, lineWidth: 1, title: 'TP +'+tp+'%' });
+      cs.createPriceLine({ price: +(a.price*(1-sl/100)).toFixed(5), color: 'rgba(239,68,68,.6)', lineStyle: 3, lineWidth: 1, title: 'SL -'+sl+'%' });
+    } else if (dir === 'bear') {
+      cs.createPriceLine({ price: +(a.price*(1-tp/100)).toFixed(5), color: 'rgba(34,197,94,.6)', lineStyle: 3, lineWidth: 1, title: 'TP -'+tp+'%' });
+      cs.createPriceLine({ price: +(a.price*(1+sl/100)).toFixed(5), color: 'rgba(239,68,68,.6)', lineStyle: 3, lineWidth: 1, title: 'SL +'+sl+'%' });
+    }
+  }
+  lwChart.timeScale().fitContent();
+}
+
+function initRsiChart(containerId, bars) {
+  const container = document.getElementById(containerId);
+  if (!container || bars.length < 14) return;
+  if (lwRsiChart) { try { lwRsiChart.remove(); } catch {} lwRsiChart = null; }
+
+  lwRsiChart = LightweightCharts.createChart(container, {
+    width: container.offsetWidth, height: 80,
+    layout: { background: { color: 'transparent' }, textColor: '#475569', fontSize: 9 },
+    grid: { vertLines: { color: 'rgba(30,30,46,.3)' }, horzLines: { color: 'rgba(30,30,46,.3)' } },
+    crosshair: { mode: 1 },
+    rightPriceScale: { borderColor: 'rgba(30,30,46,.5)', scaleMargins: { top: 0.1, bottom: 0.1 } },
+    timeScale: { borderColor: 'rgba(30,30,46,.5)', timeVisible: false, visible: false },
+    handleScroll: true, handleScale: false,
+  });
+
+  new ResizeObserver(entries => {
+    if (lwRsiChart) lwRsiChart.applyOptions({ width: entries[0].contentRect.width });
+  }).observe(container);
+
+  const cls = bars.map(b => b.c);
+  const toTime = t => Math.floor(new Date(t).getTime() / 1000);
+  const rsiData = bars.map((b, i) => {
     let g = 0, l = 0;
     const st = Math.max(0, i - 13);
-    for (let j = st + 1; j <= i; j++) { const d = cls[j] - cls[j-1]; d > 0 ? g += d : l -= d; }
-    return Math.round(100 - 100 / (1 + (g / (l || 0.001))));
+    for (let j = st + 1; j <= i; j++) { const d = cls[j]-cls[j-1]; d > 0 ? g+=d : l-=d; }
+    const r = i < 1 ? 50 : Math.round(100 - 100/(1+(g/(l||0.001))));
+    return { time: toTime(b.t), value: r };
   });
 
-  const y70 = pad.t + (H - pad.t - pad.b) * 0.3;
-  const y30 = pad.t + (H - pad.t - pad.b) * 0.7;
+  const rsiSeries = lwRsiChart.addLineSeries({ color: '#818cf8', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
+  rsiSeries.setData(rsiData);
+  rsiSeries.createPriceLine({ price: 65, color: 'rgba(239,68,68,.4)', lineStyle: 1, lineWidth: 1, title: '65' });
+  rsiSeries.createPriceLine({ price: 45, color: 'rgba(34,197,94,.4)', lineStyle: 1, lineWidth: 1, title: '45' });
+  lwRsiChart.timeScale().fitContent();
+}
 
-  ctx.fillStyle = 'rgba(239,68,68,.04)';
-  ctx.fillRect(pad.l, pad.t, W - pad.l - pad.r, y70 - pad.t);
-  ctx.fillStyle = 'rgba(34,197,94,.04)';
-  ctx.fillRect(pad.l, y30, W - pad.l - pad.r, H - pad.b - y30);
+async function changeTf(tf) {
+  if (!chartPanelSym) return;
+  currentTf = tf;
+  document.querySelectorAll('.tf-chip').forEach(c => c.classList.remove('on'));
+  const el = document.getElementById('tf-' + tf);
+  if (el) el.classList.add('on');
+  const panel = g('app-chart');
+  if (panel) panel.querySelector('#chart-container').innerHTML = '<div class="empty">Loading…</div>';
+  await renderChartPanel(chartPanelSym, tf);
+}
 
-  ctx.setLineDash([2, 3]); ctx.lineWidth = 0.5;
-  ctx.strokeStyle = 'rgba(239,68,68,.3)';
-  ctx.beginPath(); ctx.moveTo(pad.l, y70); ctx.lineTo(W - pad.r, y70); ctx.stroke();
-  ctx.strokeStyle = 'rgba(34,197,94,.3)';
-  ctx.beginPath(); ctx.moveTo(pad.l, y30); ctx.lineTo(W - pad.r, y30); ctx.stroke();
-  ctx.setLineDash([]);
-
-  ctx.strokeStyle = '#818cf8'; ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  rsiArr.forEach((r, i) => {
-    const x = pad.l + (i + 0.5) * cw;
-    const y = pad.t + (H - pad.t - pad.b) * (1 - r / 100);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-
-  const lastRsi = rsiArr[rsiArr.length - 1];
-  const ry = pad.t + (H - pad.t - pad.b) * (1 - lastRsi / 100);
-  ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
-  ctx.fillStyle = lastRsi > 65 ? '#ef4444' : lastRsi < 35 ? '#22c55e' : '#818cf8';
-  ctx.fillText('RSI ' + lastRsi, W - pad.r + 3, ry + 3);
-  ctx.fillStyle = '#334155';
-  ctx.fillText('70', W - pad.r + 3, y70 - 1);
-  ctx.fillText('30', W - pad.r + 3, y30 + 8);
+// ─── Collapsible sidebar sections ─────────────────────────────────────────────
+function toggleSection(id) {
+  const sec = document.getElementById(id);
+  if (!sec) return;
+  const isCollapsed = sec.classList.toggle('collapsed');
+  const title = sec.previousElementSibling;
+  if (title) title.classList.toggle('collapsed', isCollapsed);
 }
 
 // ─── Filter ticker list ────────────────────────────────────────────────────────
@@ -1718,69 +1687,68 @@ async function openChartPanel(sym) {
   }, 60000);
 }
 
-async function renderChartPanel(sym) {
-  let bars = await getBars(sym, 50);
+async function renderChartPanel(sym, tf) {
+  tf = tf || currentTf || '5Min';
+  currentTf = tf;
+
+  let bars = await getBarsForTf(sym, tf, 100);
+  if (!bars.length) bars = await getBars(sym, 80); // fallback to auto-detect
   liveBars[sym] = bars;
-  // Update the LAST bar's close to live price (don't add a synthetic new bar)
+
+  // Update last bar with live price
   if (bars.length > 0 && LP[sym] && LP[sym].price) {
     const lp = LP[sym].price;
     const last = { ...bars[bars.length - 1] };
-    last.c = lp;
-    last.h = Math.max(last.h, lp);
-    last.l = Math.min(last.l, lp);
+    last.c = lp; last.h = Math.max(last.h, lp); last.l = Math.min(last.l, lp);
     bars = [...bars.slice(0, -1), last];
   }
+
   const a = bars.length >= 5 ? analyse(bars) : null;
+  if (a) a._sym = sym;
   const cfg = UNI[sym] || null;
-  const isCrypto = sym.endsWith('USD') && sym.length > 3;
-  let htfBars = [];
-  try {
-    if (isCrypto) {
-      const s = sym.slice(0,-3) + '/USD';
-      const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=' + encodeURIComponent(s) + '&timeframe=1Hour&limit=50', { headers: AH })).json();
-      htfBars = (d.bars && d.bars[s]) || [];
-    } else {
-      for (const feed of ['sip','iex']) {
-        try {
-          const d = await (await fetch('https://data.alpaca.markets/v2/stocks/' + sym + '/bars?timeframe=1Hour&limit=50&feed=' + feed + '&adjustment=raw&extended_hours=true', { headers: AH })).json();
-          if ((d.bars||[]).length >= 5) { htfBars = d.bars; break; }
-        } catch {}
-      }
-    }
-  } catch {}
-  const htfA = htfBars.length >= 5 ? analyse(htfBars) : null;
 
   if (!a) {
-    g('app-chart').innerHTML = '<div class="empty" style="padding:80px">No data for ' + sym + '</div>';
+    g('app-chart').innerHTML = '<div class="empty" style="padding:80px">No data available for ' + sym + ' on ' + tf + ' timeframe</div>';
     return;
   }
+
   const liveP = (LP[sym] && LP[sym].price) || a.price;
   const dec = liveP < 1 ? 5 : 2;
+  const dir = getDir(a);
+  const dirColor = dir === 'bull' ? '#22c55e' : dir === 'bear' ? '#ef4444' : '#64748b';
   const ts = new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+
+  // TF chip strip
+  const tfHtml = TF_OPTIONS.map(o =>
+    '<div class="chip tf-chip' + (o.val === tf ? ' on' : '') + '" id="tf-' + o.val + '" onclick="changeTf(\'' + o.val + '\')">' + o.label + '</div>'
+  ).join('');
 
   g('app-chart').innerHTML =
     '<div class="chart-panel-hdr">' +
-    '<div><div class="chart-sym">' + sym + '</div>' +
+    '<div>' +
+    '<div class="chart-sym">' + sym + ' <span style="font-size:14px;color:' + dirColor + ';font-weight:700">' + (dir === 'bull' ? '↑ BULL' : dir === 'bear' ? '↓ BEAR' : '→ WAIT') + '</span></div>' +
     '<div class="chart-price-line"><strong style="color:#fff">$' + liveP.toFixed(dec) + '</strong>' +
-    ' <span style="color:' + (a.chg1h >= 0 ? '#22c55e' : '#ef4444') + '">' + (a.chg1h >= 0 ? '+' : '') + a.chg1h + '% recent</span>' +
-    ' <span style="color:#334155;font-size:11px">· RSI ' + a.rsi + ' · ' + ts + '</span></div></div>' +
-    '<button onclick="renderChartPanel(\'' + sym + '\')" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#94a3b8;padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer;flex-shrink:0">↻ Refresh</button>' +
+    ' <span style="color:' + (a.chg1h >= 0 ? '#22c55e' : '#ef4444') + '">' + (a.chg1h >= 0 ? '+' : '') + a.chg1h + '%</span>' +
+    ' <span style="color:#334155">· RSI ' + a.rsi + ' · EMA9 $' + a.e9 + ' · EMA21 $' + a.e21 + '</span></div>' +
     '</div>' +
-    '<div class="chart-wrap"><canvas id="chart-canvas"></canvas></div>' +
-    '<div class="chart-legend">' +
-    '<span><span class="legend-dot" style="background:#22c55e"></span>EMA9</span>' +
-    '<span><span class="legend-dot" style="background:#fb923c"></span>EMA21</span>' +
-    '<span><span class="legend-dot" style="background:rgba(99,102,241,.6)"></span>Swing Hi/Lo</span>' +
+    '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
+    '<div style="display:flex;gap:4px">' + tfHtml + '</div>' +
+    '<button onclick="renderChartPanel(\'' + sym + '\',currentTf)" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#64748b;padding:5px 10px;border-radius:6px;font-size:10px;cursor:pointer">↻</button>' +
     '</div>' +
-    '<div class="rsi-wrap"><canvas id="rsi-canvas"></canvas></div>' +
-    buildModal(sym, a, cfg, bars, htfA);
+    '</div>' +
+    '<div class="chart-wrap"><div id="chart-container" style="height:280px"></div></div>' +
+    '<div style="display:flex;gap:12px;padding:5px 10px;background:rgba(7,7,15,.5);font-size:9px;border:1px solid rgba(30,30,46,.6);border-top:none;border-radius:0 0 10px 10px;margin-bottom:10px">' +
+    '<span style="color:#22c55e">— EMA9</span><span style="color:#fb923c">— EMA21</span>' +
+    '<span style="color:#818cf8">-- Swing Hi/Lo</span><span style="color:rgba(34,197,94,.6)">-- TP</span><span style="color:rgba(239,68,68,.6)">-- SL</span>' +
+    '<span style="color:#334155;margin-left:auto">Scroll to zoom · Drag to pan</span>' +
+    '</div>' +
+    '<div class="rsi-wrap" style="margin-bottom:16px"><div id="rsi-container" style="height:80px"></div></div>' +
+    buildModal(sym, a, cfg, bars, null);
 
-  requestAnimationFrame(() => {
-    const cv = g('chart-canvas');
-    if (cv) drawCandleChart(cv, bars, a);
-    const rv = g('rsi-canvas');
-    if (rv) drawRsiChart(rv, bars);
-  });
+  setTimeout(() => {
+    initLWChart('chart-container', bars, a);
+    initRsiChart('rsi-container', bars);
+  }, 0);
 }
 
 // ─── Dynamic modal with live price + auto-refresh ─────────────────────────────
