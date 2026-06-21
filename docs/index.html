@@ -111,7 +111,10 @@ td{padding:10px 8px 10px 0;border-top:1px solid rgba(30,30,46,.8);color:#cbd5e1;
 .nd{color:#1e1e2e;padding:0 6px;}
 
 /* ── Ticker tape ── */
-.tick-wrap{overflow:hidden;height:32px;background:rgba(5,5,12,.8);border:1px solid rgba(30,30,46,.6);border-radius:8px;margin-bottom:16px;display:flex;align-items:center;}
+.tick-wrap{overflow-x:auto;overflow-y:hidden;height:36px;background:rgba(5,5,12,.8);border:1px solid rgba(30,30,46,.6);border-radius:8px;margin-bottom:16px;display:flex;align-items:center;cursor:grab;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,.3) transparent;}
+.tick-wrap::-webkit-scrollbar{height:3px;}
+.tick-wrap::-webkit-scrollbar-thumb{background:rgba(99,102,241,.3);border-radius:2px;}
+.tick-wrap.dragging{cursor:grabbing;}
 .tick-track{display:flex;gap:0;white-space:nowrap;will-change:transform;}
 .tick-item{display:inline-flex;align-items:center;gap:5px;padding:0 14px;font-size:11px;border-right:1px solid rgba(30,30,46,.6);}
 .tick-item .tsym{font-weight:700;color:#64748b;}
@@ -659,10 +662,10 @@ function refreshDisplay() {
 }
 
 // ─── Tick feed ────────────────────────────────────────────────────────────────
-let tickAnim = null;
-let tickOffset = 0;
+let tickAnim = null, tickOffset = 0, tickPaused = false;
 
 function renderTickFeed() {
+  const wrap  = g('tick-wrap');
   const track = g('tick-track');
   if (!track || TICKS.length === 0) return;
   const items = TICKS.slice(0, 40);
@@ -674,23 +677,56 @@ function renderTickFeed() {
     '<span class="ttime">' + t.ts + '</span>' +
     '</span>'
   ).join('');
-  track.innerHTML = html + html; // doubled for seamless loop
-  // Restart CSS animation by cloning
+  track.innerHTML = html + html;
   track.style.animation = 'none';
   void track.offsetWidth;
-  const totalW = track.scrollWidth / 2;
-  track.style.animation = '';
-  // Manual scroll via JS for reliability
+
+  // Auto-scroll
   if (tickAnim) cancelAnimationFrame(tickAnim);
   tickOffset = 0;
   function scroll() {
-    tickOffset += 0.4;
-    const half = track.scrollWidth / 2;
-    if (tickOffset >= half) tickOffset = 0;
-    track.style.transform = 'translateX(-' + tickOffset + 'px)';
+    if (!tickPaused) {
+      tickOffset += 0.5;
+      const half = track.scrollWidth / 2;
+      if (tickOffset >= half) tickOffset = 0;
+      track.style.transform = 'translateX(-' + tickOffset + 'px)';
+    }
     tickAnim = requestAnimationFrame(scroll);
   }
-  if (!tickAnim) scroll();
+  scroll();
+
+  // Pause on hover
+  if (wrap && !wrap._dragBound) {
+    wrap._dragBound = true;
+    wrap.addEventListener('mouseenter', () => { tickPaused = true; });
+    wrap.addEventListener('mouseleave', () => { tickPaused = false; wrap.classList.remove('dragging'); });
+
+    // Drag-to-scroll
+    let dragStart = 0, dragOffset = 0, isDragging = false;
+    wrap.addEventListener('mousedown', e => {
+      isDragging = true; dragStart = e.clientX; dragOffset = tickOffset;
+      wrap.classList.add('dragging'); e.preventDefault();
+    });
+    window.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      const delta = dragStart - e.clientX;
+      tickOffset = dragOffset + delta;
+      const half = track.scrollWidth / 2;
+      if (tickOffset < 0) tickOffset = 0;
+      if (tickOffset > half) tickOffset = half;
+      track.style.transform = 'translateX(-' + tickOffset + 'px)';
+    });
+    window.addEventListener('mouseup', () => { isDragging = false; wrap.classList.remove('dragging'); });
+
+    // Touch scroll
+    wrap.addEventListener('touchstart', e => { dragStart = e.touches[0].clientX; dragOffset = tickOffset; tickPaused = true; }, { passive:true });
+    wrap.addEventListener('touchmove', e => {
+      const delta = dragStart - e.touches[0].clientX;
+      tickOffset = Math.max(0, Math.min(track.scrollWidth/2, dragOffset + delta));
+      track.style.transform = 'translateX(-' + tickOffset + 'px)';
+    }, { passive:true });
+    wrap.addEventListener('touchend', () => { tickPaused = false; });
+  }
 }
 
 // ─── Live streaming — Kraken WS (crypto) + Alpaca WS (stocks) ───────────────
