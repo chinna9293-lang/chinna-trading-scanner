@@ -280,11 +280,4 @@ async function main() {
 process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', err));
 process.on('uncaughtException',  (err) => console.error('[uncaughtException]',  err));
 
-async function loop() {
-  while (true) {
-    try { await main(); } catch(e) { console.error('[loop error]', e.message); }
-    await new Promise(r => setTimeout(r, 60 * 60 * 1000)); // scan every 1 hour (matches 1H bars)
-  }
-}
-
-loop();
+main();

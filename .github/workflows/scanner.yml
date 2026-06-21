@@ -2,8 +2,8 @@ name: Trading Scanner
 
 on:
   schedule:
-    # Every 5 min, 24/7 — stocks auto-skip on weekends/off-hours inside scanner.js
-    - cron: '*/5 * * * *'
+    # Every hour, 24/7 — stocks auto-skip on weekends/off-hours inside scanner.js
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 jobs:
