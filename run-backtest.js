@@ -75,35 +75,32 @@ function checkOLD(bars) {
   return null;
 }
 
-// ── IMPROVED: same core, 4 targeted fixes ────────────────────────────────────
+// ── IMPROVED: ONE key fix — macro trend filter via EMA50 ─────────────────────
+// Root cause: MSFT/AAPL/JPM/XOM are in macro downtrends.
+// Their 1H swing breakouts are fake BOs against the trend → 80-100% SL hit rate.
+// Fix: only BUY if price > EMA50 (uptrend), only SELL if price < EMA50 (downtrend).
+// Plus ATR min and 20-bar time stop for stocks.
 function checkIMPROVED(bars) {
-  if (bars.length<30) return null;
+  if (bars.length<55) return null;
   const n=bars.length,cls=bars.map(b=>b.c),hs=bars.map(b=>b.h),ls=bars.map(b=>b.l);
-  const e9arr=buildEma(cls,9),e21arr=buildEma(cls,21);
-  const e9=e9arr.at(-1),e21=e21arr.at(-1);
-  const r=rsiOf(cls),rOld=rsiOf(cls.slice(0,-3));
-  const atr=atrOf(bars);
+  const e9=buildEma(cls,9).at(-1),e21=buildEma(cls,21).at(-1),e50=buildEma(cls,50).at(-1);
+  const r=rsiOf(cls),atr=atrOf(bars);
 
-  // [4] ATR minimum
+  // ATR minimum — skip ultra-low-vol (can't reach 2×ATR target)
   if (atr/cls[n-1]*100 < 0.3) return null;
-
-  // [2] EMA21 5-bar slope
-  const e21Slope = e21arr[n-1] - e21arr[Math.max(0,n-6)];
 
   const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
   const last=bars[n-1],prev=bars[n-2];
 
-  // BUY: [1] tighter RSI, [2] EMA21 rising, [3] RSI rising
-  if (e9>e21 && r>50 && r<62 && last.c>sH && prev.c<=sH) {
-    if (e21Slope<=0) return null;   // EMA21 declining = counter-trend
-    if (r<=rOld)     return null;   // RSI not building
-    return {side:'buy',  atr, rsi:+r.toFixed(1), e21s:+e21Slope.toFixed(3)};
+  // BUY: original 3 conditions + price must be above EMA50 (macro uptrend)
+  if (e9>e21 && r>45 && r<65 && last.c>sH && prev.c<=sH) {
+    if (last.c < e50) return null;   // below EMA50 = macro downtrend, skip bull signals
+    return {side:'buy',  atr, rsi:+r.toFixed(1), e50:+e50.toFixed(2)};
   }
-  // SELL: [1] tighter RSI, [2] EMA21 falling, [3] RSI falling
-  if (e9<e21 && r>38 && r<50 && last.c<sL && prev.c>=sL) {
-    if (e21Slope>=0) return null;
-    if (r>=rOld)     return null;
-    return {side:'sell', atr, rsi:+r.toFixed(1), e21s:+e21Slope.toFixed(3)};
+  // SELL: original 3 conditions + price must be below EMA50 (macro downtrend)
+  if (e9<e21 && r>35 && r<55 && last.c<sL && prev.c>=sL) {
+    if (last.c > e50) return null;   // above EMA50 = macro uptrend, skip bear signals
+    return {side:'sell', atr, rsi:+r.toFixed(1), e50:+e50.toFixed(2)};
   }
   return null;
 }
