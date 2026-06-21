@@ -149,16 +149,24 @@ td{padding:10px 8px 10px 0;border-top:1px solid rgba(30,30,46,.8);color:#cbd5e1;
 .tname{font-size:13px;font-weight:800;color:#fff;letter-spacing:-.01em;}
 .er-badge{font-size:9px;background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25);padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:700;}
 .pol-badge{font-size:9px;background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3);padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:700;}
-.pol-panel{background:linear-gradient(135deg,rgba(20,20,34,.9),rgba(12,12,24,.9));border:1px solid rgba(168,85,247,.15);border-radius:14px;padding:20px;margin-bottom:20px;position:relative;overflow:hidden;}
+.pol-panel{background:linear-gradient(135deg,rgba(20,20,34,.9),rgba(12,12,24,.9));border:1px solid rgba(168,85,247,.15);border-radius:14px;padding:20px;margin-bottom:20px;position:relative;}
 .pol-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(168,85,247,.3),transparent);}
-.pol-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(30,30,46,.6);font-size:12px;}
+.pol-scroll{max-height:320px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(168,85,247,.3) transparent;}
+.pol-scroll::-webkit-scrollbar{width:4px;}
+.pol-scroll::-webkit-scrollbar-track{background:transparent;}
+.pol-scroll::-webkit-scrollbar-thumb{background:rgba(168,85,247,.3);border-radius:2px;}
+.pol-row{display:grid;grid-template-columns:64px 1fr 28px 60px 90px 82px;align-items:center;gap:8px;padding:9px 4px;border-bottom:1px solid rgba(30,30,46,.6);font-size:11px;}
 .pol-row:last-child{border-bottom:none;}
-.pol-ticker{font-weight:800;color:#fff;width:52px;flex-shrink:0;}
-.pol-name{color:#94a3b8;flex:1;}
-.pol-amt{color:#a855f7;font-weight:700;font-size:10px;white-space:nowrap;}
-.pol-date{color:#334155;font-size:10px;white-space:nowrap;}
-.pol-party-R{color:#ef4444;font-weight:700;font-size:10px;}
-.pol-party-D{color:#60a5fa;font-weight:700;font-size:10px;}
+.pol-row:hover{background:rgba(168,85,247,.04);border-radius:6px;}
+.pol-ticker{font-weight:800;color:#fff;font-size:12px;}
+.pol-side-buy{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.3);padding:2px 6px;border-radius:4px;font-weight:700;font-size:9px;text-align:center;}
+.pol-side-sell{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:2px 6px;border-radius:4px;font-weight:700;font-size:9px;text-align:center;}
+.pol-name{color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pol-amt{color:#a855f7;font-weight:700;font-size:10px;white-space:nowrap;text-align:right;}
+.pol-date{color:#475569;font-size:10px;white-space:nowrap;text-align:right;}
+.pol-party-R{color:#ef4444;font-weight:700;font-size:10px;text-align:center;}
+.pol-party-D{color:#60a5fa;font-weight:700;font-size:10px;text-align:center;}
+.pol-hdr{display:grid;grid-template-columns:64px 1fr 28px 60px 90px 82px;gap:8px;padding:0 4px 8px;border-bottom:1px solid rgba(168,85,247,.15);font-size:9px;color:#334155;text-transform:uppercase;letter-spacing:.06em;}
 .tpx{font-size:16px;font-weight:800;color:#fff;margin:6px 0 2px;transition:color .4s;letter-spacing:-.02em;}
 .tpx.fu{color:#22c55e!important;}
 .tpx.fd{color:#ef4444!important;}
@@ -347,8 +355,19 @@ td{padding:10px 8px 10px 0;border-top:1px solid rgba(30,30,46,.8);color:#cbd5e1;
     <div class="card admin-only"><h3>Open Positions</h3><div id="pos-body"><div class="empty">No open positions</div></div></div>
 
     <div class="pol-panel">
-      <h3 style="font-size:11px;color:#a855f7;margin-bottom:14px;text-transform:uppercase;letter-spacing:.08em;font-weight:700">🏛️ Congress Buys — Last 60 Days (STOCK Act Disclosures)</h3>
-      <div id="pol-panel-body"><div class="empty">Loading political trades...</div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 style="font-size:11px;color:#a855f7;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin:0">🏛️ Congress Trades — Last 60 Days (STOCK Act Disclosures)</h3>
+        <div style="display:flex;gap:8px;font-size:10px">
+          <span id="pol-buy-count" style="color:#22c55e;font-weight:700"></span>
+          <span id="pol-sell-count" style="color:#ef4444;font-weight:700"></span>
+        </div>
+      </div>
+      <div class="pol-hdr">
+        <span>Ticker</span><span>Representative</span><span>Party</span><span>Action</span><span>Amount</span><span>Date</span>
+      </div>
+      <div class="pol-scroll">
+        <div id="pol-panel-body"><div class="empty">Loading political trades...</div></div>
+      </div>
     </div>
 
     <div class="card admin-only">
@@ -629,24 +648,23 @@ function fmtP(n) { return (n>=0?'+':'') + parseFloat(n).toFixed(2) + '%'; }
 const LP = {};  // sym → {price, prev}
 
 // ─── Political trades (Congress STOCK Act disclosures) ────────────────────────
-let POLITICAL_BUYS = {};  // sym → [{rep, party, date, range, amount}]
+let POLITICAL_BUYS = {};  // sym → [{rep, party, date, range, amount, side}]
 
 async function loadPoliticalTrades() {
   try {
-    // Quiver Quant free endpoint — no API key needed, server returns CORS headers
     const proxy = 'https://corsproxy.io/?' + encodeURIComponent('https://api.quiverquant.com/beta/live/congresstrading');
     const r = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
     const data = await r.json();
-    const OUR = Object.keys(UNI).map(s => s.replace('USD',''));
-    const cutoff = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000); // last 60 days
+    const cutoff = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
     POLITICAL_BUYS = {};
     data.forEach(t => {
-      if (t.Transaction !== 'Purchase') return;
       if (new Date(t.TransactionDate) < cutoff) return;
-      // match ticker to our universe (stocks direct, crypto not applicable)
       const sym = t.Ticker;
       if (!UNI[sym] && !UNI[sym + 'USD']) return;
       const key = UNI[sym] ? sym : sym + 'USD';
+      const isBuy = t.Transaction === 'Purchase';
+      const isSell = t.Transaction === 'Sale' || t.Transaction === 'Sale (Full)' || t.Transaction === 'Sale (Partial)';
+      if (!isBuy && !isSell) return;
       if (!POLITICAL_BUYS[key]) POLITICAL_BUYS[key] = [];
       POLITICAL_BUYS[key].push({
         rep:    t.Representative,
@@ -654,31 +672,37 @@ async function loadPoliticalTrades() {
         date:   t.TransactionDate,
         range:  t.Range,
         amount: parseFloat(t.Amount) || 0,
+        side:   isBuy ? 'BUY' : 'SELL',
       });
     });
     renderPoliticalPanel();
-    // patch badges into existing card DOM (cards are built once in loadTickers)
+    // patch badges into existing card DOM
     document.querySelectorAll('.tc').forEach(card => {
       const onclick = card.getAttribute('onclick') || '';
       const m = onclick.match(/openModal\('([^']+)'\)/);
       if (!m) return;
       const sym = m[1];
-      const buys = POLITICAL_BUYS[sym];
+      const trades = POLITICAL_BUYS[sym];
       const tname = card.querySelector('.tname');
       if (!tname) return;
       const existing = card.querySelector('.pol-badge');
-      if (buys && buys.length) {
+      if (trades && trades.length) {
+        const buys  = trades.filter(t => t.side === 'BUY').length;
+        const sells = trades.filter(t => t.side === 'SELL').length;
+        const label = (buys ? '🟢' + buys : '') + (sells ? ' 🔴' + sells : '');
         if (!existing) {
           const b = document.createElement('span');
           b.className = 'pol-badge';
-          b.textContent = '🏛️ ' + buys.length;
+          b.textContent = '🏛️ ' + label.trim();
           tname.after(b);
+        } else {
+          existing.textContent = '🏛️ ' + label.trim();
         }
       } else if (existing) {
         existing.remove();
       }
     });
-    console.log('[pol] loaded', Object.keys(POLITICAL_BUYS).length, 'tickers with congress buys');
+    console.log('[pol] loaded', Object.keys(POLITICAL_BUYS).length, 'tickers with congress trades');
   } catch(e) { console.warn('[pol] failed:', e.message); }
 }
 
@@ -686,16 +710,23 @@ function renderPoliticalPanel() {
   const el = document.getElementById('pol-panel-body');
   if (!el) return;
   const entries = [];
-  Object.entries(POLITICAL_BUYS).forEach(([sym, buys]) => {
-    buys.forEach(b => entries.push({ sym, ...b }));
+  Object.entries(POLITICAL_BUYS).forEach(([sym, trades]) => {
+    trades.forEach(t => entries.push({ sym, ...t }));
   });
   entries.sort((a, b) => new Date(b.date) - new Date(a.date));
-  if (!entries.length) { el.innerHTML = '<div class="empty">No recent congress buys in our universe</div>'; return; }
-  el.innerHTML = entries.slice(0, 20).map(e =>
+  const buyCnt  = entries.filter(e => e.side === 'BUY').length;
+  const sellCnt = entries.filter(e => e.side === 'SELL').length;
+  const bc = document.getElementById('pol-buy-count');
+  const sc = document.getElementById('pol-sell-count');
+  if (bc) bc.textContent = buyCnt + ' Buys';
+  if (sc) sc.textContent = sellCnt + ' Sells';
+  if (!entries.length) { el.innerHTML = '<div class="empty">No recent congress trades in our universe</div>'; return; }
+  el.innerHTML = entries.map(e =>
     `<div class="pol-row">
-      <span class="pol-ticker">🏛️ ${e.sym}</span>
-      <span class="pol-name">${e.rep}</span>
+      <span class="pol-ticker">${e.sym}</span>
+      <span class="pol-name" title="${e.rep}">${e.rep}</span>
       <span class="pol-party-${e.party}">${e.party}</span>
+      <span class="pol-side-${e.side.toLowerCase()}">${e.side}</span>
       <span class="pol-amt">${e.range}</span>
       <span class="pol-date">${e.date}</span>
     </div>`
