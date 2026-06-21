@@ -1,0 +1,21 @@
+name: Backtest
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'   # every Sunday midnight UTC
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run Backtest
+        run: node run-backtest.js
+        env:
+          NTFY_TOPIC:    ${{ secrets.NTFY_TOPIC }}
+          ALPACA_KEY:    ${{ secrets.ALPACA_KEY }}
+          ALPACA_SECRET: ${{ secrets.ALPACA_SECRET }}
