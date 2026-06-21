@@ -13,11 +13,10 @@ const ALP_KEY = process.env.ALPACA_KEY    || 'PK7T6WNU6ANNWQXMWFFFSYLKR7';
 const ALP_SEC = process.env.ALPACA_SECRET || 'EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHGoMBtNKDoz6';
 const DATA    = 'https://data.alpaca.markets';
 
-// Stocks: only assets with >60%WR under quality filters in 3-month tests.
-// Crypto: 6-month window gives ~2x signals; crypto markets 24/7 so older data is more relevant.
-// Removed: TSLA(50%/neutral), AMD(25% under filters), NFLX(33-50% poor quality).
+// Full pruned universe — ATR>0.8% filter will dynamically select only high-volatility conditions.
 const UNIVERSE = {
-  LLY:'stock', COST:'stock', CRM:'stock', WMT:'stock', META:'stock', GOOGL:'stock',
+  LLY:'stock', COST:'stock', TSLA:'stock', AMD:'stock',
+  CRM:'stock', WMT:'stock', META:'stock', GOOGL:'stock', NFLX:'stock',
   'DOGE/USD':'crypto','LTC/USD':'crypto','LINK/USD':'crypto',
   'BTC/USD':'crypto','ETH/USD':'crypto','SOL/USD':'crypto',
 };
@@ -26,13 +25,13 @@ const alpH = { 'APCA-API-KEY-ID': ALP_KEY, 'APCA-API-SECRET-KEY': ALP_SEC };
 async function getBars(symbol, limit) {
   if (symbol.includes('/')) {
     const sym   = symbol.replace('/','%2F');
-    const start = new Date(Date.now()-180*86400000).toISOString().slice(0,10); // 6mo — crypto 24/7 so older data still valid
+    const start = new Date(Date.now()-90*86400000).toISOString().slice(0,10);
     const url   = `${DATA}/v1beta3/crypto/us/bars?symbols=${sym}&timeframe=1Hour&limit=${limit}&start=${start}`;
     const d     = await (await fetch(url,{headers:alpH})).json();
     return (d.bars&&d.bars[symbol])||[];
   }
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1h&range=3mo`; // 3mo — recent stock signals only
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1h&range=3mo`;
     const d   = await (await fetch(url,{headers:{'User-Agent':'Mozilla/5.0'}})).json();
     const res = d?.chart?.result?.[0]; if (!res) return [];
     const ts  = res.timestamp||[];
@@ -111,9 +110,11 @@ function checkOLD(bars) {
 // ADX (Average Directional Index) > 20 = real trend, breakouts have follow-through.
 // ADX < 15 = ranging/sideways, breakouts are noise.
 // Classic rule: don't use breakout strategies in low-ADX markets.
-// ITER 5: 6-month data + strict AND(vol>1.1x, body>35%) + ADX≥22 + mag>0.15%
-// TSLA removed (0%WR in every filtered run). 6mo data doubles sample size.
-// Strict AND confirmed to work at 63%+ WR — need more trades from more data.
+// ITER 7: ATR>0.8% as primary quality gate
+// Key insight from 6 iterations: ALL high-WR signals had large ATR (CRM, META, BTC, GOOGL).
+// ALL losers had small ATR — market wasn't moving enough to reach 2×ATR target.
+// ATR>0.8% of price = only trade when the market has real momentum/volatility.
+// This dynamically selects "high quality conditions" regardless of which asset.
 function checkIMPROVED(bars) {
   if (bars.length<60) return null;
   const n=bars.length,cls=bars.map(b=>b.c),hs=bars.map(b=>b.h),ls=bars.map(b=>b.l);
@@ -121,32 +122,27 @@ function checkIMPROVED(bars) {
   const e9=buildEma(cls,9).at(-1), e21=buildEma(cls,21).at(-1);
   const r=rsiOf(cls), atr=atrOf(bars);
 
-  if (atr/cls[n-1]*100 < 0.3) return null;
+  // Gate 1: ATR > 0.8% — only trade in high-momentum conditions (was 0.3%)
+  // This is the key insight: losers have ATR 0.3-0.5%, winners have ATR 0.8%+
+  if (atr/cls[n-1]*100 < 0.8) return null;
+
+  // Gate 2: ADX ≥ 20 — trending market
   const adx = adxOf(bars);
-  if (adx < 22) return null;
+  if (adx < 20) return null;
 
-  const last=bars[n-1], prev=bars[n-2];
-
-  // AND: both volume AND body required
+  // Gate 3: volume > 1.1x average — some conviction on breakout bar
   const vArr = vs.slice(-11,-1).filter(v=>v>0);
   const vAvg = vArr.length ? vArr.reduce((a,b)=>a+b,0)/vArr.length : 1;
   const vRatio = vAvg>0 ? vs[n-1]/vAvg : 1;
-  const range = (last.h-last.l)||0.001;
-  const body  = Math.abs(last.c-last.o)/range;
-  if (vRatio < 1.1)  return null;
-  if (body  < 0.35)  return null;
+  if (vRatio < 1.1) return null;
 
+  const last=bars[n-1], prev=bars[n-2];
   const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
-  const boPct = (val,ref) => Math.abs(val-ref)/ref*100;
 
-  if (e9>e21 && r>50 && r<63 && last.c>sH && prev.c<=sH && last.c>last.o) {
-    if (boPct(last.c,sH) < 0.15) return null;
-    return {side:'buy',  atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
-  }
-  if (e9<e21 && r>37 && r<50 && last.c<sL && prev.c>=sL && last.c<last.o) {
-    if (boPct(last.c,sL) < 0.15) return null;
-    return {side:'sell', atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
-  }
+  if (e9>e21 && r>45 && r<65 && last.c>sH && prev.c<=sH)
+    return {side:'buy',  atr, rsi:+r.toFixed(1), adx, atrPct:+(atr/cls[n-1]*100).toFixed(2), vR:+vRatio.toFixed(2)};
+  if (e9<e21 && r>35 && r<55 && last.c<sL && prev.c>=sL)
+    return {side:'sell', atr, rsi:+r.toFixed(1), adx, atrPct:+(atr/cls[n-1]*100).toFixed(2), vR:+vRatio.toFixed(2)};
   return null;
 }
 
