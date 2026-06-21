@@ -111,10 +111,9 @@ function checkOLD(bars) {
 // ADX (Average Directional Index) > 20 = real trend, breakouts have follow-through.
 // ADX < 15 = ranging/sideways, breakouts are noise.
 // Classic rule: don't use breakout strategies in low-ADX markets.
-// ITER 2: pruned universe + ADX≥22 + volume spike + strong candle body
-// Hypothesis: fake breakouts happen on LOW volume + weak candle bodies.
-// Real breakouts have conviction (volume > 1.3x avg, body > 40% of range).
-// EMA21 slope removed — proven to filter out winners (LLY, WMT, NFLX) in iter1.
+// ITER 4: ADX≥22 + (volume>1.1x OR body>40%) + breakout magnitude>0.15%
+// Logic: need conviction from EITHER volume spike OR strong candle (not both).
+// Also: price must clear swing high by >0.15% — filters 1-tick fake breakouts.
 function checkIMPROVED(bars) {
   if (bars.length<60) return null;
   const n=bars.length,cls=bars.map(b=>b.c),hs=bars.map(b=>b.h),ls=bars.map(b=>b.l);
@@ -129,26 +128,30 @@ function checkIMPROVED(bars) {
   if (adx < 22) return null;
 
   const last=bars[n-1], prev=bars[n-2];
-
-  // Gate 3: Volume — 1.15x avg (was 1.3x; LLY/WMT had no signals at 1.3x)
-  const vAvg = vs.slice(-11,-1).filter(v=>v>0).reduce((a,b)=>a+b,0) /
-               (vs.slice(-11,-1).filter(v=>v>0).length||1);
-  const vRatio = vAvg>0 ? vs[n-1]/vAvg : 1;
-  if (vRatio < 1.15) return null;
-
-  // Gate 4: Candle body > 35% of range (was 40%; allow slightly smaller bodies)
-  const range = (last.h-last.l)||0.001;
-  const body  = Math.abs(last.c-last.o)/range;
-  if (body < 0.35) return null;
-
   const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
 
-  // BUY: RSI 50-63 + bullish candle + volume
-  if (e9>e21 && r>50 && r<63 && last.c>sH && prev.c<=sH && last.c>last.o)
+  // Gate 3: Volume OR body (OR logic — need at least one conviction signal)
+  const vArr = vs.slice(-11,-1).filter(v=>v>0);
+  const vAvg = vArr.length ? vArr.reduce((a,b)=>a+b,0)/vArr.length : 1;
+  const vRatio = vAvg>0 ? vs[n-1]/vAvg : 1;
+  const range = (last.h-last.l)||0.001;
+  const body  = Math.abs(last.c-last.o)/range;
+  const hasConviction = vRatio >= 1.1 || body >= 0.40;
+  if (!hasConviction) return null;
+
+  // Gate 4: Breakout magnitude — must clear level by >0.15% (not just 1 tick)
+  const boPct = (val, ref) => Math.abs(val-ref)/ref*100;
+
+  // BUY: RSI 50-63, clear swing high by >0.15%
+  if (e9>e21 && r>50 && r<63 && last.c>sH && prev.c<=sH) {
+    if (boPct(last.c,sH) < 0.15) return null;
     return {side:'buy',  atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2), body:+body.toFixed(2)};
-  // SELL: RSI 37-50 + bearish candle + volume
-  if (e9<e21 && r>37 && r<50 && last.c<sL && prev.c>=sL && last.c<last.o)
+  }
+  // SELL: RSI 37-50, clear swing low by >0.15%
+  if (e9<e21 && r>37 && r<50 && last.c<sL && prev.c>=sL) {
+    if (boPct(last.c,sL) < 0.15) return null;
     return {side:'sell', atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2), body:+body.toFixed(2)};
+  }
   return null;
 }
 
