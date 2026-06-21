@@ -19,19 +19,22 @@ const ATR_TP = 2.0, ATR_SL = 1.0, TIME_STOP = 12;
 async function getBars(symbol, limit) {
   const sym = symbol.replace('/', '%2F');
   const isCrypto = symbol.includes('/');
-  const start = new Date(Date.now() - 90*86400000).toISOString().slice(0,10);
+
   if (isCrypto) {
+    // Crypto: free API, go back 90 days
+    const start = new Date(Date.now() - 90*86400000).toISOString().slice(0,10);
     const url = `${DATA}/v1beta3/crypto/us/bars?symbols=${sym}&timeframe=1Hour&limit=${limit}&start=${start}`;
     const d = await (await fetch(url, { headers: alpH })).json();
     return (d.bars && d.bars[symbol]) || [];
   }
-  for (const feed of ['sip','iex']) {
-    try {
-      const url = `${DATA}/v2/stocks/${symbol}/bars?timeframe=1Hour&limit=${limit}&feed=${feed}&adjustment=raw&start=${start}&extended_hours=true`;
-      const d = await (await fetch(url, { headers: alpH })).json();
-      if ((d.bars||[]).length >= 5) return d.bars;
-    } catch {}
-  }
+
+  // Stocks: IEX free feed only has ~15 days; use limit only (no start date, no extended hours)
+  try {
+    const url = `${DATA}/v2/stocks/${symbol}/bars?timeframe=1Hour&limit=${limit}&feed=iex&adjustment=raw`;
+    const d = await (await fetch(url, { headers: alpH })).json();
+    if ((d.bars||[]).length >= 5) return d.bars;
+  } catch(e) { console.log(`    iex error: ${e.message}`); }
+
   return [];
 }
 
