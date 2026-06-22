@@ -682,10 +682,6 @@ button, input[type="button"], .scalper-btn, .chip, .sbtn {
     </div>
   </div>
 
-  <div class="news-bar">
-    <span class="news-label">📰 Market News</span>
-    <div class="news-scroll"><div class="news-track" id="news-track"><span class="nh" style="color:#8ba0c0">Loading headlines...</span></div></div>
-  </div>
   <div class="app-layout">
 
     <!-- ── LEFT SIDEBAR (admin only) ── -->
@@ -808,6 +804,11 @@ button, input[type="button"], .scalper-btn, .chip, .sbtn {
     </div>
 
   </div>
+
+  <div class="news-bar">
+    <span class="news-label">📰 Market News</span>
+    <div class="news-scroll"><div class="news-track" id="news-track"><span class="nh" style="color:#8ba0c0">Loading headlines...</span></div></div>
+  </div>
 </div>
 
 <!-- MODAL -->
@@ -898,42 +899,35 @@ async function doLogin() {
       return;
     }
 
-    // SIMPLE DEMO LOGIN: Trade01 / Trade01
-    if ((email === 'Trade01' || email.includes('@')) && pass === 'Trade01') {
-      console.log('✅ Login credentials accepted');
+    // ✅ SIMPLE DEMO LOGIN: Password must be Trade01, Email can be anything
+    if (pass !== 'Trade01') {
+      if (errEl) errEl.textContent = 'Incorrect. Password must be: Trade01';
+      return;
+    }
+
+    // Password is correct, now check email
+    if (email === 'Trade01') {
+      // Trade01 / Trade01 ✅
+      console.log('✅ LOGIN SUCCESS: Trade01 / Trade01');
       grant();
       return;
     }
 
-    console.log('❌ Credentials incorrect');
-    if (errEl) errEl.textContent = 'Incorrect. Try: Trade01 / Trade01 or click Quick Login';
+    if (email.includes('@')) {
+      // Any email + Trade01 ✅
+      console.log('✅ LOGIN SUCCESS: email + Trade01');
+      grant();
+      return;
+    }
+
+    // Email is invalid (not Trade01, not an email)
+    if (errEl) errEl.textContent = 'Use Trade01 or a valid email (user@example.com)';
     return;
   } catch(e) {
-    console.error('❌ Login error:', e);
+    console.error('❌ Login error:', e.message, e.stack);
     const errEl = document.getElementById('lerr') || g('lerr');
     if (errEl) errEl.textContent = 'Error: ' + e.message;
     return;
-  }
-
-  const btn = document.querySelector('#form-login .lbtn');
-  if (btn) { btn.textContent = 'Signing in...'; btn.disabled = true; }
-  try {
-    const cred = await fbAuth.signInWithEmailAndPassword(email, pass);
-    const doc  = await fbDb.collection('users').doc(cred.user.uid).get();
-    if (!doc.exists) { g('lerr').textContent = 'Account not found — please sign up'; return; }
-    const data = doc.data();
-    if (data.status === 'suspended') { g('lerr').textContent = 'Account suspended. Contact admin.'; await fbAuth.signOut(); return; }
-    if (data.status === 'pending') {
-      g('lerr').style.color = '#f59e0b';
-      g('lerr').innerHTML = '⏳ Account pending admin approval.<br>You will get access once approved.';
-      await fbAuth.signOut(); return;
-    }
-    currentUser = { uid: cred.user.uid, email: cred.user.email, name: data.name, role: data.role || 'user' };
-    grant();
-  } catch(e) {
-    g('lerr').textContent = e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found' ? 'Incorrect email or password' : e.message;
-  } finally {
-    if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
   }
 }
 
@@ -3445,9 +3439,10 @@ async function startAll() {
     STOCKS.forEach((sym, i) => setTimeout(() => fetchRealQuote(sym), i * 100));
   }, 5000)); // Refresh bid/ask every 5s
 
-  // Removed: News, Political Trades, Trump Posts (not for scalpers - too much noise)
+  // Load core dashboard data
   try { await loadAccount(); } catch (e) { console.warn('Load account failed:', e); }
   try { await loadTickers(); } catch (e) { console.warn('Load tickers failed:', e); }
+  try { loadNews(); } catch (e) { console.warn('Load news failed:', e); }
 }
 
 // Start app (sessionStorage may fail on data URLs, so we use try-catch)
