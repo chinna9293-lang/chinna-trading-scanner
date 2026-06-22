@@ -13,11 +13,11 @@ const ALP_KEY = process.env.ALPACA_KEY    || 'PK7T6WNU6ANNWQXMWFFFSYLKR7';
 const ALP_SEC = process.env.ALPACA_SECRET || 'EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHGoMBtNKDoz6';
 const DATA    = 'https://data.alpaca.markets';
 
-// ITER 11: Drop crypto (hourly is choppy). Focus on 5 proven HIGH-WR stocks.
-// Stocks: CRM, META, ORCL, COST, GOOGL all show 50%+ WR with tight filters.
-// Tighten ADX to 25 (only strongest trends), vol to 1.5x (higher conviction).
+// ITER 18+: 5 stocks + top 1 crypto (BTC-USD showed 100% on hourly in prior tests).
+// Stocks: CRM, META, ORCL, COST, GOOGL + BTC-USD = 6 symbols.
 const UNIVERSE = {
   CRM:'stock', META:'stock', GOOGL:'stock', ORCL:'stock', COST:'stock',
+  'BTC-USD':'crypto',
 };
 
 async function getBars(symbol, limit) {
@@ -179,8 +179,8 @@ async function notify(title, body) {
 
 async function main() {
   console.log('=== ORIGINAL vs IMPROVED  '+new Date().toISOString()+' ===\n');
-  console.log('[ITER 18] Hourly 180d, 5-stock, ADX>21 + vol>1.2x (loosened) + body>35%');
-  console.log('[1] GOAL: 20+ trades at 70%+ WR');
+  console.log('[ITER 19] Hourly 180d, 5-stock + BTC-USD, ADX>21 + vol>1.2x + body>35%');
+  console.log('[1] Add BTC-USD to boost trade count toward 20+ target');
   console.log('[2] RSI 50-63 bull / 37-50 bear');
   console.log('[3] EMA9>21 breakup / EMA9<21 breakdown\n');
   console.log(`${'Symbol'.padEnd(10)} ${'ORIGINAL'.padEnd(35)} IMPROVED         DELTA`);
