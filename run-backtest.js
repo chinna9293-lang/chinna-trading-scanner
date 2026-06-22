@@ -13,12 +13,10 @@ const ALP_KEY = process.env.ALPACA_KEY    || 'PK7T6WNU6ANNWQXMWFFFSYLKR7';
 const ALP_SEC = process.env.ALPACA_SECRET || 'EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHGoMBtNKDoz6';
 const DATA    = 'https://data.alpaca.markets';
 
-// ITER 21: 9-stock momentum universe (from iter8 baseline).
-// Loosen filters dramatically: ADX>20, vol>1.1x, body>30%, RSI 48-65 / 35-52.
-// Goal: push from 14T@71% toward 20T@70%+.
+// ITER 22: Back to 5-stock (iter16 best performers).
+// Surgical RSI adjustment: 50-63 / 37-50 (1pt wider) to target 16-18T at 70%+ WR.
 const UNIVERSE = {
-  CRM:'stock', META:'stock', GOOGL:'stock', AMZN:'stock',
-  AVGO:'stock', ORCL:'stock', PLTR:'stock', COST:'stock', NFLX:'stock',
+  CRM:'stock', META:'stock', GOOGL:'stock', ORCL:'stock', COST:'stock',
 };
 
 async function getBars(symbol, limit) {
@@ -102,8 +100,9 @@ function checkOLD(bars) {
 // ADX (Average Directional Index) > 20 = real trend, breakouts have follow-through.
 // ADX < 15 = ranging/sideways, breakouts are noise.
 // Classic rule: don't use breakout strategies in low-ADX markets.
-// ITER 21: Aggressive loosening for volume. ADX>20, vol>1.1x, body>30%, RSI 48-65 / 35-52.
-// Focus on getting 20+ trades at 70%+ WR across broader 9-stock universe.
+// ITER 22: Surgical tweak on iter16 (71.4% on 14T).
+// Keep: ADX>21, vol>1.25x, body>35%, 6-month data, 5 stocks.
+// Tweak: RSI 50-63 / 37-50 (was 51-62 / 38-49) — just 1pt wider to capture marginal signals.
 function checkIMPROVED(bars) {
   if (bars.length<60) return null;
   const n=bars.length,cls=bars.map(b=>b.c),hs=bars.map(b=>b.h),ls=bars.map(b=>b.l);
@@ -113,25 +112,25 @@ function checkIMPROVED(bars) {
 
   if (atr/cls[n-1]*100 < 0.3) return null;
   const adx = adxOf(bars);
-  if (adx < 20) return null;  // Loosened to 20
+  if (adx < 21) return null;
 
   const last=bars[n-1], prev=bars[n-2];
 
-  // Loosen AND: vol>1.1x + body>30%
+  // Tight: vol>1.25x + body>35%
   const vArr = vs.slice(-11,-1).filter(v=>v>0);
   const vAvg = vArr.length ? vArr.reduce((a,b)=>a+b,0)/vArr.length : 1;
   const vRatio = vAvg>0 ? vs[n-1]/vAvg : 1;
-  if (vRatio < 1.1) return null;  // Loosened to 1.1
+  if (vRatio < 1.25) return null;
   const range = (last.h-last.l)||0.001;
   const body  = Math.abs(last.c-last.o)/range;
-  if (body < 0.30) return null;  // Loosened to 0.30
+  if (body < 0.35) return null;
 
   const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
 
-  // Wider RSI: 48-65 bull / 35-52 bear
-  if (e9>e21 && r>48 && r<65 && last.c>sH && prev.c<=sH && last.c>last.o)
+  // Slightly wider RSI: 50-63 / 37-50 (was 51-62 / 38-49 in iter11)
+  if (e9>e21 && r>50 && r<63 && last.c>sH && prev.c<=sH && last.c>last.o)
     return {side:'buy',  atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
-  if (e9<e21 && r>35 && r<52 && last.c<sL && prev.c>=sL && last.c<last.o)
+  if (e9<e21 && r>37 && r<50 && last.c<sL && prev.c>=sL && last.c<last.o)
     return {side:'sell', atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
   return null;
 }
@@ -181,8 +180,8 @@ async function notify(title, body) {
 
 async function main() {
   console.log('=== ORIGINAL vs IMPROVED  '+new Date().toISOString()+' ===\n');
-  console.log('[ITER 21] Hourly 180d, 9-stock momentum, aggressive loosen');
-  console.log('[1] ADX>20 + vol>1.1x + body>30% + RSI 48-65/35-52 → target 20T@70%+');
+  console.log('[ITER 22] Hourly 180d, 5-stock, iter16 + RSI 50-63/37-50');
+  console.log('[1] Surgical RSI widening (1pt each side) on proven filters');
   console.log('[2] RSI 50-63 bull / 37-50 bear');
   console.log('[3] EMA9>21 breakup / EMA9<21 breakdown\n');
   console.log(`${'Symbol'.padEnd(10)} ${'ORIGINAL'.padEnd(35)} IMPROVED         DELTA`);
