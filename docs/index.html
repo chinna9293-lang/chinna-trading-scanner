@@ -2349,10 +2349,11 @@ async function autoScalpCheck(sym, a, bars, cfg) {
 
 // ─── Ticker grid ──────────────────────────────────────────────────────────────
 async function loadTickers() {
-  g('tgrid').innerHTML = '<div class="empty">Loading chart data...</div>';
+  g('tgrid').innerHTML = '<div class="empty">Waiting for live prices...</div>';
   const cards = [];
   for (const [sym, cfg] of Object.entries(UNI)) {
-    const bars = await getBars(sym, 30);
+    // Skip bars - use WebSocket for live prices only
+    const bars = [];
     liveBars[sym] = bars;
     const label = cfg.label || sym;
     const lp = (LP[sym] && LP[sym].price) || (bars.length ? bars[bars.length-1].c : null);
