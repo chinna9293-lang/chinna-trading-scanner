@@ -5,7 +5,7 @@
  * Sends alerts via ntfy.sh when signals trigger
  */
 
-const https = require('https');
+import https from 'https';
 
 const ALPACA_KEY = process.env.ALPACA_KEY;
 const ALPACA_SECRET = process.env.ALPACA_SECRET;
