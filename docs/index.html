@@ -2470,8 +2470,8 @@ async function loadAccount() {
 async function startAll() {
   startKrakenStream();                               // crypto — Kraken WebSocket
   pollSnapshot();                                    // seed stock prices immediately
-  startAlpacaStream();                               // stocks — Alpaca WebSocket stream
-  _timers.push(setInterval(pollSnapshot, 30000));    // snapshot refresh every 30s (keep prices fresh when WS is quiet)
+  // startAlpacaStream();                            // DISABLED: Alpaca API keys invalid — Yahoo Finance polling is sufficient
+  _timers.push(setInterval(pollSnapshot, 5000));    // snapshot refresh every 5s (faster updates from Yahoo Finance)
   _timers.push(setInterval(refreshDisplay, 400));    // push LP → DOM every 400ms (faster than before)
   _timers.push(setInterval(loadAccount, 30000));    // account every 30s
   loadNews();
