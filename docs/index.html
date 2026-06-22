@@ -1842,8 +1842,6 @@ function initLWChart(containerId, bars, a) {
     handleScroll: { mouseWheel: true, pressedMouseMove: true },
     handleScale: { mouseWheel: true, pinch: true }
   });
-    handleScroll: true, handleScale: true,
-  });
 
   const toTime = t => { const ms = new Date(t).getTime(); return isNaN(ms) ? 0 : Math.floor(ms/1000); };
 
