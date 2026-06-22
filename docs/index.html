@@ -295,6 +295,15 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 
 /* ── Right: Chart & analysis panel ── */
 .app-chart{flex:1;overflow-y:auto;padding:20px;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,.2) transparent;}
+
+/* ── SCALPER CONTROLS ── */
+.scalper-controls{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;}
+.scalper-btn{padding:8px 12px;border-radius:6px;border:1px solid;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;}
+.scalper-btn.buy{background:#22c55e;border-color:#16a34a;color:#000;}.scalper-btn.buy:hover{background:#16a34a;box-shadow:0 4px 12px rgba(34,197,94,.4);}
+.scalper-btn.sell{background:#ef4444;border-color:#dc2626;color:#fff;}.scalper-btn.sell:hover{background:#dc2626;box-shadow:0 4px 12px rgba(239,68,68,.4);}
+.scalper-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;padding:12px;background:rgba(30,50,100,.3);border-radius:8px;font-size:10px;margin:8px 0;}
+.scalper-stat{display:flex;justify-content:space-between;align-items:center;}.scalper-stat-val{font-weight:700;color:#22c55e;}
+.bid-ask{padding:8px 12px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:6px;font-size:10px;color:#e2e8f0;}.bid-ask-tight{color:#22c55e;}.bid-ask-wide{color:#ef4444;}
 /* Hide duplicate symbol/price header that buildModal adds (already shown in chart-panel-hdr) */
 .app-chart .mticker,.app-chart .mprice{display:none;}
 .app-chart::-webkit-scrollbar{width:3px;}
@@ -585,6 +594,11 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(50,60,100,.7);color:#e2e8f0;v
           <div class="chip" id="f-bull" onclick="filterTickers('bull')">Bull</div>
           <div class="chip" id="f-bear" onclick="filterTickers('bear')">Bear</div>
           <div class="chip" id="f-crypto" onclick="filterTickers('crypto')">Crypto</div>
+        </div>
+        <div class="chips" style="margin-top:6px;border-top:1px solid rgba(99,102,241,.1);padding-top:6px">
+          <div class="chip" onclick="sortTickersByChange()" title="Sort by biggest % change">📈 Movers</div>
+          <div class="chip" onclick="sortTickersByVolume()" title="Sort by volume spike">📊 Volume</div>
+          <div class="chip" onclick="sortTickersByRSI()" title="Sort by RSI strength">⚡ Strength</div>
         </div>
       </div>
       <div class="tick-wrap" id="tick-wrap"><div class="tick-track" id="tick-track"><span style="font-size:10px;color:#8ba0c0;padding:0 10px">Waiting for ticks…</span></div></div>
@@ -1020,6 +1034,41 @@ function onPrice(sym, price) {
   }
 }
 
+// 🎯 HEAT MAP SORTING FUNCTIONS
+function sortTickersByChange() {
+  const sorted = STOCKS.slice().sort((a, b) => {
+    const aChg = Math.abs((LP[a]?.price - LP[a]?.prev) / LP[a]?.prev * 100) || 0;
+    const bChg = Math.abs((LP[b]?.price - LP[b]?.prev) / LP[b]?.prev * 100) || 0;
+    return bChg - aChg;
+  });
+  console.log('🔥 Sorted by % change:', sorted);
+  renderTickers(sorted);
+}
+
+function sortTickersByVolume() {
+  const sorted = STOCKS.slice().sort((a, b) => {
+    const aVol = (LP[a]?.volume || 0) > (UNI[a]?.avgVol || 1000000) ? 1 : 0;
+    const bVol = (LP[b]?.volume || 0) > (UNI[b]?.avgVol || 1000000) ? 1 : 0;
+    return bVol - aVol;
+  });
+  console.log('📊 Sorted by volume spike:', sorted);
+  renderTickers(sorted);
+}
+
+function sortTickersByRSI() {
+  const sorted = STOCKS.slice().sort((a, b) => {
+    const bars_a = liveBars[a] || [];
+    const bars_b = liveBars[b] || [];
+    const a_data = bars_a.length >= 5 ? analyse(bars_a) : null;
+    const b_data = bars_b.length >= 5 ? analyse(bars_b) : null;
+    const aRsi = (a_data?.rsi || 50) > 60 ? 1 : (a_data?.rsi || 50) < 40 ? 1 : 0;
+    const bRsi = (b_data?.rsi || 50) > 60 ? 1 : (b_data?.rsi || 50) < 40 ? 1 : 0;
+    return bRsi - aRsi;
+  });
+  console.log('⚡ Sorted by RSI extremes:', sorted);
+  renderTickers(sorted);
+}
+
 // Display loop — runs every 800ms, pushes LP → DOM cards unconditionally
 function refreshDisplay() {
   Object.entries(LP).forEach(([sym, d]) => {
@@ -1315,6 +1364,40 @@ function generateDemoChart(sym) {
     });
   }
   return bars;
+}
+
+// 🎯 SCALPER FEATURES
+let bidAsk = {}, scalpSignals = {};
+
+function playAlert(type = 'signal') {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    if (type === 'buy') { osc.frequency.value = 800; gain.gain.setValueAtTime(0.1, audioCtx.currentTime); }
+    else if (type === 'sell') { osc.frequency.value = 400; gain.gain.setValueAtTime(0.1, audioCtx.currentTime); }
+    else { osc.frequency.value = 600; gain.gain.setValueAtTime(0.05, audioCtx.currentTime); }
+    osc.start(audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+    osc.stop(audioCtx.currentTime + 0.3);
+  } catch (e) { console.warn('Audio alert failed'); }
+}
+
+async function executeOrder(sym, side, qty = 1) {
+  if (!LP[sym]) { alert('❌ No price data'); return; }
+  const price = LP[sym].price;
+  const orderData = { symbol: sym, qty: parseInt(qty), side: side, type: 'market', time_in_force: 'day' };
+  try {
+    const res = await fetch('https://paper-api.alpaca.markets/v2/orders', { method: 'POST', headers: AH, body: JSON.stringify(orderData) });
+    const order = await res.json();
+    if (order.id) {
+      playAlert(side === 'buy' ? 'buy' : 'sell');
+      const msg = `✅ ${side.toUpperCase()} ${qty} ${sym} @ $${price.toFixed(2)}\nOrder: ${order.id}`;
+      alert(msg);
+      console.log('🎯 EXECUTION:', msg);
+    } else alert(`❌ ${order.message}`);
+  } catch (e) { alert(`❌ Error: ${e.message}`); }
 }
 
 async function getBars(sym, lim) {
@@ -2189,11 +2272,18 @@ async function renderChartPanel(sym, tf) {
     '<div><div style="font-size:9px;color:#94a3b8">SL</div><div style="font-size:13px;font-weight:600;color:#fca5a5">$' + (liveP - parseFloat(a.atr)).toFixed(2) + '</div></div>' +
     '</div>' +
     '</div>' +
-    '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
+    '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px">' +
     '<div style="display:flex;gap:4px">' + tfHtml + '</div>' +
     '<button onclick="renderChartPanel(\'' + sym + '\',currentTf)" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#cbd5e1;padding:5px 10px;border-radius:6px;font-size:10px;cursor:pointer">↻</button>' +
     '</div>' +
     '</div>' +
+    // Scalper Controls
+    '<div class="scalper-controls" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">' +
+    '<button onclick="executeOrder(\'' + sym + '\',\'buy\',1)" class="scalper-btn buy" style="flex:1;min-width:80px">🚀 BUY 1</button>' +
+    '<button onclick="executeOrder(\'' + sym + '\',\'sell\',1)" class="scalper-btn sell" style="flex:1;min-width:80px">📉 SELL 1</button>' +
+    '<button onclick="alert(\'Quick scalp: Risk $' + (parseFloat(a.atr) * 100).toFixed(0) + ', Target $' + (parseFloat(a.atr) * 200).toFixed(0) + ' for 1:2 RR\')" class="scalper-btn" style="background:#6366f1;border-color:#4f46e5;color:#fff;flex:1;min-width:100px">📊 1:2 RR</button>' +
+    '</div>' +
+    '<div class="bid-ask" style="margin-top:8px">Bid/Ask Spread: ~$0.02 (tight for scalping) | Entry @ $' + liveP.toFixed(dec) + ' | TP: $' + (liveP + parseFloat(a.atr) * 0.5).toFixed(2) + ' | SL: $' + (liveP - parseFloat(a.atr) * 0.3).toFixed(2) + '</div>' +
     '<div class="chart-wrap"><div id="chart-container"></div></div>' +
     '<div class="chart-legend">' +
     '<div style="flex:1;display:flex;gap:12px;flex-wrap:wrap;align-items:center">' +
