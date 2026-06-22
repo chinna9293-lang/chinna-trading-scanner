@@ -872,42 +872,46 @@ function showAuthTab(tab) {
 async function doLogin() {
   console.log('🔐 Login attempt started');
   try {
-    const emailEl = g('login-email');
-    const passEl = g('login-pass');
+    // Use direct document.getElementById as fallback
+    const emailEl = document.getElementById('login-email') || g('login-email');
+    const passEl = document.getElementById('login-pass') || g('login-pass');
+    const errEl = document.getElementById('lerr') || g('lerr');
+
+    console.log('📝 Email element:', emailEl ? '✅ found' : '❌ not found');
+    console.log('📝 Password element:', passEl ? '✅ found' : '❌ not found');
 
     if (!emailEl || !passEl) {
       console.error('❌ Form elements not found');
+      if (errEl) errEl.textContent = 'Login form error - please refresh page';
       return;
     }
 
     const email = (emailEl.value || '').trim();
-    const pass  = passEl.value;
+    const pass  = passEl.value || '';
 
-    console.log('📝 Email entered:', email);
+    console.log('📝 Email entered:', email || '(empty)');
     console.log('🔑 Password entered:', pass ? '***' : '(empty)');
 
     if (!email || !pass) {
-      g('lerr').textContent = 'Enter email and password';
+      if (errEl) errEl.textContent = 'Enter email and password';
       console.warn('⚠️ Empty fields');
       return;
     }
 
-    // FALLBACK LOGIN (works without Firebase)
-    // Works with: Trade01 / Trade01 (or any email + Trade01)
-    if (pass === 'Trade01' && (email === 'Trade01' || email.includes('@'))) {
-      console.log('✅ Fallback login accepted');
+    // SIMPLE DEMO LOGIN: Trade01 / Trade01
+    if ((email === 'Trade01' || email.includes('@')) && pass === 'Trade01') {
+      console.log('✅ Login credentials accepted');
       grant();
       return;
     }
 
-    console.log('❌ Credentials do not match fallback');
-    if (!FB_READY) {
-      g('lerr').textContent = 'Incorrect credentials. Use Trade01 / Trade01';
-      return;
-    }
+    console.log('❌ Credentials incorrect');
+    if (errEl) errEl.textContent = 'Incorrect. Try: Trade01 / Trade01 or click Quick Login';
+    return;
   } catch(e) {
     console.error('❌ Login error:', e);
-    g('lerr').textContent = 'Login error: ' + e.message;
+    const errEl = document.getElementById('lerr') || g('lerr');
+    if (errEl) errEl.textContent = 'Error: ' + e.message;
     return;
   }
 
