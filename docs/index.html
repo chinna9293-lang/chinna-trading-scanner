@@ -1028,23 +1028,24 @@ function startAlpacaStream() {
 // Snapshot fallback for closed market / pre-market seed prices
 async function pollSnapshot() {
   try {
-    const url = 'https://data.alpaca.markets/v2/stocks/snapshots?symbols=' + STOCKS.join(',') + '&feed=iex';
-    const d = await (await fetch(url, { headers: AH, signal: AbortSignal.timeout(6000) })).json();
-    Object.entries(d || {}).forEach(([s, snap]) => {
-      const p = snap.latestTrade?.p || snap.latestQuote?.ap || snap.dailyBar?.c;
-      if (p) { onPrice(s, p); sLive = true; }
+    // Primary source: Yahoo Finance (no auth required, most reliable)
+    const d = await (await fetch('https://query2.finance.yahoo.com/v7/finance/quote?symbols=' + STOCKS.join(','), { signal: AbortSignal.timeout(6000) })).json();
+    (d?.quoteResponse?.result || []).forEach(q => {
+      const session = getMarketSession();
+      const p = session === 'premarket' ? (q.preMarketPrice || q.regularMarketPrice)
+              : session === 'afterhours' ? (q.postMarketPrice || q.regularMarketPrice)
+              : q.regularMarketPrice;
+      if (p) { onPrice(q.symbol, p); sLive = true; }
     });
     updateBadge(); updateSessionBadge();
-  } catch {
-    // Yahoo Finance fallback
+  } catch (e) {
+    // Fallback: Try Alpaca API
     try {
-      const d = await (await fetch('https://query2.finance.yahoo.com/v7/finance/quote?symbols=' + STOCKS.join(','), { signal: AbortSignal.timeout(6000) })).json();
-      (d?.quoteResponse?.result || []).forEach(q => {
-        const session = getMarketSession();
-        const p = session === 'premarket' ? (q.preMarketPrice || q.regularMarketPrice)
-                : session === 'afterhours' ? (q.postMarketPrice || q.regularMarketPrice)
-                : q.regularMarketPrice;
-        if (p) { onPrice(q.symbol, p); sLive = true; }
+      const url = 'https://data.alpaca.markets/v2/stocks/snapshots?symbols=' + STOCKS.join(',') + '&feed=iex';
+      const d = await (await fetch(url, { headers: AH, signal: AbortSignal.timeout(6000) })).json();
+      Object.entries(d || {}).forEach(([s, snap]) => {
+        const p = snap.latestTrade?.p || snap.latestQuote?.ap || snap.dailyBar?.c;
+        if (p) { onPrice(s, p); sLive = true; }
       });
       updateBadge(); updateSessionBadge();
     } catch {}
