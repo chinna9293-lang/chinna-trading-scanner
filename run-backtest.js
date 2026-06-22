@@ -179,8 +179,8 @@ async function notify(title, body) {
 
 async function main() {
   console.log('=== ORIGINAL vs IMPROVED  '+new Date().toISOString()+' ===\n');
-  console.log('[ITER 18] Hourly 180d, 5-stock, ADX>21 + vol>1.2x + body>35%');
-  console.log('[1] Loosen vol 1.25→1.2 to push toward 20+ trades at 70%+ WR');
+  console.log('[ITER 18] Hourly 180d, 5-stock, ADX>21 + vol>1.2x (loosened) + body>35%');
+  console.log('[1] GOAL: 20+ trades at 70%+ WR');
   console.log('[2] RSI 50-63 bull / 37-50 bear');
   console.log('[3] EMA9>21 breakup / EMA9<21 breakdown\n');
   console.log(`${'Symbol'.padEnd(10)} ${'ORIGINAL'.padEnd(35)} IMPROVED         DELTA`);
