@@ -855,28 +855,58 @@ if (FB_READY) {
 }
 
 function showAuthTab(tab) {
-  g('form-login').style.display  = tab === 'login'  ? 'block' : 'none';
-  g('form-signup').style.display = tab === 'signup' ? 'block' : 'none';
-  g('tab-login').classList.toggle('active',  tab === 'login');
-  g('tab-signup').classList.toggle('active', tab === 'signup');
-  g('lerr').textContent = '';
+  console.log('🔄 Switching tab to:', tab);
+  try {
+    g('form-login').style.display  = tab === 'login'  ? 'block' : 'none';
+    g('form-signup').style.display = tab === 'signup' ? 'block' : 'none';
+    g('tab-login').classList.toggle('active',  tab === 'login');
+    g('tab-signup').classList.toggle('active', tab === 'signup');
+    g('lerr').textContent = '';
+    console.log('✅ Tab switched successfully');
+  } catch(e) {
+    console.error('❌ Tab switch error:', e);
+  }
 }
 
 async function doLogin() {
-  const email = (g('login-email').value || '').trim();
-  const pass  = g('login-pass').value;
-  if (!email || !pass) { g('lerr').textContent = 'Enter email and password'; return; }
+  console.log('🔐 Login attempt started');
+  try {
+    const emailEl = g('login-email');
+    const passEl = g('login-pass');
 
-  // FALLBACK LOGIN (works without Firebase)
-  // Works with: Trade01 / Trade01 (or any email + Trade01)
-  if (pass === 'Trade01' && (email === 'Trade01' || email.includes('@'))) {
-    console.log('✅ Fallback login accepted');
-    grant();
-    return;
-  }
+    if (!emailEl || !passEl) {
+      console.error('❌ Form elements not found');
+      return;
+    }
 
-  if (!FB_READY) {
-    g('lerr').textContent = 'Incorrect credentials. Use Trade01 / Trade01';
+    const email = (emailEl.value || '').trim();
+    const pass  = passEl.value;
+
+    console.log('📝 Email entered:', email);
+    console.log('🔑 Password entered:', pass ? '***' : '(empty)');
+
+    if (!email || !pass) {
+      g('lerr').textContent = 'Enter email and password';
+      console.warn('⚠️ Empty fields');
+      return;
+    }
+
+    // FALLBACK LOGIN (works without Firebase)
+    // Works with: Trade01 / Trade01 (or any email + Trade01)
+    if (pass === 'Trade01' && (email === 'Trade01' || email.includes('@'))) {
+      console.log('✅ Fallback login accepted');
+      grant();
+      return;
+    }
+
+    console.log('❌ Credentials do not match fallback');
+    if (!FB_READY) {
+      g('lerr').textContent = 'Incorrect credentials. Use Trade01 / Trade01';
+      return;
+    }
+  } catch(e) {
+    console.error('❌ Login error:', e);
+    g('lerr').textContent = 'Login error: ' + e.message;
     return;
   }
 
