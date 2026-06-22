@@ -115,11 +115,11 @@ function checkIMPROVED(bars) {
 
   const last=bars[n-1], prev=bars[n-2];
 
-  // Strict AND: vol>1.25x (loosened from 1.3x) + body>35%
+  // Strict AND: vol>1.2x + body>35%
   const vArr = vs.slice(-11,-1).filter(v=>v>0);
   const vAvg = vArr.length ? vArr.reduce((a,b)=>a+b,0)/vArr.length : 1;
   const vRatio = vAvg>0 ? vs[n-1]/vAvg : 1;
-  if (vRatio < 1.25) return null;  // Loosened from 1.3
+  if (vRatio < 1.2) return null;  // Loosened from 1.25
   const range = (last.h-last.l)||0.001;
   const body  = Math.abs(last.c-last.o)/range;
   if (body < 0.35) return null;  // Loosened from 0.40
@@ -179,8 +179,8 @@ async function notify(title, body) {
 
 async function main() {
   console.log('=== ORIGINAL vs IMPROVED  '+new Date().toISOString()+' ===\n');
-  console.log('[ITER 17] Hourly 180d, 5-stock, ADX>21 + vol>1.25x + body>35%');
-  console.log('[1] Loosen ADX to 21 for more trades toward 20+ target');
+  console.log('[ITER 18] Hourly 180d, 5-stock, ADX>21 + vol>1.2x + body>35%');
+  console.log('[1] Loosen vol 1.25→1.2 to push toward 20+ trades at 70%+ WR');
   console.log('[2] RSI 50-63 bull / 37-50 bear');
   console.log('[3] EMA9>21 breakup / EMA9<21 breakdown\n');
   console.log(`${'Symbol'.padEnd(10)} ${'ORIGINAL'.padEnd(35)} IMPROVED         DELTA`);
