@@ -899,40 +899,92 @@ async function doLogin() {
       return;
     }
 
-    // ✅ DEMO LOGIN: Accept Trade01/trade01/TRADE01 in any case
-    const passLower = pass.toLowerCase().trim();
-    const emailLower = email.toLowerCase();
+    // 🔥 FIREBASE LOGIN - Connect to real database
+    console.log('Attempting Firebase login...');
 
-    console.log('Password (lower):', passLower);
-    console.log('Email (lower):', emailLower);
-
-    // Check password (case-insensitive)
-    if (passLower !== 'trade01') {
-      console.log('❌ Password incorrect, got:', passLower);
-      if (errEl) errEl.textContent = 'Password incorrect. Use: Trade01';
+    if (!FB_READY) {
+      console.warn('Firebase not ready, trying fallback');
+      if (email === 'Trade01' && pass === 'Trade01') {
+        grant();
+        return;
+      }
+      if (errEl) errEl.textContent = 'Firebase unavailable. Use: Trade01 / Trade01';
       return;
     }
 
-    // Password is correct! Now check email
-    if (email === 'Trade01' || emailLower === 'trade01') {
-      // Trade01 / Trade01 (any case) ✅
-      console.log('✅ LOGIN SUCCESS: Trade01 + Trade01');
+    // Show loading state
+    const btn = document.querySelector('#form-login .lbtn');
+    if (btn) { btn.textContent = 'Signing in...'; btn.disabled = true; }
+
+    try {
+      console.log('Signing in with Firebase:', email);
+      const cred = await fbAuth.signInWithEmailAndPassword(email, pass);
+      console.log('✅ Firebase auth successful:', cred.user.uid);
+
+      // Check user status in Firestore
+      const doc = await fbDb.collection('users').doc(cred.user.uid).get();
+
+      if (!doc.exists) {
+        console.log('User doc not found in Firestore');
+        if (errEl) errEl.textContent = 'Account not found in database. Please sign up first.';
+        await fbAuth.signOut();
+        if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
+        return;
+      }
+
+      const userData = doc.data();
+      console.log('User status:', userData.status);
+
+      if (userData.status === 'suspended') {
+        if (errEl) errEl.textContent = '🚫 Account suspended. Contact admin.';
+        await fbAuth.signOut();
+        if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
+        return;
+      }
+
+      if (userData.status === 'pending') {
+        if (errEl) {
+          errEl.style.color = '#f59e0b';
+          errEl.innerHTML = '⏳ Account pending admin approval.<br>You will get access once approved.';
+        }
+        await fbAuth.signOut();
+        if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
+        return;
+      }
+
+      // Account approved! Set current user and grant access
+      currentUser = {
+        uid: cred.user.uid,
+        email: cred.user.email,
+        name: userData.name,
+        role: userData.role || 'user'
+      };
+      console.log('✅ LOGIN APPROVED:', currentUser);
       grant();
       return;
-    }
 
-    if (email.includes('@')) {
-      // Any email + Trade01 ✅
-      console.log('✅ LOGIN SUCCESS: email + trade01');
-      grant();
+    } catch(e) {
+      console.error('Firebase auth error:', e.code, e.message);
+      let errorMsg = 'Login failed. ';
+
+      if (e.code === 'auth/user-not-found') {
+        errorMsg = 'Email not found. Sign up first.';
+      } else if (e.code === 'auth/wrong-password') {
+        errorMsg = 'Incorrect password.';
+      } else if (e.code === 'auth/invalid-email') {
+        errorMsg = 'Invalid email format.';
+      } else if (e.code === 'auth/too-many-requests') {
+        errorMsg = 'Too many login attempts. Try again later.';
+      } else {
+        errorMsg = e.message || 'Login error';
+      }
+
+      if (errEl) errEl.textContent = errorMsg;
+      if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
       return;
     }
-
-    // Email is invalid (not Trade01, not an email)
-    if (errEl) errEl.textContent = 'Email must be Trade01 or a valid email (user@example.com)';
-    return;
   } catch(e) {
-    console.error('❌ Login error:', e.message, e.stack);
+    console.error('❌ Unexpected error:', e.message);
     const errEl = document.getElementById('lerr') || g('lerr');
     if (errEl) errEl.textContent = 'Error: ' + e.message;
     return;
