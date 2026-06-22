@@ -3078,7 +3078,7 @@ const dirCache = {};  // sym → last known direction
 const alertLog = []; // recent alerts shown in bell panel
 
 // ─── ntfy push notifications ──────────────────────────────────────────────────
-function ntfyTopic() { return localStorage.getItem('ntfy_topic') || ''; }
+function ntfyTopic() { try { return localStorage.getItem('ntfy_topic') || ''; } catch (e) { return ''; } }
 
 async function sendNtfy(title, body, priority) {
   const topic = ntfyTopic();
@@ -3127,7 +3127,7 @@ function toggleNtfyPanel() {
 
 function saveNtfy() {
   const topic = (g('ntfy-topic') && g('ntfy-topic').value || '').trim();
-  localStorage.setItem('ntfy_topic', topic);
+  try { localStorage.setItem('ntfy_topic', topic); } catch (e) { console.warn('localStorage unavailable'); }
   const s = g('ntfy-status');
   if (s) { s.style.color = '#22c55e'; s.textContent = '✓ Saved'; setTimeout(() => s.textContent = '', 2000); }
 }
@@ -3207,7 +3207,7 @@ let scalpEnabled = false;
 let openPositions = {};   // sym → position object from Alpaca
 const scalpLog = [];      // recent scalp trades
 
-function scalpTradeSize() { return parseFloat(localStorage.getItem('scalp_size') || '500'); }
+function scalpTradeSize() { try { return parseFloat(localStorage.getItem('scalp_size') || '500'); } catch (e) { return 500; } }
 
 async function refreshPositions() {
   try {
@@ -3351,7 +3351,7 @@ function toggleScalpPanel() {
 
 function saveScalpSize() {
   const v = parseFloat(g('scalp-size-inp').value) || 500;
-  localStorage.setItem('scalp_size', v);
+  try { localStorage.setItem('scalp_size', v); } catch (e) { console.warn('localStorage unavailable'); }
   showToast('Trade size saved: $' + v, '#6366f1');
 }
 
