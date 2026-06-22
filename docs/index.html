@@ -628,8 +628,8 @@ button, input[type="button"], .scalper-btn, .chip, .sbtn {
     <div class="ls" id="auth-subtitle">Sign in to your dashboard</div>
 
     <div class="auth-tabs">
-      <button class="atab active" id="tab-login" onclick="showAuthTab('login')">Sign In</button>
-      <button class="atab" id="tab-signup" onclick="showAuthTab('signup')">Sign Up</button>
+      <button class="atab active" id="tab-login" onclick="showAuthTab('login'); return false;" type="button">Sign In</button>
+      <button class="atab" id="tab-signup" onclick="showAuthTab('signup'); return false;" type="button">Sign Up</button>
     </div>
 
     <!-- Sign In -->
@@ -639,6 +639,7 @@ button, input[type="button"], .scalper-btn, .chip, .sbtn {
       <div class="llab">Password</div>
       <input class="linp" id="login-pass" type="password" placeholder="Trade01" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();doLogin();}" style="margin-bottom:20px"/>
       <button class="lbtn" onclick="doLogin()" style="min-width:100%;min-height:48px">Sign In</button>
+      <button class="lbtn" onclick="grant()" style="min-width:100%;min-height:48px;background:linear-gradient(135deg,#22c55e,#16a34a);margin-top:8px;font-size:13px">✅ Quick Login (Skip Auth)</button>
     </div>
 
     <!-- Sign Up -->
