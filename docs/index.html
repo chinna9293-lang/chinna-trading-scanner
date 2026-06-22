@@ -635,9 +635,9 @@ button, input[type="button"], .scalper-btn, .chip, .sbtn {
     <!-- Sign In -->
     <div id="form-login">
       <div class="llab">Email</div>
-      <input class="linp" id="login-email" type="email" placeholder="your@email.com" autocomplete="email" inputmode="email"/>
+      <input class="linp" id="login-email" type="email" placeholder="Trade01 or any@email.com" autocomplete="email" inputmode="email"/>
       <div class="llab">Password</div>
-      <input class="linp" id="login-pass" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();doLogin();}" style="margin-bottom:20px"/>
+      <input class="linp" id="login-pass" type="password" placeholder="Trade01" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();doLogin();}" style="margin-bottom:20px"/>
       <button class="lbtn" onclick="doLogin()" style="min-width:100%;min-height:48px">Sign In</button>
     </div>
 
@@ -654,6 +654,7 @@ button, input[type="button"], .scalper-btn, .chip, .sbtn {
     </div>
 
     <div class="lerr" id="lerr"></div>
+    <div style="font-size:9px;color:#94a3b8;text-align:center;margin-top:12px;padding-top:12px;border-top:1px solid rgba(99,102,241,.1)">📝 Demo: Trade01 / Trade01</div>
   </div>
 </div>
 
@@ -866,16 +867,16 @@ async function doLogin() {
   const pass  = g('login-pass').value;
   if (!email || !pass) { g('lerr').textContent = 'Enter email and password'; return; }
 
+  // FALLBACK LOGIN (works without Firebase)
+  // Works with: Trade01 / Trade01 (or any email + Trade01)
+  if (pass === 'Trade01' && (email === 'Trade01' || email.includes('@'))) {
+    console.log('✅ Fallback login accepted');
+    grant();
+    return;
+  }
+
   if (!FB_READY) {
-    // Fallback: legacy hash login (admin only)
-    const AUTH = 'e2ebe6308883a6ef7642bb03ee351e2d70d44465c89f61574a75bdb2f86a229c';
-    try {
-      const u = email.includes('@') ? 'Trade01' : email;
-      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(u + ':' + pass));
-      const h = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-      if (h === AUTH || (u === 'Trade01' && pass === 'Trade01')) { grant(); }
-      else { g('lerr').textContent = 'Incorrect credentials'; }
-    } catch { g('lerr').textContent = 'Login failed'; }
+    g('lerr').textContent = 'Incorrect credentials. Use Trade01 / Trade01';
     return;
   }
 
