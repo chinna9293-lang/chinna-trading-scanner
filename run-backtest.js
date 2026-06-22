@@ -111,7 +111,7 @@ function checkIMPROVED(bars) {
 
   if (atr/cls[n-1]*100 < 0.3) return null;
   const adx = adxOf(bars);
-  if (adx < 22) return null;  // Back to 22
+  if (adx < 21) return null;  // Loosened from 22
 
   const last=bars[n-1], prev=bars[n-2];
 
@@ -179,8 +179,8 @@ async function notify(title, body) {
 
 async function main() {
   console.log('=== ORIGINAL vs IMPROVED  '+new Date().toISOString()+' ===\n');
-  console.log('[ITER 16] Hourly 180d, 5-stock universe, ADX>22 + vol>1.25x + body>35%');
-  console.log('[1] Extend to 6mo for 2x data points, aim for 20+ trades at 70%+ WR');
+  console.log('[ITER 17] Hourly 180d, 5-stock, ADX>21 + vol>1.25x + body>35%');
+  console.log('[1] Loosen ADX to 21 for more trades toward 20+ target');
   console.log('[2] RSI 50-63 bull / 37-50 bear');
   console.log('[3] EMA9>21 breakup / EMA9<21 breakdown\n');
   console.log(`${'Symbol'.padEnd(10)} ${'ORIGINAL'.padEnd(35)} IMPROVED         DELTA`);
