@@ -199,15 +199,96 @@ function detectSignals(symbol, bars, quote) {
   return signals;
 }
 
-// 🔔 Send ntfy alert
-function sendAlert(signal) {
+// 💰 Get account balance for position sizing
+async function getAccountBalance() {
+  return new Promise((resolve, reject) => {
+    https.get(`${BASE_URL}/v2/account`, { headers }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          resolve({
+            equity: parseFloat(json.equity || 0),
+            buyingPower: parseFloat(json.buying_power || 0)
+          });
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }).on('error', reject);
+  });
+}
+
+// 📊 Calculate position size (1% risk rule)
+function calculatePositionSize(price, atr, equity) {
+  const riskAmount = equity * 0.01; // 1% risk per trade
+  const slDistance = Math.max(atr * 0.5, 0.25); // At least $0.25 stop loss
+  const shares = Math.floor(riskAmount / slDistance);
+  return Math.max(1, Math.min(shares, 100)); // Min 1, Max 100 shares
+}
+
+// 🎯 Place order on Alpaca
+async function placeOrder(symbol, side, qty, price) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({
+      symbol,
+      qty,
+      side,
+      type: 'market',
+      time_in_force: 'day'
+    });
+
+    const options = {
+      hostname: 'paper-api.alpaca.markets',
+      path: '/v2/orders',
+      method: 'POST',
+      headers: {
+        'APCA-API-KEY-ID': ALPACA_KEY,
+        'APCA-API-SECRET-KEY': ALPACA_SECRET,
+        'Content-Type': 'application/json',
+        'Content-Length': payload.length,
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            const json = JSON.parse(data);
+            resolve(json);
+          } else {
+            reject(new Error(`Order failed: ${res.statusCode}`));
+          }
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
+}
+
+// 🔔 Send ntfy alert WITH order execution
+async function sendAlert(signal, orderResult = null) {
+  return new Promise((resolve, reject) => {
+    let alertMessage = signal.message;
+
+    if (orderResult) {
+      alertMessage += `\n✅ ORDER EXECUTED\nSymbol: ${orderResult.symbol}\nSide: ${orderResult.side}\nQty: ${orderResult.qty}\nPrice: $${orderResult.filled_avg_price}`;
+    }
+
+    const payload = JSON.stringify({
       topic: NTFY_TOPIC,
-      title: `🎯 ${signal.symbol} - ${signal.type}`,
-      message: signal.message,
+      title: `🎯 ${signal.symbol} - ${signal.type}${orderResult ? ' [EXECUTED]' : ''}`,
+      message: alertMessage,
       priority: signal.strength === 'HIGH' ? 4 : 3,
-      tags: ['trading', 'scalp', signal.symbol.toLowerCase()],
+      tags: ['trading', 'scalp', signal.symbol.toLowerCase(), orderResult ? 'executed' : 'signal'],
       attach: `https://query2.finance.yahoo.com/v7/finance/chart/${signal.symbol}?interval=1m&range=1d`
     });
 
@@ -239,12 +320,22 @@ function sendAlert(signal) {
   });
 }
 
-// 🚀 Main scanner loop
+// 🚀 Main scanner loop with auto-execution
 async function runScan() {
   console.log(`🎯 [${new Date().toISOString()}] Starting scalp scan...`);
 
   let totalSignals = 0;
+  let totalExecuted = 0;
   const results = [];
+
+  // Get account info for position sizing
+  let account = null;
+  try {
+    account = await getAccountBalance();
+    console.log(`💰 Account Equity: $${account.equity.toFixed(2)} | BP: $${account.buyingPower.toFixed(2)}`);
+  } catch (e) {
+    console.error(`⚠️  Could not fetch account balance: ${e.message}`);
+  }
 
   for (const symbol of STOCKS) {
     try {
@@ -263,11 +354,43 @@ async function runScan() {
         console.log(`    🎯 Found ${signals.length} signal(s)`);
         for (const signal of signals) {
           try {
-            await sendAlert(signal);
-            results.push(signal);
+            // Determine trade side
+            const isBuy = signal.type.includes('BUY') || signal.type.includes('CROSS');
+            const isSell = signal.type.includes('SELL') || signal.type.includes('RESISTANCE');
+
+            if (!isBuy && !isSell) {
+              console.log(`    ⚠️  Unknown signal type: ${signal.type}`);
+              await sendAlert(signal);
+              continue;
+            }
+
+            // Calculate position size
+            const currentPrice = parseFloat(signal.price);
+            const atr = Math.abs(Math.max(...bars.map(b => parseFloat(b.h))) - Math.min(...bars.map(b => parseFloat(b.l)))) / bars.length;
+            const qty = account ? calculatePositionSize(currentPrice, atr, account.equity) : 1;
+
+            // Place order
+            console.log(`    💳 Placing ${isBuy ? 'BUY' : 'SELL'} order: ${qty} shares of ${symbol} at $${currentPrice}`);
+            const orderResult = await placeOrder(symbol, isBuy ? 'buy' : 'sell', qty, currentPrice);
+
+            console.log(`    ✅ Order executed: ${orderResult.id}`);
+            totalExecuted++;
+
+            // Send alert with execution details
+            await sendAlert(signal, orderResult);
+            results.push({ ...signal, order: orderResult, executed: true });
             totalSignals++;
+
           } catch (e) {
-            console.error(`    ❌ Alert failed: ${e.message}`);
+            console.error(`    ❌ Execution failed: ${e.message}`);
+            // Send alert anyway (signal detected but order failed)
+            try {
+              await sendAlert(signal, null);
+              results.push({ ...signal, executed: false, error: e.message });
+              totalSignals++;
+            } catch (alertErr) {
+              console.error(`    ❌ Alert also failed: ${alertErr.message}`);
+            }
           }
         }
       } else {
@@ -281,6 +404,7 @@ async function runScan() {
   // Summary
   console.log(`\n📊 SCAN COMPLETE`);
   console.log(`   Total signals: ${totalSignals}`);
+  console.log(`   Orders executed: ${totalExecuted}`);
   console.log(`   Time: ${new Date().toISOString()}`);
 
   if (totalSignals === 0) {
