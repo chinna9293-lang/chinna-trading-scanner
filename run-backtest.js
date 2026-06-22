@@ -22,7 +22,7 @@ const UNIVERSE = {
 
 async function getBars(symbol, limit) {
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1h&range=3mo`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1h&range=6mo`;
     const d   = await (await fetch(url,{headers:{'User-Agent':'Mozilla/5.0'}})).json();
     const res = d?.chart?.result?.[0]; if (!res) return [];
     const ts  = res.timestamp||[];
@@ -179,8 +179,8 @@ async function notify(title, body) {
 
 async function main() {
   console.log('=== ORIGINAL vs IMPROVED  '+new Date().toISOString()+' ===\n');
-  console.log('[ITER 15] Hourly 90d, 5-stock universe, ADX>22 + vol>1.25x + body>35%');
-  console.log('[1] Loosen vol & body to get 15-20+ trades at 70%+ WR');
+  console.log('[ITER 16] Hourly 180d, 5-stock universe, ADX>22 + vol>1.25x + body>35%');
+  console.log('[1] Extend to 6mo for 2x data points, aim for 20+ trades at 70%+ WR');
   console.log('[2] RSI 50-63 bull / 37-50 bear');
   console.log('[3] EMA9>21 breakup / EMA9<21 breakdown\n');
   console.log(`${'Symbol'.padEnd(10)} ${'ORIGINAL'.padEnd(35)} IMPROVED         DELTA`);
