@@ -8,7 +8,7 @@
 <style>
 /* ── Reset & base ── */
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#07070f;color:#e2e8f0;min-height:100vh;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,.3) transparent;}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0e27;color:#f0f4f8;min-height:100vh;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,.5) transparent;}
 body::-webkit-scrollbar{width:4px;}
 body::-webkit-scrollbar-thumb{background:rgba(99,102,241,.3);border-radius:2px;}
 
@@ -28,8 +28,8 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 }
 .ll{text-align:center;font-size:36px;margin-bottom:8px;filter:drop-shadow(0 0 12px rgba(99,102,241,.6));}
 .lt{text-align:center;font-size:20px;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:-.02em;}
-.ls{text-align:center;font-size:13px;color:#64748b;margin-bottom:28px;}
-.llab{font-size:11px;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+.ls{text-align:center;font-size:13px;color:#cbd5e1;margin-bottom:28px;}
+.llab{font-size:11px;color:#cbd5e1;margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
 .linp{width:100%;background:rgba(7,7,15,.8);border:1px solid rgba(99,102,241,.15);border-radius:10px;padding:12px 14px;color:#e2e8f0;font-size:14px;margin-bottom:16px;outline:none;transition:border-color .2s,box-shadow .2s;}
 .linp:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12);}
 .lbtn{
@@ -43,11 +43,11 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 
 /* ── Header ── */
 .hdr{
-  background:linear-gradient(180deg,rgba(15,15,28,1),rgba(10,10,20,.98));
-  border-bottom:1px solid rgba(99,102,241,.2);
+  background:linear-gradient(180deg,rgba(10,15,35,.98),rgba(8,12,30,.96));
+  border-bottom:1px solid rgba(99,102,241,.3);
   padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;
   position:sticky;top:0;z-index:50;
-  box-shadow:0 8px 32px rgba(99,102,241,.15);
+  box-shadow:0 8px 32px rgba(99,102,241,.2);
   backdrop-filter:blur(20px);
 }
 .logo{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;}
@@ -58,14 +58,14 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
   box-shadow:0 4px 12px rgba(99,102,241,.45);
 }
 .hdr-r{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow:hidden;}
-.stat{display:flex;align-items:center;gap:7px;font-size:12px;color:#64748b;flex-shrink:0;}
+.stat{display:flex;align-items:center;gap:7px;font-size:12px;color:#a0aec0;flex-shrink:0;}
 .dot{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite;flex-shrink:0;}
 .dot.off{background:#f59e0b;}
 @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,.4)}50%{opacity:.6;box-shadow:0 0 0 4px rgba(34,197,94,0)}}
 .badge{font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid;font-weight:600;}
 .badge.on{background:rgba(34,197,94,.1);color:#22c55e;border-color:rgba(34,197,94,.25);}
 .badge.off{background:rgba(245,158,11,.1);color:#f59e0b;border-color:rgba(245,158,11,.25);}
-.signout{background:transparent;border:1px solid rgba(71,85,105,.4);color:#475569;padding:5px 12px;border-radius:8px;font-size:12px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.signout{background:transparent;border:1px solid rgba(71,85,105,.4);color:#a0aec0;padding:5px 12px;border-radius:8px;font-size:12px;cursor:pointer;transition:all .2s;white-space:nowrap;}
 .signout:hover{border-color:#ef4444;color:#ef4444;}
 
 /* ── News bar ── */
@@ -77,7 +77,7 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 @keyframes newsroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 .ni{display:inline-flex;align-items:center;gap:8px;padding:0 20px;}
 .ns{font-size:10px;color:#6366f1;font-weight:700;text-transform:uppercase;}
-.nh{font-size:11px;color:#64748b;}
+.nh{font-size:11px;color:#cbd5e1;}
 .nt{font-size:10px;color:#2d2d4d;}
 .nd{color:#1e1e2e;padding:0 6px;}
 
@@ -85,20 +85,20 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 .app-layout{display:flex;height:calc(100vh - 80px);overflow:hidden;position:relative;z-index:1;}
 
 /* ── Left sidebar (admin metrics + data) ── */
-.app-sidebar{width:260px;flex-shrink:0;overflow-y:auto;padding:12px;border-right:1px solid rgba(30,30,46,.6);background:rgba(5,5,12,.4);scrollbar-width:thin;scrollbar-color:rgba(99,102,241,.2) transparent;}
+.app-sidebar{width:260px;flex-shrink:0;overflow-y:auto;padding:12px;border-right:1px solid rgba(99,102,241,.3);background:rgba(10,15,35,.6);scrollbar-width:thin;scrollbar-color:rgba(99,102,241,.4) transparent;}
 .app-sidebar::-webkit-scrollbar{width:3px;}
 .app-sidebar::-webkit-scrollbar-thumb{background:rgba(99,102,241,.2);border-radius:2px;}
 .acct-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
 .sidebar-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px;}
 .sidebar-sections{}
-.s-title{display:flex;justify-content:space-between;align-items:center;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#334155;margin:12px 0 6px;font-weight:700;cursor:pointer;user-select:none;padding:4px 2px;border-radius:4px;transition:color .15s;}
-.s-title:hover{color:#64748b;}
+.s-title{display:flex;justify-content:space-between;align-items:center;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#8ba0c0;margin:12px 0 6px;font-weight:700;cursor:pointer;user-select:none;padding:4px 2px;border-radius:4px;transition:color .15s;}
+.s-title:hover{color:#cbd5e1;}
 .s-title::after{content:'▾';font-size:10px;opacity:.6;transition:transform .2s;}
 .s-title.collapsed::after{transform:rotate(-90deg);}
 
 /* ── Metric cards ── */
-.mcard{background:linear-gradient(135deg,rgba(30,30,50,.9),rgba(20,20,38,.8));border:1px solid rgba(99,102,241,.2);border-radius:12px;padding:12px 14px;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(99,102,241,.1);transition:all .3s ease;}
-.mcard:hover{transform:translateY(-2px);border-color:rgba(99,102,241,.4);box-shadow:0 12px 32px rgba(99,102,241,.2);}
+.mcard{background:linear-gradient(135deg,rgba(40,50,100,.85),rgba(25,35,75,.8));border:1px solid rgba(99,102,241,.5);border-radius:12px;padding:12px 14px;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(99,102,241,.2);transition:all .3s ease;}
+.mcard:hover{transform:translateY(-2px);border-color:rgba(99,102,241,.7);box-shadow:0 12px 32px rgba(99,102,241,.3);}
 
 /* ── Chart Explanation Tooltip ── */
 .chart-help{cursor:help;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.4);font-size:11px;font-weight:700;color:#6366f1;margin-left:4px;position:relative;}
@@ -118,7 +118,7 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 .chart-panel:hover{background:linear-gradient(135deg,rgba(25,25,45,.8),rgba(15,15,28,.9));}
 .chart-info{padding:12px;border-bottom:1px solid rgba(99,102,241,.1);display:flex;justify-content:space-between;align-items:center;}
 .chart-title{font-size:12px;font-weight:700;color:#e2e8f0;display:flex;align-items:center;gap:6px;}
-.chart-meta{font-size:10px;color:#64748b;}
+.chart-meta{font-size:10px;color:#cbd5e1;}
 
 /* ── Animated Chart Container ── */
 #chart{animation:fadeIn .6s ease-out;}
@@ -236,9 +236,9 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 }
 .mcard:hover{border-color:rgba(99,102,241,.4);box-shadow:0 12px 32px rgba(99,102,241,.15);transform:translateY(-2px);}
 .mcard::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(99,102,241,.4),transparent);}
-.mcard .ml{font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-weight:600;}
+.mcard .ml{font-size:9px;color:#a0aec0;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-weight:600;}
 .mcard .mv{font-size:18px;font-weight:800;color:#fff;letter-spacing:-.02em;}
-.mcard .ms{font-size:9px;color:#475569;margin-top:3px;}
+.mcard .ms{font-size:9px;color:#a0aec0;margin-top:3px;}
 .g{color:#22c55e!important;}.r{color:#ef4444!important;}.a{color:#f59e0b!important;}
 
 /* ── Center: ticker list ── */
@@ -249,18 +249,18 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 .sinp:focus{border-color:#6366f1;}
 .sbtn{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer;}
 .chips{display:flex;gap:5px;flex-wrap:wrap;}
-.chip{background:rgba(15,15,28,.8);border:1px solid rgba(71,85,105,.2);color:#64748b;padding:3px 9px;border-radius:6px;font-size:10px;cursor:pointer;transition:all .15s;font-weight:600;}
+.chip{background:rgba(15,15,28,.8);border:1px solid rgba(71,85,105,.2);color:#cbd5e1;padding:3px 9px;border-radius:6px;font-size:10px;cursor:pointer;transition:all .15s;font-weight:600;}
 .chip:hover,.chip.on{background:rgba(99,102,241,.15);border-color:rgba(99,102,241,.4);color:#818cf8;}
 
 /* ── Ticker tape (in list panel) ── */
 .tick-wrap{overflow-x:hidden;height:28px;background:rgba(5,5,12,.8);border-bottom:1px solid rgba(30,30,46,.5);display:flex;align-items:center;flex-shrink:0;}
 .tick-track{display:flex;gap:0;white-space:nowrap;will-change:transform;}
 .tick-item{display:inline-flex;align-items:center;gap:4px;padding:0 10px;font-size:10px;border-right:1px solid rgba(30,30,46,.5);}
-.tick-item .tsym{font-weight:700;color:#475569;}
+.tick-item .tsym{font-weight:700;color:#a0aec0;}
 .tick-item .tprice{font-weight:700;}
 .tick-item.up .tprice{color:#22c55e;}
 .tick-item.dn .tprice{color:#ef4444;}
-.tick-item.flat .tprice{color:#475569;}
+.tick-item.flat .tprice{color:#a0aec0;}
 .tick-item .ttime{font-size:9px;color:#2d2d4d;}
 
 /* ── Ticker LIST rows ── */
@@ -278,20 +278,20 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 .tc.hidden-row{display:none!important;}
 .tr-sym{flex:1;min-width:0;}
 .tname{font-size:13px;font-weight:800;color:#fff;display:block;}
-.tr-sub{font-size:9px;color:#334155;display:block;margin-top:1px;}
+.tr-sub{font-size:9px;color:#8ba0c0;display:block;margin-top:1px;}
 .tr-price{text-align:right;min-width:68px;}
 .tpx{font-size:12px;font-weight:700;color:#fff;display:block;transition:color .3s;}
 .tpx.fu{color:#22c55e!important;}
 .tpx.fd{color:#ef4444!important;}
-.tr-chg{font-size:9px;display:block;color:#475569;}
+.tr-chg{font-size:9px;display:block;color:#a0aec0;}
 .tr-badges{display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:44px;}
-.rsi-pill{font-size:9px;padding:2px 4px;border-radius:3px;font-weight:700;background:rgba(100,116,139,.1);color:#475569;white-space:nowrap;}
+.rsi-pill{font-size:9px;padding:2px 4px;border-radius:3px;font-weight:700;background:rgba(100,116,139,.1);color:#a0aec0;white-space:nowrap;}
 .rsi-pill.ok{background:rgba(34,197,94,.1);color:#22c55e;}
 .rsi-pill.hot{background:rgba(239,68,68,.1);color:#ef4444;}
 .dir-pill{font-size:9px;padding:2px 4px;border-radius:3px;font-weight:700;white-space:nowrap;}
 .dir-pill.bull-pill{background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.2);}
 .dir-pill.bear-pill{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2);}
-.dir-pill.neut-pill{background:rgba(100,116,139,.07);color:#475569;border:1px solid rgba(100,116,139,.15);}
+.dir-pill.neut-pill{background:rgba(100,116,139,.07);color:#a0aec0;border:1px solid rgba(100,116,139,.15);}
 
 /* ── Right: Chart & analysis panel ── */
 .app-chart{flex:1;overflow-y:auto;padding:20px;scrollbar-width:thin;scrollbar-color:rgba(99,102,241,.2) transparent;}
@@ -299,40 +299,40 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 .app-chart .mticker,.app-chart .mprice{display:none;}
 .app-chart::-webkit-scrollbar{width:3px;}
 .app-chart::-webkit-scrollbar-thumb{background:rgba(99,102,241,.2);border-radius:2px;}
-.chart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:70%;gap:14px;color:#334155;}
+.chart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:70%;gap:14px;color:#8ba0c0;}
 .chart-panel-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
 .chart-sym{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.02em;}
-.chart-price-line{font-size:13px;color:#64748b;margin-top:3px;}
+.chart-price-line{font-size:13px;color:#cbd5e1;margin-top:3px;}
 
 /* ── LW Chart containers ── */
-.chart-wrap{background:linear-gradient(135deg,rgba(15,15,28,.9),rgba(12,12,24,.8));border:1px solid rgba(99,102,241,.2);border-radius:12px 12px 0 0;overflow:hidden;position:relative;box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.chart-wrap{background:linear-gradient(135deg,rgba(20,30,60,.9),rgba(15,25,55,.85));border:1px solid rgba(99,102,241,.4);border-radius:12px 12px 0 0;overflow:hidden;position:relative;box-shadow:0 8px 24px rgba(0,0,0,.4);}
 #chart-container{height:340px;width:100%;}
-.rsi-wrap{background:linear-gradient(135deg,rgba(15,15,28,.9),rgba(12,12,24,.8));border:1px solid rgba(99,102,241,.2);border-top:1px solid rgba(99,102,241,.1);border-radius:0 0 12px 12px;overflow:hidden;margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.rsi-wrap{background:linear-gradient(135deg,rgba(20,30,60,.9),rgba(15,25,55,.85));border:1px solid rgba(99,102,241,.4);border-top:1px solid rgba(99,102,241,.2);border-radius:0 0 12px 12px;overflow:hidden;margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,.4);}
 #rsi-container{height:80px;width:100%;}
 .chart-legend{display:flex;gap:10px;flex-wrap:wrap;padding:5px 10px;background:rgba(7,7,15,.5);font-size:9px;border-left:1px solid rgba(30,30,46,.8);border-right:1px solid rgba(30,30,46,.8);}
-.chart-legend span{display:flex;align-items:center;gap:4px;color:#64748b;white-space:nowrap;}
+.chart-legend span{display:flex;align-items:center;gap:4px;color:#cbd5e1;white-space:nowrap;}
 
 /* ── Compact admin metrics ── */
 .mcard{background:linear-gradient(135deg,rgba(26,26,40,.85),rgba(15,15,28,.85));border:1px solid rgba(99,102,241,.1);border-radius:8px;padding:6px 8px;position:relative;overflow:hidden;}
-.mcard .ml{font-size:8px;color:#475569;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;font-weight:600;}
+.mcard .ml{font-size:8px;color:#a0aec0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;font-weight:600;}
 .mcard .mv{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.02em;line-height:1.2;}
-.mcard .ms{font-size:8px;color:#475569;margin-top:1px;}
+.mcard .ms{font-size:8px;color:#a0aec0;margin-top:1px;}
 
 /* ── Card (for sidebar) ── */
 .card{background:linear-gradient(135deg,rgba(20,20,34,.9),rgba(12,12,24,.9));border:1px solid rgba(99,102,241,.1);border-radius:10px;padding:12px;margin-bottom:10px;position:relative;overflow:hidden;}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(99,102,241,.2),transparent);}
-.card h3{font-size:9px;color:#475569;margin-bottom:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+.card h3{font-size:9px;color:#a0aec0;margin-bottom:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
 
 /* ── Tables ── */
 table{width:100%;border-collapse:collapse;font-size:11px;}
-th{text-align:left;color:#475569;font-size:9px;text-transform:uppercase;padding:0 6px 8px 0;letter-spacing:.06em;cursor:pointer;white-space:nowrap;font-weight:600;}
+th{text-align:left;color:#a0aec0;font-size:9px;text-transform:uppercase;padding:0 6px 8px 0;letter-spacing:.06em;cursor:pointer;white-space:nowrap;font-weight:600;}
 th:hover{color:#94a3b8;}
-td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;vertical-align:middle;}
+td{padding:7px 6px 7px 0;border-top:1px solid rgba(50,60,100,.7);color:#e2e8f0;vertical-align:middle;}
 
 /* ── Badges ── */
 .er-badge{font-size:8px;background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.25);padding:1px 4px;border-radius:3px;margin-left:3px;font-weight:700;}
 .pol-badge{font-size:8px;background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3);padding:1px 4px;border-radius:3px;margin-left:3px;font-weight:700;}
-.empty{color:#334155;font-size:12px;text-align:center;padding:24px;}
+.empty{color:#8ba0c0;font-size:12px;text-align:center;padding:24px;}
 
 /* ── Political panel ── */
 .pol-scroll{max-height:220px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(168,85,247,.25) transparent;}
@@ -344,12 +344,12 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
 .pol-ticker{font-weight:800;color:#fff;font-size:11px;}
 .pol-side-buy{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.3);padding:1px 4px;border-radius:3px;font-weight:700;font-size:8px;text-align:center;}
 .pol-side-sell{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:1px 4px;border-radius:3px;font-weight:700;font-size:8px;text-align:center;}
-.pol-name{color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;}
+.pol-name{color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;}
 .pol-amt{color:#a855f7;font-weight:700;font-size:9px;white-space:nowrap;text-align:right;}
-.pol-date{color:#334155;font-size:9px;white-space:nowrap;text-align:right;}
+.pol-date{color:#8ba0c0;font-size:9px;white-space:nowrap;text-align:right;}
 .pol-party-R{color:#ef4444;font-weight:700;font-size:9px;text-align:center;}
 .pol-party-D{color:#60a5fa;font-weight:700;font-size:9px;text-align:center;}
-.pol-hdr{display:grid;grid-template-columns:48px 1fr 20px 54px;gap:5px;padding:0 2px 5px;border-bottom:1px solid rgba(168,85,247,.15);font-size:8px;color:#334155;text-transform:uppercase;letter-spacing:.06em;}
+.pol-hdr{display:grid;grid-template-columns:48px 1fr 20px 54px;gap:5px;padding:0 2px 5px;border-bottom:1px solid rgba(168,85,247,.15);font-size:8px;color:#8ba0c0;text-transform:uppercase;letter-spacing:.06em;}
 
 /* ── Modal (mobile search results / full analysis popup) ── */
 .mbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
@@ -357,34 +357,34 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
 .modal{background:linear-gradient(135deg,rgba(20,20,36,.98),rgba(12,12,24,.98));border:1px solid rgba(99,102,241,.15);border-radius:20px;width:600px;max-width:96vw;max-height:90vh;overflow-y:auto;padding:32px;position:relative;box-shadow:0 40px 80px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.04);scrollbar-width:thin;scrollbar-color:rgba(99,102,241,.3) transparent;}
 .modal::-webkit-scrollbar{width:4px;}
 .modal::-webkit-scrollbar-thumb{background:rgba(99,102,241,.3);border-radius:2px;}
-.mcl{position:absolute;top:18px;right:20px;background:rgba(71,85,105,.15);border:1px solid rgba(71,85,105,.2);color:#64748b;font-size:18px;cursor:pointer;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.mcl{position:absolute;top:18px;right:20px;background:rgba(71,85,105,.15);border:1px solid rgba(71,85,105,.2);color:#cbd5e1;font-size:18px;cursor:pointer;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
 .mcl:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#ef4444;}
 .modal-drag-handle{display:none;width:40px;height:4px;background:rgba(71,85,105,.4);border-radius:2px;margin:0 auto 20px;}
-.modal-close-bar{display:none;width:100%;margin-top:20px;padding:14px;background:rgba(30,30,46,.6);border:1px solid rgba(71,85,105,.2);border-radius:12px;color:#64748b;font-size:15px;font-weight:600;cursor:pointer;}
+.modal-close-bar{display:none;width:100%;margin-top:20px;padding:14px;background:rgba(30,30,46,.6);border:1px solid rgba(71,85,105,.2);border-radius:12px;color:#cbd5e1;font-size:15px;font-weight:600;cursor:pointer;}
 .modal-close-bar:active{background:rgba(30,30,46,.9);color:#fff;}
 .mticker{font-size:24px;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:-.02em;}
-.mprice{font-size:15px;color:#64748b;margin-bottom:20px;}
+.mprice{font-size:15px;color:#cbd5e1;margin-bottom:20px;}
 .mdir{display:flex;align-items:center;gap:12px;padding:16px 18px;border-radius:12px;margin-bottom:20px;}
 .mdir.bull{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.18);}
 .mdir.bear{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.18);}
 .mdir.neutral{background:rgba(71,85,105,.07);border:1px solid rgba(71,85,105,.18);}
 .mdir h4{font-size:16px;font-weight:800;letter-spacing:-.01em;}
-.mdir p{font-size:12px;color:#64748b;margin-top:3px;}
-.stitle{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#334155;margin:18px 0 10px;font-weight:700;}
+.mdir p{font-size:12px;color:#cbd5e1;margin-top:3px;}
+.stitle{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8ba0c0;margin:18px 0 10px;font-weight:700;}
 .crow{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:13px;}
 .ci{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px;font-weight:700;}
 .ci.p{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.2);}
 .ci.f{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.2);}
 .cl{color:#94a3b8;line-height:1.5;}
 .cl strong{color:#e2e8f0;}
-.cl small{display:block;color:#475569;font-size:11px;margin-top:3px;}
+.cl small{display:block;color:#a0aec0;font-size:11px;margin-top:3px;}
 .nbox{background:rgba(7,7,15,.6);border:1px solid rgba(30,30,46,.8);border-radius:10px;padding:14px 16px;margin-top:8px;}
-.nbox p{font-size:13px;color:#64748b;line-height:1.7;}
+.nbox p{font-size:13px;color:#cbd5e1;line-height:1.7;}
 .hrow{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid rgba(30,30,46,.6);}
 .hrow:last-child{border-bottom:none;}
 .pbar{height:6px;background:rgba(30,30,46,.8);border-radius:3px;margin-top:8px;overflow:hidden;}
 .pfill{height:100%;border-radius:3px;}
-.atab{flex:1;padding:10px;border:none;border-bottom:2px solid transparent;background:transparent;color:#475569;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
+.atab{flex:1;padding:10px;border:none;border-bottom:2px solid transparent;background:transparent;color:#a0aec0;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
 .atab.active{color:#818cf8;border-bottom-color:#6366f1;}
 .auth-tabs{display:flex;margin-bottom:20px;border-bottom:1px solid rgba(30,30,46,.8);}
 .pending-box{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:14px;text-align:center;color:#f59e0b;font-size:13px;margin-top:8px;}
@@ -400,11 +400,11 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
 .trump-badge{font-size:7px;background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:1px 4px;border-radius:3px;margin-left:3px;font-weight:800;vertical-align:middle;}
 .trump-badge.bull{background:rgba(34,197,94,.15);color:#22c55e;border-color:rgba(34,197,94,.3);}
 #trump-panel{background:rgba(7,7,15,.6);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px;max-height:160px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(239,68,68,.2) transparent;}
-.trump-post{padding:5px 0;border-bottom:1px solid rgba(30,30,46,.5);font-size:9px;color:#64748b;line-height:1.4;}
+.trump-post{padding:5px 0;border-bottom:1px solid rgba(30,30,46,.5);font-size:9px;color:#cbd5e1;line-height:1.4;}
 .trump-post:last-child{border-bottom:none;}
 .trump-post .t-tickers{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;}
 .trump-post .t-ticker{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.25);padding:1px 5px;border-radius:4px;font-weight:700;cursor:pointer;font-size:8px;}
-.trump-post .t-time{color:#334155;float:right;}
+.trump-post .t-time{color:#8ba0c0;float:right;}
 
 /* Utility */
 .admin-only{}
@@ -489,7 +489,7 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
       <div class="llab">Password</div>
       <input class="linp" id="signup-pass" type="password" placeholder="Min 6 characters" onkeydown="if(event.key==='Enter')doSignup()"/>
       <button class="lbtn" onclick="doSignup()">Create Account</button>
-      <p style="font-size:11px;color:#475569;text-align:center;margin-top:10px">Admin approval required before access is granted</p>
+      <p style="font-size:11px;color:#a0aec0;text-align:center;margin-top:10px">Admin approval required before access is granted</p>
     </div>
 
     <div class="lerr" id="lerr"></div>
@@ -505,29 +505,29 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
         <div class="dot" id="dot"></div>
         <span id="stat-txt">Connecting...</span>
         <span class="badge off" id="stat-badge">● Connecting</span>
-        <span id="upd-cnt" style="font-size:10px;color:#334155">0 ticks</span>
+        <span id="upd-cnt" style="font-size:10px;color:#8ba0c0">0 ticks</span>
       </div>
       <button id="admin-btn" onclick="toggleAdminPanel()" style="display:none;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#818cf8;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">👑 Admin</button>
-      <span id="session-badge" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;border:1px solid #475569;color:#475569;letter-spacing:.05em">--</span>
-      <button id="scalp-btn" onclick="toggleScalp()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .2s">⚡ Scalp OFF</button>
-      <button onclick="toggleScalpPanel()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Scalp trade log & settings">📋 Trades</button>
-      <button id="alert-bell" onclick="toggleAlertPanel()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:color .2s">🔔 Alerts</button>
-      <button onclick="toggleNtfyPanel()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Phone notifications">📲 ntfy</button>
+      <span id="session-badge" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;border:1px solid #475569;color:#a0aec0;letter-spacing:.05em">--</span>
+      <button id="scalp-btn" onclick="toggleScalp()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#cbd5e1;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .2s">⚡ Scalp OFF</button>
+      <button onclick="toggleScalpPanel()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#cbd5e1;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Scalp trade log & settings">📋 Trades</button>
+      <button id="alert-bell" onclick="toggleAlertPanel()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#cbd5e1;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:color .2s">🔔 Alerts</button>
+      <button onclick="toggleNtfyPanel()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#cbd5e1;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Phone notifications">📲 ntfy</button>
       <button class="signout" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
 
   <div class="news-bar">
     <span class="news-label">📰 Market News</span>
-    <div class="news-scroll"><div class="news-track" id="news-track"><span class="nh" style="color:#334155">Loading headlines...</span></div></div>
+    <div class="news-scroll"><div class="news-track" id="news-track"><span class="nh" style="color:#8ba0c0">Loading headlines...</span></div></div>
   </div>
   <div class="app-layout">
 
     <!-- ── LEFT SIDEBAR (admin only) ── -->
     <div class="app-sidebar admin-only">
       <div class="acct-bar">
-        <span id="acct-time" style="font-size:10px;color:#64748b">Loading...</span>
-        <button onclick="loadAccount()" style="background:transparent;border:1px solid #2d2d3d;color:#64748b;padding:3px 8px;border-radius:5px;font-size:9px;cursor:pointer">↻</button>
+        <span id="acct-time" style="font-size:10px;color:#cbd5e1">Loading...</span>
+        <button onclick="loadAccount()" style="background:transparent;border:1px solid #2d2d3d;color:#cbd5e1;padding:3px 8px;border-radius:5px;font-size:9px;cursor:pointer">↻</button>
       </div>
       <div class="sidebar-metrics">
         <div class="mcard"><div class="ml">Portfolio</div><div class="mv" id="m-eq">—</div><div class="ms">Paper</div></div>
@@ -554,7 +554,7 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
         <span class="s-title" onclick="toggleSection('sec-trump')">🦅 Trump Indicator</span>
         <div class="s-section" id="sec-trump">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-            <span style="font-size:9px;color:#475569">Truth Social · auto-refresh 5min</span>
+            <span style="font-size:9px;color:#a0aec0">Truth Social · auto-refresh 5min</span>
             <button onclick="trumpLastFetch=0;loadTrumpPosts()" style="background:none;border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:4px;padding:2px 7px;font-size:9px;cursor:pointer">↻</button>
           </div>
           <div id="trump-panel"><div class="empty" style="font-size:9px">Loading...</div></div>
@@ -587,7 +587,7 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
           <div class="chip" id="f-crypto" onclick="filterTickers('crypto')">Crypto</div>
         </div>
       </div>
-      <div class="tick-wrap" id="tick-wrap"><div class="tick-track" id="tick-track"><span style="font-size:10px;color:#334155;padding:0 10px">Waiting for ticks…</span></div></div>
+      <div class="tick-wrap" id="tick-wrap"><div class="tick-track" id="tick-track"><span style="font-size:10px;color:#8ba0c0;padding:0 10px">Waiting for ticks…</span></div></div>
       <div class="tgrid" id="tgrid"><div class="empty">Loading tickers…</div></div>
     </div>
 
@@ -597,7 +597,7 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
         <div style="text-align:center">
           <div style="font-size:48px;margin-bottom:8px">📊</div>
           <div style="font-size:16px;color:#e2e8f0;font-weight:700">Live Trading Chart</div>
-          <div style="font-size:12px;color:#475569;margin-top:4px">Select a ticker to see real-time chart & signal analysis</div>
+          <div style="font-size:12px;color:#a0aec0;margin-top:4px">Select a ticker to see real-time chart & signal analysis</div>
         </div>
 
         <div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.05));border:1px solid rgba(99,102,241,.2);border-radius:12px;padding:16px;line-height:1.6">
@@ -630,7 +630,7 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
           </div>
         </div>
 
-        <div style="text-align:center;font-size:11px;color:#475569;border-top:1px solid rgba(99,102,241,.1);padding-top:16px">
+        <div style="text-align:center;font-size:11px;color:#a0aec0;border-top:1px solid rgba(99,102,241,.1);padding-top:16px">
           🖱️ <strong>Scroll to zoom</strong> · 🖐️ <strong>Drag to pan</strong> · 📱 <strong>Tap ticker to update</strong>
         </div>
       </div>
@@ -799,7 +799,7 @@ async function toggleAdminPanel() {
   p = document.createElement('div');
   p.id = 'admin-panel';
   p.style.cssText = 'position:fixed;top:54px;right:16px;width:420px;max-height:520px;overflow-y:auto;background:#1a1a24;border:1px solid rgba(99,102,241,.3);border-radius:12px;z-index:300;padding:16px;';
-  p.innerHTML = '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:12px">👑 Admin — User Management</div><div style="color:#64748b;font-size:12px">Loading users...</div>';
+  p.innerHTML = '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:12px">👑 Admin — User Management</div><div style="color:#cbd5e1;font-size:12px">Loading users...</div>';
   document.body.appendChild(p);
   document.addEventListener('click', function out(e) {
     if (!p.contains(e.target) && !e.target.closest('[onclick="toggleAdminPanel()"]')) { p.remove(); document.removeEventListener('click', out); }
@@ -812,19 +812,19 @@ async function toggleAdminPanel() {
     p.innerHTML =
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
       '<span style="font-size:13px;font-weight:700;color:#fff">👑 User Management</span>' +
-      '<span style="font-size:11px;color:#64748b">' + users.length + ' users</span></div>' +
-      (users.length === 0 ? '<p style="color:#475569;font-size:12px">No users yet.</p>' :
+      '<span style="font-size:11px;color:#cbd5e1">' + users.length + ' users</span></div>' +
+      (users.length === 0 ? '<p style="color:#a0aec0;font-size:12px">No users yet.</p>' :
         users.map(u =>
           '<div style="background:#0f0f13;border:1px solid #2d2d3d;border-radius:8px;padding:10px 12px;margin-bottom:8px">' +
           '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
           '<div><strong style="color:#e2e8f0;font-size:13px">' + u.name + '</strong>' +
           (u.role==='admin'?'<span style="font-size:10px;background:rgba(99,102,241,.2);color:#818cf8;padding:1px 6px;border-radius:8px;margin-left:6px">admin</span>':'') + '<br>' +
-          '<span style="font-size:11px;color:#64748b">' + u.email + '</span></div>' +
+          '<span style="font-size:11px;color:#cbd5e1">' + u.email + '</span></div>' +
           '<span style="font-size:11px;font-weight:700;color:' + (statusColor[u.status]||'#64748b') + '">' + (u.status||'unknown').toUpperCase() + '</span></div>' +
           '<div style="display:flex;gap:6px">' +
           (u.status !== 'approved' ? '<button onclick="adminAction(\'' + u.uid + '\',\'approved\')" style="flex:1;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#22c55e;padding:5px;border-radius:6px;font-size:11px;cursor:pointer">✓ Approve</button>' : '') +
           (u.status !== 'suspended' && u.email !== ADMIN_EMAIL ? '<button onclick="adminAction(\'' + u.uid + '\',\'suspended\')" style="flex:1;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#ef4444;padding:5px;border-radius:6px;font-size:11px;cursor:pointer">✗ Suspend</button>' : '') +
-          (u.email !== ADMIN_EMAIL ? '<button onclick="adminDelete(\'' + u.uid + '\')" style="background:#1a1a24;border:1px solid #2d2d3d;color:#475569;padding:5px 8px;border-radius:6px;font-size:11px;cursor:pointer">🗑</button>' : '') +
+          (u.email !== ADMIN_EMAIL ? '<button onclick="adminDelete(\'' + u.uid + '\')" style="background:#1a1a24;border:1px solid #2d2d3d;color:#a0aec0;padding:5px 8px;border-radius:6px;font-size:11px;cursor:pointer">🗑</button>' : '') +
           '</div></div>'
         ).join('')
       );
@@ -1648,7 +1648,7 @@ function buildModal(sym, a, cfg, bars, htfA) {
 
   function cRow(c) {
     return '<div class="crow"><div class="ci '+(c.pass?'p':'f')+'">'+(c.pass?'✓':'✗')+'</div>' +
-      '<div class="cl"><strong>'+c.l+'</strong> <span style="color:#475569;font-size:11px"> · '+c.v+'</span>' +
+      '<div class="cl"><strong>'+c.l+'</strong> <span style="color:#a0aec0;font-size:11px"> · '+c.v+'</span>' +
       '<small>'+c.n+'</small></div></div>';
   }
 
@@ -1691,15 +1691,15 @@ function buildModal(sym, a, cfg, bars, htfA) {
     '<p style="font-size:12px;color:#94a3b8;margin:0 0 8px">'+signalMsg+'</p>' +
     ((signal==='BUY'||signal==='SELL') ?
       '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">' +
-      '<div style="text-align:center"><div style="font-size:9px;color:#64748b;margin-bottom:2px">Entry</div><strong style="color:#fff;font-size:13px">$'+liveP.toFixed(dec2)+'</strong></div>' +
-      '<div style="text-align:center"><div style="font-size:9px;color:#64748b;margin-bottom:2px">🎯 TP (2×ATR)</div><strong style="color:#22c55e;font-size:13px">$'+tpPrice+'</strong><div style="font-size:9px;color:#22c55e">+'+tpPct+'%</div></div>' +
-      '<div style="text-align:center"><div style="font-size:9px;color:#64748b;margin-bottom:2px">⛔ SL (1×ATR)</div><strong style="color:#ef4444;font-size:13px">$'+slPrice+'</strong><div style="font-size:9px;color:#ef4444">-'+slPct+'%</div></div>' +
-      '<div style="text-align:center"><div style="font-size:9px;color:#64748b;margin-bottom:2px">ATR</div><strong style="color:#818cf8;font-size:13px">$'+atrVal.toFixed(dec2)+'</strong><div style="font-size:9px;color:#475569">R:R 2:1</div></div>' +
+      '<div style="text-align:center"><div style="font-size:9px;color:#cbd5e1;margin-bottom:2px">Entry</div><strong style="color:#fff;font-size:13px">$'+liveP.toFixed(dec2)+'</strong></div>' +
+      '<div style="text-align:center"><div style="font-size:9px;color:#cbd5e1;margin-bottom:2px">🎯 TP (2×ATR)</div><strong style="color:#22c55e;font-size:13px">$'+tpPrice+'</strong><div style="font-size:9px;color:#22c55e">+'+tpPct+'%</div></div>' +
+      '<div style="text-align:center"><div style="font-size:9px;color:#cbd5e1;margin-bottom:2px">⛔ SL (1×ATR)</div><strong style="color:#ef4444;font-size:13px">$'+slPrice+'</strong><div style="font-size:9px;color:#ef4444">-'+slPct+'%</div></div>' +
+      '<div style="text-align:center"><div style="font-size:9px;color:#cbd5e1;margin-bottom:2px">ATR</div><strong style="color:#818cf8;font-size:13px">$'+atrVal.toFixed(dec2)+'</strong><div style="font-size:9px;color:#a0aec0">R:R 2:1</div></div>' +
       '</div>' : '') +
     '</div>';
 
   const patHtml = patterns.length === 0
-    ? '<div class="nbox"><p style="color:#64748b">No classic patterns detected in current bars. Needs more price history.</p></div>'
+    ? '<div class="nbox"><p style="color:#cbd5e1">No classic patterns detected in current bars. Needs more price history.</p></div>'
     : patterns.map(p => {
         const pc = p.dir==='bull'?'#22c55e':'#ef4444';
         const bg = p.dir==='bull'?'rgba(34,197,94,.08)':'rgba(239,68,68,.08)';
@@ -1714,11 +1714,11 @@ function buildModal(sym, a, cfg, bars, htfA) {
   return '<div class="mticker">' + label + '</div>' +
     '<div class="mprice"><strong style="font-size:17px;color:#fff">$'+liveP.toFixed(liveP<1?5:2)+'</strong>' +
     ' <span style="color:'+(a.chg1h>=0?'#22c55e':'#ef4444')+'">'+(a.chg1h>=0?'+':'')+a.chg1h+'% recent</span>' +
-    ' <span style="color:#334155">· '+a.n+' bars · RSI '+a.rsi+'</span></div>' +
+    ' <span style="color:#8ba0c0">· '+a.n+' bars · RSI '+a.rsi+'</span></div>' +
 
     '<div class="mdir '+dir+'"><div style="font-size:36px;color:'+dc+';line-height:1">'+(dir==='bull'?'↑':dir==='bear'?'↓':'→')+'</div>' +
     '<div><h4 style="color:'+dc+'">'+dir.toUpperCase()+'</h4>' +
-    '<p style="font-size:12px;color:#64748b;margin-top:3px">EMA9 $'+a.e9+' · EMA21 $'+a.e21+' · RSI '+a.rsi+'</p></div></div>' +
+    '<p style="font-size:12px;color:#cbd5e1;margin-top:3px">EMA9 $'+a.e9+' · EMA21 $'+a.e21+' · RSI '+a.rsi+'</p></div></div>' +
 
     tradeBoxHtml +
 
@@ -1747,16 +1747,16 @@ function buildModal(sym, a, cfg, bars, htfA) {
     (cfg ?
       '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0">' +
       '<div style="background:rgba(15,15,28,.8);border:1px solid rgba(99,102,241,.1);border-radius:7px;padding:7px;text-align:center">' +
-      '<div style="font-size:8px;color:#475569;text-transform:uppercase;margin-bottom:2px">Win Rate</div>' +
+      '<div style="font-size:8px;color:#a0aec0;text-transform:uppercase;margin-bottom:2px">Win Rate</div>' +
       '<div style="font-size:15px;font-weight:800;color:'+(hw>=55?'#22c55e':hw>=45?'#f59e0b':'#ef4444')+'">'+hw+'%</div></div>' +
       '<div style="background:rgba(15,15,28,.8);border:1px solid rgba(99,102,241,.1);border-radius:7px;padding:7px;text-align:center">' +
-      '<div style="font-size:8px;color:#475569;text-transform:uppercase;margin-bottom:2px">P&L</div>' +
+      '<div style="font-size:8px;color:#a0aec0;text-transform:uppercase;margin-bottom:2px">P&L</div>' +
       '<div style="font-size:15px;font-weight:800;color:'+(hp>=0?'#22c55e':'#ef4444')+'">'+(hp>=0?'+':'')+hp+'%</div></div>' +
       '<div style="background:rgba(15,15,28,.8);border:1px solid rgba(99,102,241,.1);border-radius:7px;padding:7px;text-align:center">' +
-      '<div style="font-size:8px;color:#475569;text-transform:uppercase;margin-bottom:2px">EV/Trade</div>' +
+      '<div style="font-size:8px;color:#a0aec0;text-transform:uppercase;margin-bottom:2px">EV/Trade</div>' +
       '<div style="font-size:15px;font-weight:800;color:'+(parseFloat(ev)>=0?'#22c55e':'#ef4444')+'">'+(parseFloat(ev)>=0?'+':'')+ev+'%</div></div>' +
       '<div style="background:rgba(15,15,28,.8);border:1px solid rgba(99,102,241,.1);border-radius:7px;padding:7px;text-align:center">' +
-      '<div style="font-size:8px;color:#475569;text-transform:uppercase;margin-bottom:2px">Rating</div>' +
+      '<div style="font-size:8px;color:#a0aec0;text-transform:uppercase;margin-bottom:2px">Rating</div>' +
       '<div style="font-size:12px;font-weight:800;color:'+(risk==='low'?'#22c55e':'#f59e0b')+'">'+(risk==='low'?'✅ LOW':'⚠️ RISK')+'</div></div>' +
       '</div>'
     : '') +
@@ -1771,7 +1771,7 @@ function buildModal(sym, a, cfg, bars, htfA) {
     '<button onclick="(async()=>{await closePosition(\''+sym+'\');renderModal(\''+sym+'\');})()" ' +
     'style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:#f59e0b;padding:10px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✕ Close<br><span style="font-size:10px;font-weight:400">market exit</span></button>' +
     '</div>' +
-    '<p style="font-size:10px;color:#334155;text-align:center">Paper trades only · bracket order with TP/SL auto-set</p>';
+    '<p style="font-size:10px;color:#8ba0c0;text-align:center">Paper trades only · bracket order with TP/SL auto-set</p>';
 }
 
 // ─── Lightweight Charts interactive chart ─────────────────────────────────────
@@ -2165,7 +2165,7 @@ async function renderChartPanel(sym, tf) {
     '<div style="font-size:28px;font-weight:800;color:#fff">' + sym + '</div>' +
     '<div style="display:flex;flex-direction:column;gap:2px">' +
     '<div style="font-size:14px;color:' + dirColor + ';font-weight:700">' + (dir === 'bull' ? '📈 BULLISH' : dir === 'bear' ? '📉 BEARISH' : '➡️ NEUTRAL') + '</div>' +
-    '<div style="font-size:11px;color:#64748b">Trend Signal</div>' +
+    '<div style="font-size:11px;color:#cbd5e1">Trend Signal</div>' +
     '</div>' +
     '</div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' +
@@ -2191,7 +2191,7 @@ async function renderChartPanel(sym, tf) {
     '</div>' +
     '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
     '<div style="display:flex;gap:4px">' + tfHtml + '</div>' +
-    '<button onclick="renderChartPanel(\'' + sym + '\',currentTf)" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#64748b;padding:5px 10px;border-radius:6px;font-size:10px;cursor:pointer">↻</button>' +
+    '<button onclick="renderChartPanel(\'' + sym + '\',currentTf)" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#cbd5e1;padding:5px 10px;border-radius:6px;font-size:10px;cursor:pointer">↻</button>' +
     '</div>' +
     '</div>' +
     '<div class="chart-wrap"><div id="chart-container"></div></div>' +
@@ -2203,7 +2203,7 @@ async function renderChartPanel(sym, tf) {
     '<div title="Take profit target" style="display:flex;align-items:center;gap:4px;padding:4px 6px;background:rgba(34,197,94,.1);border-radius:4px;border:1px solid rgba(34,197,94,.2)"><span style="width:8px;height:2px;background:#22c55e;display:inline-block;border-top:2px dashed #22c55e"></span><span style="color:#86efac;font-size:10px;font-weight:600">TP</span></div>' +
     '<div title="Stop loss level" style="display:flex;align-items:center;gap:4px;padding:4px 6px;background:rgba(239,68,68,.1);border-radius:4px;border:1px solid rgba(239,68,68,.2)"><span style="width:8px;height:2px;background:#ef4444;display:inline-block;border-top:2px dashed #ef4444"></span><span style="color:#fca5a5;font-size:10px;font-weight:600">SL</span></div>' +
     '</div>' +
-    '<div style="color:#334155;font-size:9px;white-space:nowrap">🔍 scroll=zoom · ✋ drag=pan</div>' +
+    '<div style="color:#8ba0c0;font-size:9px;white-space:nowrap">🔍 scroll=zoom · ✋ drag=pan</div>' +
     '</div>' +
     '<div class="rsi-wrap"><div id="rsi-container"></div></div>' +
     buildModal(sym, a, cfg, bars, null);
@@ -2266,7 +2266,7 @@ async function renderModal(sym) {
   const ts = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   g('modal-body').innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
-    '<span style="font-size:10px;color:#334155">Analysis at ' + ts + ' · auto-refreshes every 60s</span>' +
+    '<span style="font-size:10px;color:#8ba0c0">Analysis at ' + ts + ' · auto-refreshes every 60s</span>' +
     '<button id="modal-refresh-btn" onclick="modalRefresh(\'' + sym + '\')" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#94a3b8;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer">↻ Refresh now</button>' +
     '</div>' +
     buildModal(sym, a, cfg, bars, htfA);
@@ -2346,18 +2346,18 @@ function toggleNtfyPanel() {
   const saved = ntfyTopic();
   p.innerHTML =
     '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px">📲 ntfy Phone Alerts</div>' +
-    '<div style="font-size:11px;color:#64748b;margin-bottom:14px;line-height:1.7">' +
+    '<div style="font-size:11px;color:#cbd5e1;margin-bottom:14px;line-height:1.7">' +
     '<strong style="color:#94a3b8">Setup (1 min):</strong><br>' +
     '1. Install <strong style="color:#6366f1">ntfy</strong> app on your phone (iOS / Android)<br>' +
     '2. Pick any unique topic name, e.g. <code style="background:#0f0f13;padding:1px 5px;border-radius:3px">my-trade-alerts</code><br>' +
     '3. Subscribe to that topic in the app<br>' +
     '4. Enter the same topic name below</div>' +
-    '<label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em">Your ntfy topic</label><br>' +
+    '<label style="font-size:11px;color:#cbd5e1;text-transform:uppercase;letter-spacing:.05em">Your ntfy topic</label><br>' +
     '<input id="ntfy-topic" type="text" value="' + saved + '" placeholder="e.g. my-trade-alerts" style="width:100%;background:#0f0f13;border:1px solid #2d2d3d;border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:13px;margin:6px 0 12px;outline:none;font-family:monospace"/>' +
     '<div style="display:flex;gap:8px">' +
     '<button onclick="saveNtfy()" style="flex:1;background:#6366f1;color:#fff;border:none;border-radius:7px;padding:9px;font-size:13px;font-weight:600;cursor:pointer">Save</button>' +
     '<button onclick="testNtfy()" style="flex:1;background:#0f0f13;color:#94a3b8;border:1px solid #2d2d3d;border-radius:7px;padding:9px;font-size:13px;cursor:pointer">Send Test</button>' +
-    '</div><div id="ntfy-status" style="font-size:11px;margin-top:8px;min-height:16px;text-align:center;color:#64748b"></div>';
+    '</div><div id="ntfy-status" style="font-size:11px;margin-top:8px;min-height:16px;text-align:center;color:#cbd5e1"></div>';
   document.body.appendChild(p);
   document.addEventListener('click', function out(e) {
     if (!p.contains(e.target) && !e.target.closest('[onclick="toggleNtfyPanel()"]')) {
@@ -2427,11 +2427,11 @@ function toggleAlertPanel() {
   panel.style.cssText = 'position:fixed;top:54px;right:16px;width:320px;max-height:400px;overflow-y:auto;background:#1a1a24;border:1px solid #2d2d3d;border-radius:10px;z-index:200;padding:14px;';
   panel.innerHTML = '<div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:10px">Recent Alerts</div>' +
     (alertLog.length === 0
-      ? '<p style="font-size:12px;color:#475569">No alerts yet. Alerts fire when a ticker changes direction.</p>'
+      ? '<p style="font-size:12px;color:#a0aec0">No alerts yet. Alerts fire when a ticker changes direction.</p>'
       : alertLog.map(a =>
           '<div style="padding:8px 0;border-bottom:1px solid #1e1e2e;font-size:12px">' +
           '<span style="color:'+(a.dir==='bull'?'#22c55e':'#ef4444')+';font-weight:700">'+(a.dir==='bull'?'↑ ':'↓ ')+a.label+'</span>' +
-          '<span style="color:#64748b;float:right">'+a.ts+'</span><br>' +
+          '<span style="color:#cbd5e1;float:right">'+a.ts+'</span><br>' +
           '<span style="color:#94a3b8">'+a.msg+'</span></div>'
         ).join('')
     );
@@ -2567,18 +2567,18 @@ function toggleScalpPanel() {
   const sz = scalpTradeSize();
   p.innerHTML =
     '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:12px">⚡ Scalp Trading Settings</div>' +
-    '<div style="font-size:11px;color:#64748b;margin-bottom:12px;line-height:1.6">' +
+    '<div style="font-size:11px;color:#cbd5e1;margin-bottom:12px;line-height:1.6">' +
     'Auto-scalp watches every ticker scan. When a ticker turns <strong style="color:#22c55e">BULLISH</strong> (5+/8 conditions + bullish pattern), it places a bracket <strong>BUY</strong> order. When it turns <strong style="color:#ef4444">BEARISH</strong>, it closes the position. All trades are <strong>paper only</strong>.</div>' +
-    '<label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em">Trade size (USD per position)</label><br>' +
+    '<label style="font-size:11px;color:#cbd5e1;text-transform:uppercase;letter-spacing:.05em">Trade size (USD per position)</label><br>' +
     '<input id="scalp-size-inp" type="number" value="' + sz + '" min="50" max="10000" step="50" style="width:100%;background:#0f0f13;border:1px solid #2d2d3d;border-radius:6px;padding:8px 10px;color:#e2e8f0;font-size:14px;margin:6px 0 12px;outline:none"/>' +
     '<button onclick="saveScalpSize()" style="width:100%;background:#6366f1;color:#fff;border:none;border-radius:7px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:14px">Save Settings</button>' +
     '<div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:8px">Recent Scalp Trades</div>' +
     (scalpLog.length === 0
-      ? '<p style="font-size:12px;color:#475569">No auto-scalp trades yet. Enable auto-scalp and wait for next scan.</p>'
+      ? '<p style="font-size:12px;color:#a0aec0">No auto-scalp trades yet. Enable auto-scalp and wait for next scan.</p>'
       : scalpLog.slice(0,15).map(t =>
           '<div style="padding:8px 0;border-bottom:1px solid #1e1e2e;font-size:12px">' +
           '<span style="color:'+(t.side==='buy'?'#22c55e':'#ef4444')+';font-weight:700">'+(t.side==='buy'?'BUY ':'SELL ')+t.label+'</span>' +
-          '<span style="color:#64748b;float:right">'+t.ts+'</span><br>' +
+          '<span style="color:#cbd5e1;float:right">'+t.ts+'</span><br>' +
           '<span style="color:#94a3b8">'+t.qty+' shares @ $'+t.price.toFixed(2)+' | TP $'+t.tp+' · SL $'+t.sl+'</span></div>'
         ).join('')
     );
@@ -2655,7 +2655,7 @@ async function loadTickers() {
     const rsiClass = rsiNum > 65 ? 'hot' : rsiNum > 45 ? 'ok' : '';
     const dirPillCls = dir === 'bull' ? 'bull-pill' : dir === 'bear' ? 'bear-pill' : 'neut-pill';
     const dirPillTxt = dir === 'bull' ? '↑ BULL' : dir === 'bear' ? '↓ BEAR' : '→ WAIT';
-    const chgTxt = chgHtml ? chgHtml : '<span style="color:#475569">—</span>';
+    const chgTxt = chgHtml ? chgHtml : '<span style="color:#a0aec0">—</span>';
     cards.push(
       '<div class="tc ' + dir + '" data-sym="' + sym + '" data-dir="' + dir + '" data-crypto="' + isCrypto + '" onclick="openModal(\'' + sym + '\')">' +
       '<div class="tr-sym">' +
@@ -2700,12 +2700,12 @@ function renderOrders() {
     o.slice(0,100).map(x => {
       const dt = new Date(x.filled_at || x.created_at);
       return '<tr><td><span style="color:#cbd5e1">' + dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}) + '</span><br>' +
-        '<span style="font-size:11px;color:#475569">' + dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) + '</span></td>' +
+        '<span style="font-size:11px;color:#a0aec0">' + dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) + '</span></td>' +
         '<td style="font-weight:600;color:#fff">' + x.symbol + '</td>' +
         '<td class="' + (x.side==='buy'?'g':'r') + '">' + x.side.toUpperCase() + '</td>' +
         '<td>' + (x.filled_qty||x.qty) + '</td>' +
         '<td>' + (x.filled_avg_price?fmt(x.filled_avg_price):'—') + '</td>' +
-        '<td style="color:#64748b">' + (x.order_class||x.type) + '</td></tr>';
+        '<td style="color:#cbd5e1">' + (x.order_class||x.type) + '</td></tr>';
     }).join('') + '</table>';
 }
 
