@@ -3423,7 +3423,7 @@ function clearAppCache() {
   }
 }
 
-function startAll() {
+async function startAll() {
   startKrakenStream();                               // crypto — Kraken WebSocket
   pollSnapshot();                                    // seed stock prices immediately
   startAlpacaStream();                               // stocks — Alpaca WebSocket (real-time streaming)
@@ -3432,7 +3432,7 @@ function startAll() {
   _timers.push(setInterval(loadAccount, 30000));    // account every 30s
 
   // 🎯 PROFESSIONAL SCALPER FEATURES
-  await fetchAccountStatus();                        // Fetch account equity & buying power
+  try { await fetchAccountStatus(); } catch (e) { console.warn('Account status fetch failed:', e); }
   _timers.push(setInterval(fetchAccountStatus, 10000)); // Update account every 10s
 
   // Fetch real bid/ask for all stocks
@@ -3442,8 +3442,8 @@ function startAll() {
   }, 5000)); // Refresh bid/ask every 5s
 
   // Removed: News, Political Trades, Trump Posts (not for scalpers - too much noise)
-  await loadAccount();
-  await loadTickers();
+  try { await loadAccount(); } catch (e) { console.warn('Load account failed:', e); }
+  try { await loadTickers(); } catch (e) { console.warn('Load tickers failed:', e); }
 }
 
 if (sessionStorage.getItem('ct') === '1') startAll();
