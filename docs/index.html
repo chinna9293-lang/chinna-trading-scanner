@@ -1113,6 +1113,9 @@ try {
   if (sessionStorage.getItem('ct') === '1') {
     g('pg-login').style.display = 'none';
     g('pg-dash').style.display = 'block';
+  }
+} catch (e) {
+  console.warn('SessionStorage check failed:', e);
 }
 
 // ─── Alpaca ──────────────────────────────────────────────────────────────────
