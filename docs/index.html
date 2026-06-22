@@ -899,29 +899,37 @@ async function doLogin() {
       return;
     }
 
-    // ✅ SIMPLE DEMO LOGIN: Password must be Trade01, Email can be anything
-    if (pass !== 'Trade01') {
-      if (errEl) errEl.textContent = 'Incorrect. Password must be: Trade01';
+    // ✅ DEMO LOGIN: Accept Trade01/trade01/TRADE01 in any case
+    const passLower = pass.toLowerCase().trim();
+    const emailLower = email.toLowerCase();
+
+    console.log('Password (lower):', passLower);
+    console.log('Email (lower):', emailLower);
+
+    // Check password (case-insensitive)
+    if (passLower !== 'trade01') {
+      console.log('❌ Password incorrect, got:', passLower);
+      if (errEl) errEl.textContent = 'Password incorrect. Use: Trade01';
       return;
     }
 
-    // Password is correct, now check email
-    if (email === 'Trade01') {
-      // Trade01 / Trade01 ✅
-      console.log('✅ LOGIN SUCCESS: Trade01 / Trade01');
+    // Password is correct! Now check email
+    if (email === 'Trade01' || emailLower === 'trade01') {
+      // Trade01 / Trade01 (any case) ✅
+      console.log('✅ LOGIN SUCCESS: Trade01 + Trade01');
       grant();
       return;
     }
 
     if (email.includes('@')) {
       // Any email + Trade01 ✅
-      console.log('✅ LOGIN SUCCESS: email + Trade01');
+      console.log('✅ LOGIN SUCCESS: email + trade01');
       grant();
       return;
     }
 
     // Email is invalid (not Trade01, not an email)
-    if (errEl) errEl.textContent = 'Use Trade01 or a valid email (user@example.com)';
+    if (errEl) errEl.textContent = 'Email must be Trade01 or a valid email (user@example.com)';
     return;
   } catch(e) {
     console.error('❌ Login error:', e.message, e.stack);
