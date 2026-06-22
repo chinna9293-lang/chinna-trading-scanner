@@ -13,6 +13,7 @@ const NTFY_TOPIC = process.env.NTFY_TOPIC || 'chinna-trading-alerts';
 
 const STOCKS = ['GOOGL', 'CRM', 'META', 'ORCL', 'COST'];
 const BASE_URL = 'https://paper-api.alpaca.markets';
+const DATA_URL = 'https://data.alpaca.markets';
 
 const headers = {
   'APCA-API-KEY-ID': ALPACA_KEY,
@@ -64,7 +65,7 @@ function calculateOrderFlow(bars) {
 // 📈 Fetch 1-minute bars from Alpaca
 async function fetch1MinBars(symbol, limit = 50) {
   return new Promise((resolve, reject) => {
-    const url = `${BASE_URL}/v2/stocks/${symbol}/bars?timeframe=1Min&limit=${limit}&adjustment=raw`;
+    const url = `${DATA_URL}/v2/stocks/${symbol}/bars?timeframe=1Min&limit=${limit}&adjustment=raw`;
 
     https.get(url, { headers }, (res) => {
       let data = '';
@@ -85,7 +86,7 @@ async function fetch1MinBars(symbol, limit = 50) {
 // 📊 Fetch current quote
 async function fetchQuote(symbol) {
   return new Promise((resolve, reject) => {
-    const url = `${BASE_URL}/v2/stocks/${symbol}/quotes`;
+    const url = `${DATA_URL}/v2/stocks/${symbol}/quotes/latest`;
 
     https.get(url, { headers }, (res) => {
       let data = '';
