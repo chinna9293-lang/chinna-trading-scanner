@@ -993,29 +993,43 @@ async function fallbackKrakenPoll() {
 
 function startAlpacaStream() {
   if (_alpacaWS) { try { _alpacaWS.close(); } catch {} }
+  console.log('🔌 Connecting to Alpaca WebSocket...');
   const ws = new WebSocket('wss://stream.data.alpaca.markets/v2/iex');
   _alpacaWS = ws;
   ws.onopen = () => {
+    console.log('✓ WebSocket connected, authenticating...');
     ws.send(JSON.stringify({ action:'auth', key: AH['APCA-API-KEY-ID'], secret: AH['APCA-API-SECRET-KEY'] }));
   };
   ws.onmessage = (e) => {
-    const msgs = JSON.parse(e.data);
-    msgs.forEach(msg => {
-      if (msg.T === 'success' && msg.msg === 'authenticated') {
-        ws.send(JSON.stringify({ action:'subscribe', trades: STOCKS, quotes: [] }));
-      }
-      if (msg.T === 't' && msg.S && msg.p) {
-        onPrice(msg.S, msg.p);
-        sLive = true; updateBadge(); updateSessionBadge();
-      }
-    });
+    try {
+      const msgs = JSON.parse(e.data);
+      msgs.forEach(msg => {
+        if (msg.T === 'success' && msg.msg === 'authenticated') {
+          console.log('✓ Authenticated! Subscribing to stocks...');
+          ws.send(JSON.stringify({ action:'subscribe', trades: STOCKS, quotes: [] }));
+        }
+        if (msg.T === 'error') {
+          console.error('❌ Alpaca error:', msg.msg);
+        }
+        if (msg.T === 't' && msg.S && msg.p) {
+          console.log(`📈 ${msg.S}: $${msg.p}`);
+          onPrice(msg.S, msg.p);
+          sLive = true; updateBadge(); updateSessionBadge();
+        }
+      });
+    } catch (e) {
+      console.error('Message parse error:', e);
+    }
   };
   ws.onclose = () => {
+    console.log('⚠️ WebSocket closed, reconnecting...');
     sLive = false; updateBadge();
-    // Always reconnect (24/7 trading support)
     setTimeout(startAlpacaStream, 4000);
   };
-  ws.onerror = () => ws.close();
+  ws.onerror = (err) => {
+    console.error('❌ WebSocket error:', err);
+    ws.close();
+  };
 }
 
 // Snapshot fallback for closed market / pre-market seed prices
