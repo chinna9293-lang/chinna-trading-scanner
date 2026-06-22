@@ -1454,11 +1454,17 @@ function generateDemoChart(sym) {
   return bars;
 }
 
-// 🎯 PROFESSIONAL SCALPER FEATURES
+// 🎯 PROFESSIONAL SCALPER FEATURES - TIER 1 & 2
 let bidAsk = {}, scalpSignals = {};
 let OPEN_POSITIONS = {}, // {sym: {qty, entryPrice, entryTime, pl}}
     TODAY_TRADES = [],    // array of all fills
     ACCOUNT_STATE = { equity: 10000, cash: 10000, bp: 50000, openPL: 0 };
+
+// TIER 2: Advanced Features
+let TIME_AND_SALES = {}, // {sym: [{ price, qty, side, time }]}
+    VWAP_DATA = {},       // {sym: vwap_value}
+    PIVOT_POINTS = {},    // {sym: {pivot, r1, r2, s1, s2}}
+    ORDER_FLOW = {};      // {sym: {delta, imbalance}}
 
 // 📊 FETCH REAL BID/ASK FROM ALPACA
 async function fetchRealQuote(sym) {
@@ -1521,6 +1527,65 @@ function updateAccountDisplay() {
       </div>
     `;
   }
+}
+
+// 📊 TIER 2: CALCULATE VWAP (Volume Weighted Average Price)
+function calculateVWAP(bars) {
+  if (!bars || bars.length < 2) return null;
+  let cumVolPrice = 0, cumVol = 0;
+  bars.forEach(b => {
+    const tp = (b.h + b.l + b.c) / 3;
+    cumVolPrice += tp * b.v;
+    cumVol += b.v;
+  });
+  return cumVol > 0 ? cumVolPrice / cumVol : null;
+}
+
+// 📊 TIER 2: CALCULATE PIVOT POINTS (Daily support/resistance)
+function calculatePivots(open, high, low, close) {
+  const pivot = (high + low + close) / 3;
+  const r1 = (2 * pivot) - low;
+  const r2 = pivot + (high - low);
+  const s1 = (2 * pivot) - high;
+  const s2 = pivot - (high - low);
+  return { pivot, r1, r2, s1, s2 };
+}
+
+// 📊 TIER 2: CALCULATE ORDER FLOW (Cumulative delta)
+function calculateOrderFlow(bars) {
+  if (!bars || bars.length < 2) return { delta: 0, imbalance: 0 };
+  let cumDelta = 0;
+  let buyVol = 0, sellVol = 0;
+
+  for (let i = 0; i < bars.length; i++) {
+    const bar = bars[i];
+    // Simplistic: close > open = buying, close < open = selling
+    if (bar.c > bar.o) {
+      cumDelta += bar.v;
+      buyVol += bar.v;
+    } else if (bar.c < bar.o) {
+      cumDelta -= bar.v;
+      sellVol += bar.v;
+    }
+  }
+
+  const totalVol = buyVol + sellVol;
+  const imbalance = totalVol > 0 ? ((buyVol - sellVol) / totalVol * 100).toFixed(1) : 0;
+
+  return { delta: cumDelta, imbalance: imbalance, buyVol, sellVol };
+}
+
+// 📊 TIER 2: TRACK TIME & SALES (Real-time trade tape)
+function addToTimeSales(sym, price, qty, side) {
+  if (!TIME_AND_SALES[sym]) TIME_AND_SALES[sym] = [];
+  TIME_AND_SALES[sym].unshift({
+    price: price,
+    qty: qty,
+    side: side,
+    time: new Date()
+  });
+  // Keep last 50 trades only
+  if (TIME_AND_SALES[sym].length > 50) TIME_AND_SALES[sym].pop();
 }
 
 function playAlert(type = 'signal') {
@@ -1711,6 +1776,11 @@ function analyse(bars) {
   const hs = bars.map(b => b.h), ls = bars.map(b => b.l);
   const n = cls.length;
 
+  // 📊 TIER 2: Calculate VWAP, Pivots, Order Flow
+  const vwap = calculateVWAP(bars);
+  const pivots = calculatePivots(bars[0].o, Math.max(...hs), Math.min(...ls), cls[n-1]);
+  const orderFlow = calculateOrderFlow(bars);
+
   // EMAs
   let e9 = cls[0], e21 = cls[0], e50 = cls[0], e12 = cls[0], e26 = cls[0];
   for (let i = 1; i < n; i++) {
@@ -1816,7 +1886,11 @@ function analyse(bars) {
     hhhl: n>=4 && hs[n-1]>hs[n-2] && hs[n-2]>hs[n-3] && ls[n-1]>ls[n-2],
     aboveVwap: last.c>vwap, priceUp: n>=4 && cls[n-1]>cls[n-4],
     vwap:+vwap.toFixed(2), sH:+sH.toFixed(2), sL:+sL.toFixed(2),
-    price:+last.c, chg1h:+(((cls[n-1]-cls[n-1-cN])/cls[n-1-cN])*100).toFixed(2), n
+    price:+last.c, chg1h:+(((cls[n-1]-cls[n-1-cN])/cls[n-1-cN])*100).toFixed(2), n,
+    // 📊 TIER 2: Add VWAP, Pivots, Order Flow
+    vwap_t2: vwap ? +vwap.toFixed(2) : null,
+    pivots: pivots,
+    orderFlow: orderFlow
   };
 }
 
@@ -3149,14 +3223,9 @@ async function startAll() {
     STOCKS.forEach((sym, i) => setTimeout(() => fetchRealQuote(sym), i * 100));
   }, 5000)); // Refresh bid/ask every 5s
 
-  loadNews();
-  _timers.push(setInterval(loadNews, 300000));      // refresh news every 5 min
+  // Removed: News, Political Trades, Trump Posts (not for scalpers - too much noise)
   await loadAccount();
   await loadTickers();
-  loadPoliticalTrades();
-  _timers.push(setInterval(loadPoliticalTrades, 30 * 60 * 1000));
-  loadTrumpPosts();
-  _timers.push(setInterval(loadTrumpPosts, 5 * 60 * 1000)); // refresh every 5 min
 }
 
 if (sessionStorage.getItem('ct') === '1') startAll();
