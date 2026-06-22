@@ -528,6 +528,36 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(50,60,100,.7);color:#e2e8f0;v
   #account-display{font-size:8px !important;}
   .bid-ask{font-size:9px !important;padding:6px !important;}
   .chart-legend{font-size:8px !important;}
+
+  /* Compact scalper info on tiny screens */
+  .scalper-info > div > div{padding:6px !important;font-size:9px !important;}
+  .scalper-controls{gap:3px !important;margin-top:6px !important;}
+
+  /* Tighter trade summary */
+  #trade-summary{padding:6px !important;margin-bottom:6px !important;}
+  #trade-summary > div{padding:6px !important;gap:4px !important;}
+}
+
+/* 📱 ENSURE TOUCH-FRIENDLY BUTTONS EVERYWHERE */
+button, input[type="button"], .scalper-btn, .chip, .sbtn {
+  min-height: 44px !important;
+  min-width: 44px !important;
+  padding: 8px 12px !important;
+  font-size: clamp(10px, 2vw, 14px) !important;
+  line-height: 1.4 !important;
+}
+
+@media(max-width:768px) {
+  button, input[type="button"], .scalper-btn, .chip, .sbtn {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    touch-action: manipulation;
+  }
+
+  /* Ensure text doesn't get cut off */
+  .scalper-btn, button, .chip {
+    line-height: 1.2 !important;
+  }
 }
 </style>
 <!-- Lightweight Charts (interactive candlestick) -->
@@ -2678,8 +2708,8 @@ async function renderChartPanel(sym, tf) {
     '<button onclick="renderChartPanel(\'' + sym + '\',currentTf)" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#cbd5e1;padding:5px 10px;border-radius:6px;font-size:10px;cursor:pointer">↻</button>' +
     '</div>' +
     '</div>' +
-    // Professional Scalper Controls
-    '<div style="margin-top:16px;padding:12px;background:rgba(99,102,241,.08);border-radius:8px;border:1px solid rgba(99,102,241,.2)">' +
+    // Professional Scalper Controls (Mobile-responsive)
+    '<div style="margin-top:12px;padding:8px;background:rgba(99,102,241,.08);border-radius:8px;border:1px solid rgba(99,102,241,.2);font-size:clamp(9px,2vw,12px)">' +
     // Bid/Ask Display
     '<div class="bid-ask" style="margin-bottom:12px">' +
       (bidAsk[sym] ?
