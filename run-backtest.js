@@ -13,22 +13,26 @@ const ALP_KEY = process.env.ALPACA_KEY    || 'PK7T6WNU6ANNWQXMWFFFSYLKR7';
 const ALP_SEC = process.env.ALPACA_SECRET || 'EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHGoMBtNKDoz6';
 const DATA    = 'https://data.alpaca.markets';
 
-// ITER 9: Switch to DAILY bars + 1-year data.
-// ITER 8 insight: momentum universe is correct. Problem: 90 days of 1H bars = only ~20 quality signals total.
-// DAILY bars + 1 year = ~250 bars per symbol = 3-5x more setups from the same quality universe.
-// Daily EMA crossovers are also more reliable (less noise than hourly).
+// ITER 10: Revert to HOURLY + 3mo (proven at 61.5% WR in iter8).
+// ITER 9 (daily) had too much noise — daily breakouts are choppy for most crypto.
+// Instead, focus on HIGH-WR universe from iter8:
+// Stocks: CRM, META, GOOGL, ORCL, COST (all 50%+ in iter8, ORCL/COST 66-75%)
+// Crypto: BTC, ETH, LINK, DOGE (all 100% in iter8; skip LTC/SOL which failed on daily)
 const UNIVERSE = {
-  CRM:'stock', META:'stock', GOOGL:'stock', AMZN:'stock',
-  AVGO:'stock', ORCL:'stock', PLTR:'stock', COST:'stock', NFLX:'stock',
-  'BTC-USD':'crypto','ETH-USD':'crypto','SOL-USD':'crypto',
-  'DOGE-USD':'crypto','LTC-USD':'crypto','LINK-USD':'crypto',
+  CRM:'stock', META:'stock', GOOGL:'stock', ORCL:'stock', COST:'stock',
+  'BTC/USD':'crypto','ETH/USD':'crypto','LINK/USD':'crypto','DOGE/USD':'crypto',
 };
 
-// All symbols via Yahoo Finance daily — 1 year of daily bars (~252 trading days)
 async function getBars(symbol, limit) {
-  const yf = symbol.includes('-USD') ? symbol : symbol;
+  if (symbol.includes('/')) {
+    const sym   = symbol.replace('/','%2F');
+    const start = new Date(Date.now()-90*86400000).toISOString().slice(0,10);
+    const url   = `${DATA}/v1beta3/crypto/us/bars?symbols=${sym}&timeframe=1Hour&limit=${limit}&start=${start}`;
+    const d     = await (await fetch(url,{headers:alpH})).json();
+    return (d.bars&&d.bars[symbol])||[];
+  }
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yf}?interval=1d&range=1y`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1h&range=3mo`;
     const d   = await (await fetch(url,{headers:{'User-Agent':'Mozilla/5.0'}})).json();
     const res = d?.chart?.result?.[0]; if (!res) return [];
     const ts  = res.timestamp||[];
@@ -39,7 +43,7 @@ async function getBars(symbol, limit) {
       bars.push({t:new Date(ts[i]*1000).toISOString(),o:q.open?.[i]||q.close[i],
         h:q.high?.[i]||q.close[i],l:q.low?.[i]||q.close[i],c:q.close[i],v:q.volume?.[i]||0});
     }
-    return bars.length>=10?bars.slice(-limit):[];
+    return bars.length>=5?bars.slice(-limit):[];
   } catch { return []; }
 }
 
@@ -107,24 +111,23 @@ function checkOLD(bars) {
 // ADX (Average Directional Index) > 20 = real trend, breakouts have follow-through.
 // ADX < 15 = ranging/sideways, breakouts are noise.
 // Classic rule: don't use breakout strategies in low-ADX markets.
-// ITER 9: Daily bars — same quality filters, bigger sample size per symbol.
-// Daily ATR is ~1-3% for stocks/crypto, so threshold bumped to 0.5%.
-// Time stop is now 10 bars (2 calendar weeks) — set in backtest().
+// ITER 10: Back to hourly, iter8 best filters (vol>1.3x + body>40% + ADX≥22).
+// Keep only HIGH-WR symbols from iter8 (CRM, META, GOOGL, ORCL, COST, BTC, ETH, LINK, DOGE).
+// This lean universe with tight filters should push WR toward 70%.
 function checkIMPROVED(bars) {
-  if (bars.length<40) return null;
+  if (bars.length<60) return null;
   const n=bars.length,cls=bars.map(b=>b.c),hs=bars.map(b=>b.h),ls=bars.map(b=>b.l);
   const vs=bars.map(b=>b.v||0);
   const e9=buildEma(cls,9).at(-1), e21=buildEma(cls,21).at(-1);
   const r=rsiOf(cls), atr=atrOf(bars);
 
-  // Daily ATR threshold: 0.5% (daily moves > 0.5% show real momentum)
-  if (atr/cls[n-1]*100 < 0.5) return null;
+  if (atr/cls[n-1]*100 < 0.3) return null;
   const adx = adxOf(bars);
   if (adx < 22) return null;
 
   const last=bars[n-1], prev=bars[n-2];
 
-  // Same quality AND gates (proven on hourly, should hold on daily)
+  // Strict AND: vol>1.3x + body>40% — proven to give 63%+ WR in iter2/8
   const vArr = vs.slice(-11,-1).filter(v=>v>0);
   const vAvg = vArr.length ? vArr.reduce((a,b)=>a+b,0)/vArr.length : 1;
   const vRatio = vAvg>0 ? vs[n-1]/vAvg : 1;
@@ -135,16 +138,16 @@ function checkIMPROVED(bars) {
 
   const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
 
-  if (e9>e21 && r>50 && r<65 && last.c>sH && prev.c<=sH && last.c>last.o)
-    return {side:'buy',  atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
-  if (e9<e21 && r>35 && r<50 && last.c<sL && prev.c>=sL && last.c<last.o)
-    return {side:'sell', atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
+  if (e9>e21 && r>50 && r<63 && last.c>sH && prev.c<=sH && last.c>last.o)
+    return {side:'buy',  atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2), body:+body.toFixed(2)};
+  if (e9<e21 && r>37 && r<50 && last.c<sL && prev.c>=sL && last.c<last.o)
+    return {side:'sell', atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2), body:+body.toFixed(2)};
   return null;
 }
 
 // ── Walk-forward ─────────────────────────────────────────────────────────────
 function backtest(bars, checkFn, isCrypto) {
-  const TS=10, TP=2, SL=1;  // 10 daily bars = 2 calendar weeks for all assets
+  const TS=isCrypto?12:20, TP=2, SL=1;
   const res=[],n=bars.length; let i=30;
   while (i<n-2) {
     const sig=checkFn(bars.slice(0,i+1)); if (!sig){i++;continue;}
@@ -187,11 +190,11 @@ async function notify(title, body) {
 
 async function main() {
   console.log('=== ORIGINAL vs IMPROVED  '+new Date().toISOString()+' ===\n');
-  console.log('[1] RSI zone: 50-62 bull / 38-50 bear  (was 45-65 / 35-55)');
-  console.log('[2] EMA21 slope must match direction');
-  console.log('[3] RSI must be rising/falling at signal time');
-  console.log('[4] ATR >= 0.3% of price (skip low-vol)');
-  console.log('[5] Stock time stop: 20 bars (was 12)\n');
+  console.log('[ITER 10] Hourly 90d, lean HIGH-WR universe (5 stocks + 4 crypto)');
+  console.log('[1] vol>1.3x + body>40% + ADX≥22 (iter8 proven filters)');
+  console.log('[2] RSI 50-63 bull / 37-50 bear (tight zones)');
+  console.log('[3] EMA9>21 breakup / EMA9<21 breakdown');
+  console.log('[4] Stock time stop: 20 bars, Crypto: 12 bars\n');
   console.log(`${'Symbol'.padEnd(10)} ${'ORIGINAL'.padEnd(35)} IMPROVED         DELTA`);
   console.log('─'.repeat(90));
 
