@@ -1012,15 +1012,8 @@ function startAlpacaStream() {
   };
   ws.onclose = () => {
     sLive = false; updateBadge();
-    // During market hours, reconnect; outside hours fall back to snapshot poll
-    const s = getMarketSession();
-    if (s === 'open' || s === 'premarket' || s === 'afterhours') {
-      setTimeout(startAlpacaStream, 4000);
-    } else {
-      // Market closed — poll snapshots every 30s for last price
-      pollSnapshot();
-      setTimeout(startAlpacaStream, 30000);
-    }
+    // Always reconnect (24/7 trading support)
+    setTimeout(startAlpacaStream, 4000);
   };
   ws.onerror = () => ws.close();
 }
@@ -1057,11 +1050,10 @@ function getMarketSession() {
   const now = new Date();
   const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
   const day = et.getDay(), h = et.getHours(), m = et.getMinutes(), hm = h * 60 + m;
-  if (day === 0 || day === 6) return 'closed';
-  if (hm >= 240 && hm < 570) return 'premarket';
-  if (hm >= 570 && hm < 960) return 'open';
-  if (hm >= 960 && hm < 1200) return 'afterhours';
-  return 'closed';
+  if (hm >= 240 && hm < 570) return 'premarket';      // 4 AM - 9:30 AM
+  if (hm >= 570 && hm < 960) return 'open';           // 9:30 AM - 4 PM
+  if (hm >= 960 && hm < 1200) return 'afterhours';    // 4 PM - 8 PM
+  return 'afterhours'; // 24/7 trading: show after-hours outside market hours
 }
 
 function updateSessionBadge() {
