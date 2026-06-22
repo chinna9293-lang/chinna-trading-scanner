@@ -13,11 +13,12 @@ const ALP_KEY = process.env.ALPACA_KEY    || 'PK7T6WNU6ANNWQXMWFFFSYLKR7';
 const ALP_SEC = process.env.ALPACA_SECRET || 'EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHGoMBtNKDoz6';
 const DATA    = 'https://data.alpaca.markets';
 
-// ITER 20: 7-stock universe: CRM, META, GOOGL, ORCL, COST + TSLA, NFLX.
-// BTC-USD was 50% WR (drag). Try TSLA + NFLX for volume toward 20+ trades.
+// ITER 21: 9-stock momentum universe (from iter8 baseline).
+// Loosen filters dramatically: ADX>20, vol>1.1x, body>30%, RSI 48-65 / 35-52.
+// Goal: push from 14T@71% toward 20T@70%+.
 const UNIVERSE = {
-  CRM:'stock', META:'stock', GOOGL:'stock', ORCL:'stock', COST:'stock',
-  TSLA:'stock', NFLX:'stock',
+  CRM:'stock', META:'stock', GOOGL:'stock', AMZN:'stock',
+  AVGO:'stock', ORCL:'stock', PLTR:'stock', COST:'stock', NFLX:'stock',
 };
 
 async function getBars(symbol, limit) {
@@ -101,7 +102,8 @@ function checkOLD(bars) {
 // ADX (Average Directional Index) > 20 = real trend, breakouts have follow-through.
 // ADX < 15 = ranging/sideways, breakouts are noise.
 // Classic rule: don't use breakout strategies in low-ADX markets.
-// ITER 13: 5-stock, loosen more: ADX>22, vol>1.3x, RSI 50-63 / 37-50.
+// ITER 21: Aggressive loosening for volume. ADX>20, vol>1.1x, body>30%, RSI 48-65 / 35-52.
+// Focus on getting 20+ trades at 70%+ WR across broader 9-stock universe.
 function checkIMPROVED(bars) {
   if (bars.length<60) return null;
   const n=bars.length,cls=bars.map(b=>b.c),hs=bars.map(b=>b.h),ls=bars.map(b=>b.l);
@@ -111,25 +113,25 @@ function checkIMPROVED(bars) {
 
   if (atr/cls[n-1]*100 < 0.3) return null;
   const adx = adxOf(bars);
-  if (adx < 21) return null;  // Loosened from 22
+  if (adx < 20) return null;  // Loosened to 20
 
   const last=bars[n-1], prev=bars[n-2];
 
-  // Strict AND: vol>1.2x + body>35%
+  // Loosen AND: vol>1.1x + body>30%
   const vArr = vs.slice(-11,-1).filter(v=>v>0);
   const vAvg = vArr.length ? vArr.reduce((a,b)=>a+b,0)/vArr.length : 1;
   const vRatio = vAvg>0 ? vs[n-1]/vAvg : 1;
-  if (vRatio < 1.2) return null;  // Loosened from 1.25
+  if (vRatio < 1.1) return null;  // Loosened to 1.1
   const range = (last.h-last.l)||0.001;
   const body  = Math.abs(last.c-last.o)/range;
-  if (body < 0.35) return null;  // Loosened from 0.40
+  if (body < 0.30) return null;  // Loosened to 0.30
 
   const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
 
-  // RSI 50-63 / 37-50
-  if (e9>e21 && r>50 && r<63 && last.c>sH && prev.c<=sH && last.c>last.o)
+  // Wider RSI: 48-65 bull / 35-52 bear
+  if (e9>e21 && r>48 && r<65 && last.c>sH && prev.c<=sH && last.c>last.o)
     return {side:'buy',  atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
-  if (e9<e21 && r>37 && r<50 && last.c<sL && prev.c>=sL && last.c<last.o)
+  if (e9<e21 && r>35 && r<52 && last.c<sL && prev.c>=sL && last.c<last.o)
     return {side:'sell', atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
   return null;
 }
@@ -179,8 +181,8 @@ async function notify(title, body) {
 
 async function main() {
   console.log('=== ORIGINAL vs IMPROVED  '+new Date().toISOString()+' ===\n');
-  console.log('[ITER 20] Hourly 180d, 7-stock (CRM/META/GOOGL/ORCL/COST/TSLA/NFLX)');
-  console.log('[1] Replace BTC with TSLA+NFLX for 20+ trades at 70%+ WR');
+  console.log('[ITER 21] Hourly 180d, 9-stock momentum, aggressive loosen');
+  console.log('[1] ADX>20 + vol>1.1x + body>30% + RSI 48-65/35-52 → target 20T@70%+');
   console.log('[2] RSI 50-63 bull / 37-50 bear');
   console.log('[3] EMA9>21 breakup / EMA9<21 breakdown\n');
   console.log(`${'Symbol'.padEnd(10)} ${'ORIGINAL'.padEnd(35)} IMPROVED         DELTA`);
