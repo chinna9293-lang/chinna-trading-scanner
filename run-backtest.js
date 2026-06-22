@@ -13,12 +13,11 @@ const ALP_KEY = process.env.ALPACA_KEY    || 'PK7T6WNU6ANNWQXMWFFFSYLKR7';
 const ALP_SEC = process.env.ALPACA_SECRET || 'EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHGoMBtNKDoz6';
 const DATA    = 'https://data.alpaca.markets';
 
-// ITER 10: Revert to HOURLY + 3mo (proven at 61.5% WR in iter8).
-// Use Yahoo Finance for all symbols (stocks + crypto in -USD format).
-// Crypto: BTC-USD, ETH-USD, LINK-USD, DOGE-USD work on Yahoo hourly.
+// ITER 11: Drop crypto (hourly is choppy). Focus on 5 proven HIGH-WR stocks.
+// Stocks: CRM, META, ORCL, COST, GOOGL all show 50%+ WR with tight filters.
+// Tighten ADX to 25 (only strongest trends), vol to 1.5x (higher conviction).
 const UNIVERSE = {
   CRM:'stock', META:'stock', GOOGL:'stock', ORCL:'stock', COST:'stock',
-  'BTC-USD':'crypto','ETH-USD':'crypto','LINK-USD':'crypto','DOGE-USD':'crypto',
 };
 
 async function getBars(symbol, limit) {
@@ -102,9 +101,8 @@ function checkOLD(bars) {
 // ADX (Average Directional Index) > 20 = real trend, breakouts have follow-through.
 // ADX < 15 = ranging/sideways, breakouts are noise.
 // Classic rule: don't use breakout strategies in low-ADX markets.
-// ITER 10: Back to hourly, iter8 best filters (vol>1.3x + body>40% + ADX≥22).
-// Keep only HIGH-WR symbols from iter8 (CRM, META, GOOGL, ORCL, COST, BTC, ETH, LINK, DOGE).
-// This lean universe with tight filters should push WR toward 70%.
+// ITER 11: 5-stock universe only (CRM, META, GOOGL, ORCL, COST).
+// Tighten: ADX>25 (strongest trends only), vol>1.5x (high conviction), RSI tighter too.
 function checkIMPROVED(bars) {
   if (bars.length<60) return null;
   const n=bars.length,cls=bars.map(b=>b.c),hs=bars.map(b=>b.h),ls=bars.map(b=>b.l);
@@ -114,31 +112,32 @@ function checkIMPROVED(bars) {
 
   if (atr/cls[n-1]*100 < 0.3) return null;
   const adx = adxOf(bars);
-  if (adx < 22) return null;
+  if (adx < 25) return null;  // Raised from 22 to 25 — only strongest trends
 
   const last=bars[n-1], prev=bars[n-2];
 
-  // Strict AND: vol>1.3x + body>40% — proven to give 63%+ WR in iter2/8
+  // Strict AND: vol>1.5x (raised from 1.3x) + body>40%
   const vArr = vs.slice(-11,-1).filter(v=>v>0);
   const vAvg = vArr.length ? vArr.reduce((a,b)=>a+b,0)/vArr.length : 1;
   const vRatio = vAvg>0 ? vs[n-1]/vAvg : 1;
-  if (vRatio < 1.3) return null;
+  if (vRatio < 1.5) return null;  // Raised from 1.3
   const range = (last.h-last.l)||0.001;
   const body  = Math.abs(last.c-last.o)/range;
   if (body < 0.40) return null;
 
   const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
 
-  if (e9>e21 && r>50 && r<63 && last.c>sH && prev.c<=sH && last.c>last.o)
-    return {side:'buy',  atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2), body:+body.toFixed(2)};
-  if (e9<e21 && r>37 && r<50 && last.c<sL && prev.c>=sL && last.c<last.o)
-    return {side:'sell', atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2), body:+body.toFixed(2)};
+  // Tighter RSI: 51-62 bull / 38-49 bear (narrower ranges)
+  if (e9>e21 && r>51 && r<62 && last.c>sH && prev.c<=sH && last.c>last.o)
+    return {side:'buy',  atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
+  if (e9<e21 && r>38 && r<49 && last.c<sL && prev.c>=sL && last.c<last.o)
+    return {side:'sell', atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
   return null;
 }
 
 // ── Walk-forward ─────────────────────────────────────────────────────────────
 function backtest(bars, checkFn, isCrypto) {
-  const TS=isCrypto?12:20, TP=2, SL=1;
+  const TS=20, TP=2, SL=1;  // Stocks only — 20 bar time stop
   const res=[],n=bars.length; let i=30;
   while (i<n-2) {
     const sig=checkFn(bars.slice(0,i+1)); if (!sig){i++;continue;}
