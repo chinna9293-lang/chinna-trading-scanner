@@ -541,10 +541,46 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,30,46,.7);color:#cbd5e1;ve
 
     <!-- ── RIGHT: CHART & ANALYSIS ── -->
     <div class="app-chart" id="app-chart">
-      <div class="chart-empty" id="chart-empty">
-        <div style="font-size:44px">📊</div>
-        <div style="font-size:14px;color:#475569;text-align:center;line-height:1.7">Select any ticker from the list<br>to see live chart &amp; signal analysis</div>
-        <div style="font-size:11px;color:#334155;text-align:center;margin-top:4px">Canvas chart · EMA9/21 · Pattern detection · BUY/SELL signals</div>
+      <div class="chart-empty" id="chart-empty" style="overflow-y:auto;padding:40px;display:flex;flex-direction:column;gap:24px">
+        <div style="text-align:center">
+          <div style="font-size:48px;margin-bottom:8px">📊</div>
+          <div style="font-size:16px;color:#e2e8f0;font-weight:700">Live Trading Chart</div>
+          <div style="font-size:12px;color:#475569;margin-top:4px">Select a ticker to see real-time chart & signal analysis</div>
+        </div>
+
+        <div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(139,92,246,.05));border:1px solid rgba(99,102,241,.2);border-radius:12px;padding:16px;line-height:1.6">
+          <div style="font-size:12px;font-weight:700;color:#a5b4fc;margin-bottom:8px">📈 Chart Indicators Explained:</div>
+          <div style="font-size:11px;color:#cbd5e1">
+            <div style="margin:6px 0"><span style="color:#22c55e;font-weight:600">EMA9</span> = Fast moving average (green line) - Shows short-term trend direction</div>
+            <div style="margin:6px 0"><span style="color:#fb923c;font-weight:600">EMA21</span> = Slow moving average (orange line) - Confirms longer-term trend</div>
+            <div style="margin:6px 0"><span style="color:rgba(99,102,241,.7);font-weight:600">Support/Resistance</span> = Dashed lines showing price levels where reversals may occur</div>
+            <div style="margin:6px 0"><span style="color:#22c55e;font-weight:600">TP (Green dashed)</span> = Take Profit target for buy signals</div>
+            <div style="margin:6px 0"><span style="color:#ef4444;font-weight:600">SL (Red dashed)</span> = Stop Loss level to protect your position</div>
+          </div>
+        </div>
+
+        <div style="background:linear-gradient(135deg,rgba(168,85,247,.1),rgba(139,92,246,.05));border:1px solid rgba(168,85,247,.2);border-radius:12px;padding:16px;line-height:1.6">
+          <div style="font-size:12px;font-weight:700;color:#d8b4fe;margin-bottom:8px">📊 Signal Indicators:</div>
+          <div style="font-size:11px;color:#cbd5e1">
+            <div style="margin:6px 0"><span style="color:#fbbf24;font-weight:600">RSI (Relative Strength Index)</span> = Momentum indicator (0-100 scale)</div>
+            <div style="margin:8px 0;padding:8px;background:rgba(34,197,94,.1);border-left:2px solid #22c55e;border-radius:4px">RSI <span style="color:#22c55e">below 37</span> = Oversold (Potential BUY)</div>
+            <div style="margin:8px 0;padding:8px;background:rgba(251,191,36,.1);border-left:2px solid #fbbf24;border-radius:4px">RSI <span style="color:#fbbf24">37-63</span> = Neutral (Consolidating)</div>
+            <div style="margin:8px 0;padding:8px;background:rgba(239,68,68,.1);border-left:2px solid #ef4444;border-radius:4px">RSI <span style="color:#ef4444">above 63</span> = Overbought (Potential SELL)</div>
+          </div>
+        </div>
+
+        <div style="background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(34,197,94,.05));border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:16px;line-height:1.6">
+          <div style="font-size:12px;font-weight:700;color:#86efac;margin-bottom:8px">🎯 Trading Direction Guide:</div>
+          <div style="font-size:11px;color:#cbd5e1">
+            <div style="margin:6px 0"><span style="color:#22c55e;font-weight:600">↑ BULLISH</span> = EMA9 above EMA21, strong uptrend signal</div>
+            <div style="margin:6px 0"><span style="color:#ef4444;font-weight:600">↓ BEARISH</span> = EMA9 below EMA21, strong downtrend signal</div>
+            <div style="margin:6px 0"><span style="color:#94a3b8;font-weight:600">→ NEUTRAL</span> = EMAs close together, no clear trend (waiting phase)</div>
+          </div>
+        </div>
+
+        <div style="text-align:center;font-size:11px;color:#475569;border-top:1px solid rgba(99,102,241,.1);padding-top:16px">
+          🖱️ <strong>Scroll to zoom</strong> · 🖐️ <strong>Drag to pan</strong> · 📱 <strong>Tap ticker to update</strong>
+        </div>
       </div>
     </div>
 
