@@ -458,6 +458,77 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(50,60,100,.7);color:#e2e8f0;v
   .sidebar-metrics{grid-template-columns:repeat(2,1fr);}
   #alert-bell span,#scalp-btn span{display:none;}
 }
+
+/* 📱 MOBILE RESPONSIVE - SCALPER CONTROLS */
+@media(max-width:768px){
+  /* Scalper controls - stack vertically */
+  .scalper-controls{flex-direction:column !important;gap:6px !important;}
+  .scalper-btn{min-width:100% !important;width:100% !important;padding:12px 10px !important;font-size:12px !important;height:44px !important;}
+
+  /* Bid/ask display - full width */
+  .bid-ask{width:100% !important;padding:10px !important;font-size:11px !important;display:flex !important;flex-direction:column !important;gap:8px !important;}
+
+  /* Position sizing - make input larger */
+  .scalper-info{display:flex !important;flex-direction:column !important;gap:8px !important;padding:10px !important;}
+  .scalper-info input{width:100% !important;height:40px !important;padding:8px !important;font-size:14px !important;}
+  .scalper-info button{width:100% !important;height:40px !important;padding:8px !important;}
+
+  /* Pivot levels - stack 2x3 grid */
+  .scalper-info > div:last-child{display:grid !important;grid-template-columns:1fr 1fr !important;gap:6px !important;}
+  .scalper-info > div:last-child > div{padding:8px !important;font-size:10px !important;}
+
+  /* Account display - stack vertically */
+  #account-display{display:flex !important;flex-direction:column !important;gap:4px !important;font-size:10px !important;margin-left:0 !important;line-height:1.3 !important;}
+
+  /* Chart panel - responsive */
+  .chart-panel-hdr{gap:8px !important;padding:8px !important;}
+  .chart-sym{font-size:16px !important;}
+  .chart-title{font-size:11px !important;}
+  .chart-meta{font-size:9px !important;}
+
+  /* Buttons text - smaller on mobile */
+  .scalper-btn{font-size:11px !important;font-weight:600 !important;border-radius:6px !important;}
+  .scalper-btn.buy{background:#22c55e !important;}
+  .scalper-btn.sell{background:#ef4444 !important;}
+
+  /* Trade summary - responsive */
+  #trade-summary{padding:8px !important;font-size:10px !important;margin-bottom:8px !important;}
+  #trade-summary > div{gap:6px !important;padding:8px !important;}
+
+  /* Legend - reduce padding */
+  .chart-legend{padding:8px !important;gap:6px !important;font-size:9px !important;}
+  .legend-item{font-size:9px !important;}
+
+  /* RSI wrap - reduce height */
+  .rsi-wrap{margin-bottom:8px !important;}
+  #rsi-container{height:60px !important;}
+}
+
+@media(max-width:600px){
+  /* Extra tight for small phones */
+  .scalper-btn{font-size:10px !important;padding:10px 8px !important;height:40px !important;}
+  .bid-ask{padding:8px !important;gap:6px !important;}
+  .chart-sym{font-size:14px !important;}
+
+  /* Account display - even smaller */
+  #account-display{font-size:9px !important;}
+
+  /* Position sizing input */
+  .scalper-info input{height:36px !important;font-size:12px !important;}
+
+  /* Remove some spacing */
+  .scalper-controls{gap:4px !important;}
+  .mcard{padding:10px !important;margin:4px 0 !important;}
+}
+
+@media(max-width:480px){
+  /* Very small phones */
+  .scalper-btn{font-size:9px !important;padding:8px 6px !important;height:36px !important;}
+  .chart-sym{font-size:12px !important;}
+  #account-display{font-size:8px !important;}
+  .bid-ask{font-size:9px !important;padding:6px !important;}
+  .chart-legend{font-size:8px !important;}
+}
 </style>
 <!-- Lightweight Charts (interactive candlestick) -->
 <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
@@ -1519,13 +1590,27 @@ function updateAccountDisplay() {
   const acctEl = document.getElementById('account-display');
   if (acctEl) {
     const plColor = ACCOUNT_STATE.openPL >= 0 ? '#22c55e' : '#ef4444';
-    acctEl.innerHTML = `
-      <div style="display:flex;gap:16px;font-size:11px;align-items:center">
-        <div><span style="color:#94a3b8">Equity</span> <span style="color:#e2e8f0;font-weight:700">$${ACCOUNT_STATE.equity.toFixed(2)}</span></div>
-        <div><span style="color:#94a3b8">BP</span> <span style="color:#a5b4fc;font-weight:700">$${ACCOUNT_STATE.bp.toFixed(2)}</span></div>
-        <div><span style="color:#94a3b8">Open P&L</span> <span style="color:${plColor};font-weight:700">${ACCOUNT_STATE.openPL >= 0 ? '+' : ''}$${ACCOUNT_STATE.openPL.toFixed(2)}</span></div>
-      </div>
-    `;
+    const isMobile = window.innerWidth < 600;
+
+    if (isMobile) {
+      // Mobile: abbreviated format
+      acctEl.innerHTML = `
+        <div style="font-size:9px">
+          <span style="color:#94a3b8">E:</span> <span style="color:#e2e8f0;font-weight:700">$${(ACCOUNT_STATE.equity/1000).toFixed(1)}k</span>
+          | <span style="color:#94a3b8">BP:</span> <span style="color:#a5b4fc;font-weight:700">$${(ACCOUNT_STATE.bp/1000).toFixed(1)}k</span>
+          | <span style="color:${plColor};font-weight:700">${ACCOUNT_STATE.openPL >= 0 ? '+' : ''}$${ACCOUNT_STATE.openPL.toFixed(0)}</span>
+        </div>
+      `;
+    } else {
+      // Desktop: full format
+      acctEl.innerHTML = `
+        <div style="display:flex;gap:16px;font-size:11px;align-items:center">
+          <div><span style="color:#94a3b8">Equity</span> <span style="color:#e2e8f0;font-weight:700">$${ACCOUNT_STATE.equity.toFixed(2)}</span></div>
+          <div><span style="color:#94a3b8">BP</span> <span style="color:#a5b4fc;font-weight:700">$${ACCOUNT_STATE.bp.toFixed(2)}</span></div>
+          <div><span style="color:#94a3b8">Open P&L</span> <span style="color:${plColor};font-weight:700">${ACCOUNT_STATE.openPL >= 0 ? '+' : ''}$${ACCOUNT_STATE.openPL.toFixed(2)}</span></div>
+        </div>
+      `;
+    }
   }
 }
 
