@@ -515,6 +515,7 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(50,60,100,.7);color:#e2e8f0;v
         <span id="stat-txt">Connecting...</span>
         <span class="badge off" id="stat-badge">● Connecting</span>
         <span id="upd-cnt" style="font-size:10px;color:#8ba0c0">0 ticks</span>
+        <div id="account-display" style="margin-left:16px;font-size:10px;color:#cbd5e1"></div>
       </div>
       <button id="admin-btn" onclick="toggleAdminPanel()" style="display:none;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#818cf8;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">👑 Admin</button>
       <span id="session-badge" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;border:1px solid #475569;color:#a0aec0;letter-spacing:.05em">--</span>
@@ -601,6 +602,7 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(50,60,100,.7);color:#e2e8f0;v
           <div class="chip" onclick="sortTickersByRSI()" title="Sort by RSI strength">⚡ Strength</div>
         </div>
       </div>
+      <div id="trade-summary" style="padding:12px;margin-bottom:12px"></div>
       <div class="tick-wrap" id="tick-wrap"><div class="tick-track" id="tick-track"><span style="font-size:10px;color:#8ba0c0;padding:0 10px">Waiting for ticks…</span></div></div>
       <div class="tgrid" id="tgrid"><div class="empty">Loading tickers…</div></div>
     </div>
@@ -1034,6 +1036,92 @@ function onPrice(sym, price) {
   }
 }
 
+// 📊 RENDER DAILY TRADE SUMMARY & P&L
+function renderTradeSummary() {
+  if (TODAY_TRADES.length === 0) return;
+
+  const summaryEl = document.getElementById('trade-summary');
+  if (!summaryEl) return;
+
+  let totalProfit = 0, wins = 0, losses = 0;
+  TODAY_TRADES.forEach(trade => {
+    if (trade.side === 'sell') {
+      const entry = TODAY_TRADES.find(t => t.symbol === trade.symbol && t.side === 'buy' && t.time < trade.time);
+      if (entry) {
+        const profit = (trade.price - entry.price) * trade.qty;
+        totalProfit += profit;
+        profit > 0 ? wins++ : losses++;
+      }
+    }
+  });
+
+  const winRate = wins + losses > 0 ? ((wins / (wins + losses)) * 100).toFixed(1) : 0;
+  const plColor = totalProfit >= 0 ? '#22c55e' : '#ef4444';
+
+  summaryEl.innerHTML = `
+    <div style="padding:12px;background:rgba(99,102,241,.1);border-radius:8px;border:1px solid rgba(99,102,241,.2);font-size:11px">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+        <div><span style="color:#94a3b8">Trades</span><br><span style="color:#e2e8f0;font-weight:700;font-size:13px">${TODAY_TRADES.length}</span></div>
+        <div><span style="color:#94a3b8">Wins</span><br><span style="color:#22c55e;font-weight:700;font-size:13px">${wins}</span></div>
+        <div><span style="color:#94a3b8">Losses</span><br><span style="color:#ef4444;font-weight:700;font-size:13px">${losses}</span></div>
+        <div><span style="color:#94a3b8">Win Rate</span><br><span style="color:#fbbf24;font-weight:700;font-size:13px">${winRate}%</span></div>
+      </div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(99,102,241,.1);text-align:center">
+        <span style="color:#94a3b8">Daily P&L</span>
+        <div style="color:${plColor};font-weight:700;font-size:16px;margin-top:4px">${totalProfit >= 0 ? '+' : ''}$${totalProfit.toFixed(2)}</div>
+      </div>
+    </div>
+  `;
+}
+
+// 💰 CALCULATE AND DISPLAY POSITION SIZE
+function calculateAndShowPosSize(sym, riskPct, atr) {
+  const shares = calculatePositionSize(sym, atr, riskPct);
+  const posEl = document.getElementById('pos-size-' + sym);
+  if (posEl) {
+    posEl.textContent = shares + ' shares';
+    const riskAmount = (ACCOUNT_STATE.equity * riskPct / 100);
+    posEl.title = `Risk: $${riskAmount.toFixed(2)} | SL: $${(atr * 0.5).toFixed(2)}`;
+  }
+  return shares;
+}
+
+// 🚀 EXECUTE SCALP ORDER WITH POSITION SIZING
+async function executeScalpOrder(sym, side, atr) {
+  if (!LP[sym]) { alert('❌ No price data'); return; }
+
+  const riskPctEl = document.getElementById('risk-pct-' + sym);
+  const riskPct = riskPctEl ? parseFloat(riskPctEl.value) : 1;
+  const shares = calculatePositionSize(sym, atr, riskPct);
+  const price = LP[sym].price;
+
+  // Calculate targets
+  const tp1 = price + (atr * 0.5);
+  const tp2 = price + (atr * 1.0);
+  const sl = price - (atr * 0.5);
+
+  // Show confirmation
+  const riskAmount = (ACCOUNT_STATE.equity * riskPct / 100);
+  const confirm = window.confirm(
+    `CONFIRM ORDER:\n\n` +
+    `Symbol: ${sym}\n` +
+    `Side: ${side.toUpperCase()}\n` +
+    `Shares: ${shares}\n` +
+    `Entry: $${price.toFixed(2)}\n` +
+    `TP1: $${tp1.toFixed(2)}\n` +
+    `TP2: $${tp2.toFixed(2)}\n` +
+    `SL: $${sl.toFixed(2)}\n\n` +
+    `Risk: $${riskAmount.toFixed(2)}\n` +
+    `Risk/Reward: 1:${(atr * 1.0 / (atr * 0.5)).toFixed(1)}`
+  );
+
+  if (confirm) {
+    await executeOrder(sym, side, shares, tp1, tp2, sl);
+    await fetchAccountStatus();
+    renderTradeSummary();
+  }
+}
+
 // 🎯 HEAT MAP SORTING FUNCTIONS
 function sortTickersByChange() {
   const sorted = STOCKS.slice().sort((a, b) => {
@@ -1366,8 +1454,74 @@ function generateDemoChart(sym) {
   return bars;
 }
 
-// 🎯 SCALPER FEATURES
+// 🎯 PROFESSIONAL SCALPER FEATURES
 let bidAsk = {}, scalpSignals = {};
+let OPEN_POSITIONS = {}, // {sym: {qty, entryPrice, entryTime, pl}}
+    TODAY_TRADES = [],    // array of all fills
+    ACCOUNT_STATE = { equity: 10000, cash: 10000, bp: 50000, openPL: 0 };
+
+// 📊 FETCH REAL BID/ASK FROM ALPACA
+async function fetchRealQuote(sym) {
+  try {
+    const res = await fetch(`https://data.alpaca.markets/v2/stocks/${sym}/quotes`, { headers: AH });
+    const data = await res.json();
+    if (data.quote) {
+      const q = data.quote;
+      const spread = q.ask - q.bid;
+      const spreadPct = (spread / q.bid * 100).toFixed(3);
+      bidAsk[sym] = {
+        bid: q.bid,
+        ask: q.ask,
+        spread: spread,
+        spreadPct: spreadPct,
+        bidSize: q.bid_size,
+        askSize: q.ask_size,
+        quality: spread <= 0.05 ? 'tight' : spread <= 0.15 ? 'normal' : 'wide'
+      };
+      console.log(`📊 ${sym}: ${q.bid} / ${q.ask} (spread: $${spread.toFixed(3)})`);
+    }
+  } catch (e) { console.warn(`Quote fetch failed for ${sym}`); }
+}
+
+// 💰 POSITION SIZING CALCULATOR (1% risk rule)
+function calculatePositionSize(sym, atr, riskPercentage = 1) {
+  const accountEquity = ACCOUNT_STATE.equity;
+  const riskAmount = accountEquity * (riskPercentage / 100);
+  const slDistance = atr * 0.5; // SL at 0.5 ATR
+  const shares = Math.floor(riskAmount / slDistance);
+  return Math.max(shares, 1); // Minimum 1 share
+}
+
+// 📈 FETCH ACCOUNT EQUITY & BUYING POWER
+async function fetchAccountStatus() {
+  try {
+    const res = await fetch('https://paper-api.alpaca.markets/v2/account', { headers: AH });
+    const acct = await res.json();
+    ACCOUNT_STATE = {
+      equity: parseFloat(acct.equity),
+      cash: parseFloat(acct.cash),
+      bp: parseFloat(acct.buying_power),
+      openPL: parseFloat(acct.unrealized_pl)
+    };
+    console.log(`💰 Account: Equity $${ACCOUNT_STATE.equity.toFixed(2)}, BP $${ACCOUNT_STATE.bp.toFixed(2)}`);
+    updateAccountDisplay();
+  } catch (e) { console.warn('Account fetch failed'); }
+}
+
+// 📊 UPDATE ACCOUNT DISPLAY IN HEADER
+function updateAccountDisplay() {
+  const acctEl = document.getElementById('account-display');
+  if (acctEl) {
+    const plColor = ACCOUNT_STATE.openPL >= 0 ? '#22c55e' : '#ef4444';
+    acctEl.innerHTML = `
+      <div style="display:flex;gap:16px;font-size:11px;align-items:center">
+        <div><span style="color:#94a3b8">Equity</span> <span style="color:#e2e8f0;font-weight:700">$${ACCOUNT_STATE.equity.toFixed(2)}</span></div>
+        <div><span style="color:#94a3b8">BP</span> <span style="color:#a5b4fc;font-weight:700">$${ACCOUNT_STATE.bp.toFixed(2)}</span></div>
+        <div><span style="color:#94a3b8">Open P&L</span> <span style="color:${plColor};font-weight:700">${ACCOUNT_STATE.openPL >= 0 ? '+' : ''}$${ACCOUNT_STATE.openPL.toFixed(2)}</span></div>
+      </div>
+    `;
+  }
+}
 
 function playAlert(type = 'signal') {
   try {
@@ -1384,20 +1538,106 @@ function playAlert(type = 'signal') {
   } catch (e) { console.warn('Audio alert failed'); }
 }
 
-async function executeOrder(sym, side, qty = 1) {
+// 🎯 EXECUTE TRADE WITH POSITION TRACKING
+async function executeOrder(sym, side, qty = 1, tp1 = null, tp2 = null, sl = null) {
   if (!LP[sym]) { alert('❌ No price data'); return; }
+
   const price = LP[sym].price;
+  const quote = bidAsk[sym];
+
+  // Check spread quality
+  if (quote && quote.quality === 'wide') {
+    const confirm = window.confirm(`⚠️ WIDE SPREAD: $${quote.spread.toFixed(3)} (${quote.spreadPct}%)\n\nStill execute?`);
+    if (!confirm) return;
+  }
+
   const orderData = { symbol: sym, qty: parseInt(qty), side: side, type: 'market', time_in_force: 'day' };
+
   try {
-    const res = await fetch('https://paper-api.alpaca.markets/v2/orders', { method: 'POST', headers: AH, body: JSON.stringify(orderData) });
+    const res = await fetch('https://paper-api.alpaca.markets/v2/orders', {
+      method: 'POST',
+      headers: AH,
+      body: JSON.stringify(orderData)
+    });
     const order = await res.json();
+
     if (order.id) {
       playAlert(side === 'buy' ? 'buy' : 'sell');
-      const msg = `✅ ${side.toUpperCase()} ${qty} ${sym} @ $${price.toFixed(2)}\nOrder: ${order.id}`;
+
+      // Track position
+      if (side === 'buy') {
+        OPEN_POSITIONS[sym] = {
+          qty: qty,
+          entryPrice: price,
+          entryTime: new Date(),
+          tp1: tp1 || price + (price * 0.001), // 0.1% default
+          tp2: tp2 || price + (price * 0.003), // 0.3% default
+          sl: sl || price - (price * 0.002),   // -0.2% default
+          status: 'open',
+          orderIds: [order.id]
+        };
+      } else {
+        delete OPEN_POSITIONS[sym];
+      }
+
+      // Log trade
+      TODAY_TRADES.push({
+        symbol: sym,
+        side: side,
+        qty: qty,
+        price: price,
+        time: new Date(),
+        orderId: order.id,
+        spread: quote?.spread || 0
+      });
+
+      const msg = `✅ ${side.toUpperCase()} ${qty} ${sym}\nPrice: $${price.toFixed(2)}\nOrder ID: ${order.id}`;
+      if (tp1 && tp2 && sl) {
+        msg += `\n\nTP1: $${tp1.toFixed(2)}\nTP2: $${tp2.toFixed(2)}\nSL: $${sl.toFixed(2)}`;
+      }
       alert(msg);
       console.log('🎯 EXECUTION:', msg);
-    } else alert(`❌ ${order.message}`);
-  } catch (e) { alert(`❌ Error: ${e.message}`); }
+      updateAccountDisplay();
+      renderTradeSummary();
+    } else {
+      alert(`❌ ${order.message}`);
+    }
+  } catch (e) {
+    alert(`❌ Error: ${e.message}`);
+  }
+}
+
+// 📊 PARTIAL PROFIT TAKE
+async function takeProfitPartial(sym, qty, price = null) {
+  const actualPrice = price || LP[sym]?.price;
+  const orderData = { symbol: sym, qty: parseInt(qty), side: 'sell', type: 'market', time_in_force: 'day' };
+
+  try {
+    const res = await fetch('https://paper-api.alpaca.markets/v2/orders', {
+      method: 'POST',
+      headers: AH,
+      body: JSON.stringify(orderData)
+    });
+    const order = await res.json();
+
+    if (order.id) {
+      const profit = (actualPrice - (OPEN_POSITIONS[sym]?.entryPrice || actualPrice)) * qty;
+      playAlert('sell');
+
+      // Update position
+      if (OPEN_POSITIONS[sym]) {
+        OPEN_POSITIONS[sym].qty -= qty;
+        if (OPEN_POSITIONS[sym].qty <= 0) delete OPEN_POSITIONS[sym];
+      }
+
+      const msg = `✅ PROFIT TAKE: SELL ${qty} ${sym} @ $${actualPrice.toFixed(2)}\nProfit: ${profit >= 0 ? '+' : ''}$${profit.toFixed(2)}\nOrder: ${order.id}`;
+      alert(msg);
+      console.log('💰 PARTIAL TAKE:', msg);
+      updateAccountDisplay();
+    }
+  } catch (e) {
+    alert(`❌ Error: ${e.message}`);
+  }
 }
 
 async function getBars(sym, lim) {
@@ -2205,8 +2445,12 @@ async function openChartPanel(sym) {
 }
 
 async function renderChartPanel(sym, tf) {
-  tf = tf || currentTf || '5Min';
+  tf = tf || currentTf || '1Min'; // Default to 1-minute for scalping
   currentTf = tf;
+
+  // Fetch real bid/ask for this symbol
+  await fetchRealQuote(sym);
+  await fetchAccountStatus();
 
   let bars = await getBarsForTf(sym, tf, 100);
   if (!bars.length) bars = await getBars(sym, 80); // fallback to auto-detect
@@ -2277,13 +2521,70 @@ async function renderChartPanel(sym, tf) {
     '<button onclick="renderChartPanel(\'' + sym + '\',currentTf)" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#cbd5e1;padding:5px 10px;border-radius:6px;font-size:10px;cursor:pointer">↻</button>' +
     '</div>' +
     '</div>' +
-    // Scalper Controls
-    '<div class="scalper-controls" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">' +
-    '<button onclick="executeOrder(\'' + sym + '\',\'buy\',1)" class="scalper-btn buy" style="flex:1;min-width:80px">🚀 BUY 1</button>' +
-    '<button onclick="executeOrder(\'' + sym + '\',\'sell\',1)" class="scalper-btn sell" style="flex:1;min-width:80px">📉 SELL 1</button>' +
-    '<button onclick="alert(\'Quick scalp: Risk $' + (parseFloat(a.atr) * 100).toFixed(0) + ', Target $' + (parseFloat(a.atr) * 200).toFixed(0) + ' for 1:2 RR\')" class="scalper-btn" style="background:#6366f1;border-color:#4f46e5;color:#fff;flex:1;min-width:100px">📊 1:2 RR</button>' +
+    // Professional Scalper Controls
+    '<div style="margin-top:16px;padding:12px;background:rgba(99,102,241,.08);border-radius:8px;border:1px solid rgba(99,102,241,.2)">' +
+    // Bid/Ask Display
+    '<div class="bid-ask" style="margin-bottom:12px">' +
+      (bidAsk[sym] ?
+        `<span style="display:flex;justify-content:space-between;align-items:center;width:100%">
+          <span>Bid: $${bidAsk[sym].bid.toFixed(2)}</span>
+          <span style="color:${bidAsk[sym].quality === 'tight' ? '#22c55e' : bidAsk[sym].quality === 'normal' ? '#fbbf24' : '#ef4444'};font-weight:700">
+            Spread: $${bidAsk[sym].spread.toFixed(3)} (${bidAsk[sym].quality})
+          </span>
+          <span>Ask: $${bidAsk[sym].ask.toFixed(2)}</span>
+        </span>`
+        : '<span style="color:#94a3b8">Loading bid/ask...</span>'
+      ) +
     '</div>' +
-    '<div class="bid-ask" style="margin-top:8px">Bid/Ask Spread: ~$0.02 (tight for scalping) | Entry @ $' + liveP.toFixed(dec) + ' | TP: $' + (liveP + parseFloat(a.atr) * 0.5).toFixed(2) + ' | SL: $' + (liveP - parseFloat(a.atr) * 0.3).toFixed(2) + '</div>' +
+    // Position Sizing
+    '<div style="margin-bottom:12px;padding:8px;background:rgba(30,50,100,.3);border-radius:6px;border:1px solid rgba(99,102,241,.15)">' +
+      '<div style="font-size:10px;color:#cbd5e1;margin-bottom:6px">📊 Position Sizing (1% Risk)</div>' +
+      '<div style="display:flex;gap:6px;align-items:center">' +
+        '<input type="number" id="risk-pct-' + sym + '" value="1" min="0.1" max="10" style="width:50px;padding:4px;background:#1e2742;border:1px solid #2d3d5a;border-radius:4px;color:#e2e8f0;font-size:10px"/>' +
+        '<span style="font-size:10px;color:#94a3b8">% risk</span>' +
+        '<button onclick="calculateAndShowPosSize(\'' + sym + '\',parseFloat(g(\'risk-pct-' + sym + '\').value),parseFloat(' + a.atr + '))" style="flex:1;background:#6366f1;border:none;color:#fff;padding:4px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600">Calculate Shares</button>' +
+        '<span id="pos-size-' + sym + '" style="font-weight:700;color:#22c55e;font-size:11px">0 shares</span>' +
+      '</div>' +
+    '</div>' +
+    // Order Entry
+    '<div style="margin-bottom:12px">' +
+      '<div style="font-size:10px;color:#cbd5e1;margin-bottom:6px">🎯 Order Entry Levels</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:9px;margin-bottom:8px">' +
+        '<div style="padding:6px;background:rgba(34,197,94,.1);border-radius:4px;border:1px solid rgba(34,197,94,.2)">' +
+          '<span style="color:#94a3b8">Entry</span><br><span style="color:#22c55e;font-weight:700">$' + liveP.toFixed(dec) + '</span>' +
+        '</div>' +
+        '<div style="padding:6px;background:rgba(34,197,94,.1);border-radius:4px;border:1px solid rgba(34,197,94,.2)">' +
+          '<span style="color:#94a3b8">ATR</span><br><span style="color:#22c55e;font-weight:700">$' + a.atr + '</span>' +
+        '</div>' +
+        '<div style="padding:6px;background:rgba(34,197,94,.1);border-radius:4px;border:1px solid rgba(34,197,94,.2)">' +
+          '<span style="color:#94a3b8">TP1 (0.5×)</span><br><span style="color:#86efac;font-weight:700">$' + (liveP + parseFloat(a.atr) * 0.5).toFixed(2) + '</span>' +
+        '</div>' +
+        '<div style="padding:6px;background:rgba(34,197,94,.1);border-radius:4px;border:1px solid rgba(34,197,94,.2)">' +
+          '<span style="color:#94a3b8">TP2 (1.0×)</span><br><span style="color:#86efac;font-weight:700">$' + (liveP + parseFloat(a.atr) * 1.0).toFixed(2) + '</span>' +
+        '</div>' +
+        '<div style="padding:6px;background:rgba(239,68,68,.1);border-radius:4px;border:1px solid rgba(239,68,68,.2)">' +
+          '<span style="color:#94a3b8">SL (0.5×)</span><br><span style="color:#fca5a5;font-weight:700">$' + (liveP - parseFloat(a.atr) * 0.5).toFixed(2) + '</span>' +
+        '</div>' +
+        '<div style="padding:6px;background:rgba(168,85,247,.1);border-radius:4px;border:1px solid rgba(168,85,247,.2)">' +
+          '<span style="color:#94a3b8">Risk/Reward</span><br><span style="color:#d8b4fe;font-weight:700">1:' + (parseFloat(a.atr) * 1.0 / (parseFloat(a.atr) * 0.5)).toFixed(1) + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    // Order Buttons
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button onclick="executeScalpOrder(\'' + sym + '\',\'buy\',' + a.atr + ')" class="scalper-btn buy" style="flex:1">🚀 BUY (Sized)</button>' +
+      '<button onclick="executeScalpOrder(\'' + sym + '\',\'sell\',' + a.atr + ')" class="scalper-btn sell" style="flex:1">📉 SELL</button>' +
+    '</div>' +
+    // Partial Profit Buttons (show if position open)
+    (OPEN_POSITIONS[sym] ?
+      '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">' +
+        '<button onclick="takeProfitPartial(\'' + sym + '\', Math.ceil(' + (OPEN_POSITIONS[sym]?.qty || 1) + ' * 0.33), ' + (liveP + parseFloat(a.atr) * 0.5).toFixed(2) + ')" class="scalper-btn" style="flex:1;background:#22c55e;border-color:#16a34a;color:#000;font-size:9px">✓ TP1 (1/3)</button>' +
+        '<button onclick="takeProfitPartial(\'' + sym + '\', Math.ceil(' + (OPEN_POSITIONS[sym]?.qty || 1) + ' * 0.33), ' + (liveP + parseFloat(a.atr) * 1.0).toFixed(2) + ')" class="scalper-btn" style="flex:1;background:#86efac;border-color:#22c55e;color:#000;font-size:9px">✓ TP2 (1/3)</button>' +
+        '<button onclick="executeOrder(\'' + sym + '\',\'sell\',' + (OPEN_POSITIONS[sym]?.qty || 1) + ')" class="scalper-btn sell" style="flex:1;font-size:9px">✕ EXIT All</button>' +
+      '</div>'
+      : ''
+    ) +
+    '</div>' +
     '<div class="chart-wrap"><div id="chart-container"></div></div>' +
     '<div class="chart-legend">' +
     '<div style="flex:1;display:flex;gap:12px;flex-wrap:wrap;align-items:center">' +
@@ -2837,6 +3138,17 @@ async function startAll() {
   _timers.push(setInterval(pollSnapshot, 120000));   // fallback snapshot refresh every 2min (if WS drops)
   _timers.push(setInterval(refreshDisplay, 400));    // push LP → DOM every 400ms (faster than before)
   _timers.push(setInterval(loadAccount, 30000));    // account every 30s
+
+  // 🎯 PROFESSIONAL SCALPER FEATURES
+  await fetchAccountStatus();                        // Fetch account equity & buying power
+  _timers.push(setInterval(fetchAccountStatus, 10000)); // Update account every 10s
+
+  // Fetch real bid/ask for all stocks
+  STOCKS.forEach((sym, i) => setTimeout(() => fetchRealQuote(sym), i * 300));
+  _timers.push(setInterval(() => {
+    STOCKS.forEach((sym, i) => setTimeout(() => fetchRealQuote(sym), i * 100));
+  }, 5000)); // Refresh bid/ask every 5s
+
   loadNews();
   _timers.push(setInterval(loadNews, 300000));      // refresh news every 5 min
   await loadAccount();
