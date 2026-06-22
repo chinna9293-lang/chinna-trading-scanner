@@ -997,6 +997,19 @@ function onPrice(sym, price) {
   tickCount++;
   const uc = g('upd-cnt');
   if (uc) uc.textContent = tickCount + ' ticks';
+
+  // Animate price update on ticker card
+  const row = document.querySelector('#tgrid .tc[data-sym="' + sym + '"]');
+  if (row) {
+    row.classList.add('live-update');
+    setTimeout(() => row.classList.remove('live-update'), 500);
+  }
+
+  // Re-render chart if this is the active symbol
+  if (sym === chartPanelSym) {
+    renderChartPanel(sym);
+  }
+
   if (dir !== 'flat') {
     const label = (UNI[sym] && UNI[sym].label) || sym;
     const dec = price < 1 ? 5 : price < 100 ? 3 : 2;
