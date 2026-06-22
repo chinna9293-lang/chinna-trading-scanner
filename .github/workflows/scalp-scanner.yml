@@ -2,9 +2,9 @@ name: Scalp Scanner (5-Minute Signals)
 
 on:
   schedule:
-    # Run every 5 minutes during market hours (matches 5-minute bar data)
-    - cron: '*/5 9-15 * * 1-5'  # Every 5 minutes, 9 AM - 3:59 PM ET, Mon-Fri
-    - cron: '*/5 16,17,18,19,20 * * 1-5'  # Every 5 minutes after market close (4-8 PM) for extended hours
+    # Run every 5 minutes during market hours (9:30 AM - 4:00 PM ET = 1:30 PM - 8:00 PM UTC)
+    # GitHub Actions cron uses UTC time!
+    - cron: '*/5 13-20 * * 1-5'  # Every 5 minutes, 1:30 PM - 8:00 PM UTC (9:30 AM - 4:00 PM ET), Mon-Fri
   workflow_dispatch:
 
 jobs:
