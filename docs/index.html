@@ -46,6 +46,52 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 .lbtn:active{transform:translateY(0);}
 .lerr{color:#ef4444;font-size:13px;text-align:center;margin-top:12px;min-height:18px;}
 
+/* 📱 MOBILE LOGIN - LARGER TOUCH TARGETS */
+@media(max-width:600px){
+  .linp{
+    padding:16px 14px !important;
+    font-size:16px !important;
+    height:48px !important;
+    margin-bottom:12px !important;
+    border-radius:8px !important;
+  }
+  .linp:focus{
+    border-color:#6366f1 !important;
+    box-shadow:0 0 0 4px rgba(99,102,241,.2) !important;
+  }
+  .lbtn{
+    padding:16px !important;
+    font-size:16px !important;
+    height:48px !important;
+    margin-top:8px !important;
+    border-radius:8px !important;
+    font-weight:700 !important;
+  }
+  .llab{
+    font-size:12px !important;
+    margin-bottom:8px !important;
+  }
+  .lerr{
+    font-size:12px !important;
+    margin-top:12px !important;
+  }
+
+  /* Login form container - full width on mobile */
+  .lb{
+    width:100% !important;
+    padding:24px 16px !important;
+    max-width:100% !important;
+  }
+
+  /* Login modal - better on mobile */
+  .modal[id*="login"]{
+    width:100% !important;
+    max-width:100% !important;
+    margin:0 !important;
+    border-radius:16px 16px 0 0 !important;
+  }
+}
+
 /* ── Header ── */
 .hdr{
   background:linear-gradient(180deg,rgba(10,15,35,.98),rgba(8,12,30,.96));
@@ -589,10 +635,10 @@ button, input[type="button"], .scalper-btn, .chip, .sbtn {
     <!-- Sign In -->
     <div id="form-login">
       <div class="llab">Email</div>
-      <input class="linp" id="login-email" type="email" placeholder="your@email.com" autocomplete="email"/>
+      <input class="linp" id="login-email" type="email" placeholder="your@email.com" autocomplete="email" inputmode="email"/>
       <div class="llab">Password</div>
-      <input class="linp" id="login-pass" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
-      <button class="lbtn" onclick="doLogin()">Sign In</button>
+      <input class="linp" id="login-pass" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();doLogin();}" style="margin-bottom:20px"/>
+      <button class="lbtn" onclick="doLogin()" style="min-width:100%;min-height:48px">Sign In</button>
     </div>
 
     <!-- Sign Up -->
