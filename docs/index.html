@@ -3450,7 +3450,14 @@ async function startAll() {
   try { await loadTickers(); } catch (e) { console.warn('Load tickers failed:', e); }
 }
 
-if (sessionStorage.getItem('ct') === '1') startAll();
+// Start app (sessionStorage may fail on data URLs, so we use try-catch)
+try {
+  if (sessionStorage.getItem('ct') === '1') startAll();
+} catch {
+  // If sessionStorage fails (e.g., data URL), try to start anyway
+  console.log('Starting app (sessionStorage unavailable)');
+  startAll().catch(e => console.warn('Startup error:', e));
+}
 </script>
 </body>
 </html>
