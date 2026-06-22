@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Trading Dashboard</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬡</text></svg>">
 <style>
@@ -622,6 +627,7 @@ button, input[type="button"], .scalper-btn, .chip, .sbtn {
       <span id="session-badge" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;border:1px solid #475569;color:#a0aec0;letter-spacing:.05em">--</span>
       <button id="scalp-btn" onclick="toggleScalp()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#cbd5e1;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .2s">⚡ Scalp OFF</button>
       <button onclick="toggleScalpPanel()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#cbd5e1;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Scalp trade log & settings">📋 Trades</button>
+      <button onclick="clearAppCache()" style="background:transparent;border:1px solid #2d2d3d;color:#cbd5e1;padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer" title="Clear browser cache and reload">🔄 Clear Cache</button>
       <button id="alert-bell" onclick="toggleAlertPanel()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#cbd5e1;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;transition:color .2s">🔔 Alerts</button>
       <button onclick="toggleNtfyPanel()" class="admin-only" style="background:transparent;border:1px solid #2d2d3d;color:#cbd5e1;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" title="Phone notifications">📲 ntfy</button>
       <button class="signout" onclick="doLogout()">Sign Out</button>
@@ -2705,7 +2711,7 @@ async function renderChartPanel(sym, tf) {
     '</div>' +
     '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px">' +
     '<div style="display:flex;gap:4px">' + tfHtml + '</div>' +
-    '<button onclick="renderChartPanel(\'' + sym + '\',currentTf)" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#cbd5e1;padding:5px 10px;border-radius:6px;font-size:10px;cursor:pointer">↻</button>' +
+    '<button onclick="renderChartPanel(\'' + sym + '\',currentTf)" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#cbd5e1;padding:8px 12px;border-radius:6px;font-size:11px;cursor:pointer;min-width:44px;height:36px" title="Refresh chart">↻</button>' +
     '</div>' +
     '</div>' +
     // Professional Scalper Controls (Mobile-responsive)
@@ -3318,7 +3324,28 @@ async function loadAccount() {
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-async function startAll() {
+async // 🔄 CLEAR CACHE & RELOAD (for mobile updates)
+function clearAppCache() {
+  if (confirm('Clear cache and reload? This will refresh all data.')) {
+    // Clear localStorage
+    try { localStorage.clear(); } catch (e) {}
+
+    // Clear service worker cache (if registered)
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => caches.delete(name));
+      });
+    }
+
+    // Clear sessionStorage
+    try { sessionStorage.clear(); } catch (e) {}
+
+    // Force reload with cache bypass
+    window.location.href = window.location.href + '?t=' + Date.now();
+  }
+}
+
+function startAll() {
   startKrakenStream();                               // crypto — Kraken WebSocket
   pollSnapshot();                                    // seed stock prices immediately
   startAlpacaStream();                               // stocks — Alpaca WebSocket (real-time streaming)

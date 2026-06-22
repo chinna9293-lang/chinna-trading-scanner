@@ -1,0 +1,26 @@
+# GitHub Pages Configuration
+# Disable caching to ensure fresh content on every deploy
+
+# Build settings
+theme: null
+
+# Cache settings
+keep_files:
+  - .git
+  - CNAME
+
+# Plugins to prevent Jekyll processing
+plugins: []
+
+# Build-related settings
+exclude:
+  - .github
+  - .gitignore
+  - README.md
+  - LICENSE
+  - DEPLOYMENT.md
+  - SCALPING_GUIDE.md
+
+# Force GitHub to serve fresh content
+future: true
+incremental: false
