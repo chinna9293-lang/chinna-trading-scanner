@@ -1,0 +1,26 @@
+name: Scalp Scanner (1-Minute Signals)
+
+on:
+  schedule:
+    # Run every minute (GitHub Actions minimum) during market hours
+    - cron: '*/1 9-15 * * 1-5'  # Every minute, 9 AM - 3:59 PM ET, Mon-Fri
+    - cron: '*/5 16,17,18,19,20 * * 1-5'  # Every 5 minutes after market close (4-8 PM) for extended hours
+  workflow_dispatch:
+
+jobs:
+  scalp_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Scan for 1-Minute Scalp Signals
+        run: node scalp-scanner.js
+        env:
+          NTFY_TOPIC:    ${{ secrets.NTFY_TOPIC }}
+          ALPACA_KEY:    ${{ secrets.ALPACA_KEY }}
+          ALPACA_SECRET: ${{ secrets.ALPACA_SECRET }}
+      - name: Log Scan Results
+        if: always()
+        run: echo "Scalp scan completed at $(date)"
