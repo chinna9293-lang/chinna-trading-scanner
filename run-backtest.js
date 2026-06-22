@@ -179,11 +179,10 @@ async function notify(title, body) {
 
 async function main() {
   console.log('=== ORIGINAL vs IMPROVED  '+new Date().toISOString()+' ===\n');
-  console.log('[ITER 10] Hourly 90d, lean HIGH-WR universe (5 stocks + 4 crypto)');
-  console.log('[1] vol>1.3x + body>40% + ADX≥22 (iter8 proven filters)');
-  console.log('[2] RSI 50-63 bull / 37-50 bear (tight zones)');
-  console.log('[3] EMA9>21 breakup / EMA9<21 breakdown');
-  console.log('[4] Stock time stop: 20 bars, Crypto: 12 bars\n');
+  console.log('[ITER 15] Hourly 90d, 5-stock universe, ADX>22 + vol>1.25x + body>35%');
+  console.log('[1] Loosen vol & body to get 15-20+ trades at 70%+ WR');
+  console.log('[2] RSI 50-63 bull / 37-50 bear');
+  console.log('[3] EMA9>21 breakup / EMA9<21 breakdown\n');
   console.log(`${'Symbol'.padEnd(10)} ${'ORIGINAL'.padEnd(35)} IMPROVED         DELTA`);
   console.log('─'.repeat(90));
 
