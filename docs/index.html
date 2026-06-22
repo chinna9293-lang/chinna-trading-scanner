@@ -1028,9 +1028,8 @@ function startAlpacaStream() {
 // Snapshot fallback for closed market / pre-market seed prices
 async function pollSnapshot() {
   try {
-    // Primary source: Local proxy server (http://localhost:3001)
-    // Run: node proxy-server.js
-    const proxyUrl = 'http://localhost:3001/yahoo-quote?symbols=' + STOCKS.join(',');
+    // Primary source: Vercel cloud proxy
+    const proxyUrl = 'https://chinna-trading-scanner.vercel.app/api/yahoo-quote?symbols=' + STOCKS.join(',');
     const d = await (await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) })).json();
     (d?.quoteResponse?.result || []).forEach(q => {
       const session = getMarketSession();
