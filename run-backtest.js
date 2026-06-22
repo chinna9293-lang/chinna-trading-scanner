@@ -115,14 +115,14 @@ function checkIMPROVED(bars) {
 
   const last=bars[n-1], prev=bars[n-2];
 
-  // Strict AND: vol>1.3x + body>40%
+  // Strict AND: vol>1.3x + body>35% (loosened from 40%)
   const vArr = vs.slice(-11,-1).filter(v=>v>0);
   const vAvg = vArr.length ? vArr.reduce((a,b)=>a+b,0)/vArr.length : 1;
   const vRatio = vAvg>0 ? vs[n-1]/vAvg : 1;
-  if (vRatio < 1.3) return null;  // Back to 1.3x
+  if (vRatio < 1.3) return null;
   const range = (last.h-last.l)||0.001;
   const body  = Math.abs(last.c-last.o)/range;
-  if (body < 0.40) return null;
+  if (body < 0.35) return null;  // Loosened from 0.40
 
   const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
 
