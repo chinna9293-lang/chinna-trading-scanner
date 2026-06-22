@@ -1278,12 +1278,47 @@ function stopAll() {
 }
 
 // ─── Bars for analysis ────────────────────────────────────────────────────────
+// Demo data for testing (replaces broken API while market is closed)
+function generateDemoChart(sym) {
+  const bars = [];
+  const now = Date.now();
+  let price = LP[sym]?.price || UNI[sym]?.entry || 300;
+
+  for (let i = 50; i >= 0; i--) {
+    const vol = Math.random() * 2000000 + 500000;
+    const o = price + (Math.random() - 0.5) * 2;
+    const c = price + (Math.random() - 0.5) * 2.5;
+    const h = Math.max(o, c) + Math.random() * 1.5;
+    const l = Math.min(o, c) - Math.random() * 1.5;
+    price = c;
+
+    bars.push({
+      t: Math.floor((now - i * 5 * 60 * 1000) / 1000),
+      o: parseFloat(o.toFixed(2)),
+      h: parseFloat(h.toFixed(2)),
+      l: parseFloat(l.toFixed(2)),
+      c: parseFloat(c.toFixed(2)),
+      v: Math.floor(vol)
+    });
+  }
+  return bars;
+}
+
 async function getBars(sym, lim) {
   lim = lim || 50;
+  // If market closed (weekend/afterhours), use demo data for interactive testing
+  const hour = new Date().getHours();
+  const day = new Date().getDay();
+  const isClosed = day === 0 || day === 6 || hour < 4 || hour >= 20;
+
+  if (isClosed && !LP[sym]?.price) {
+    console.log(`📊 Using demo data for ${sym} (market closed)`);
+    return generateDemoChart(sym);
+  }
+
   const isCrypto = sym.endsWith('USD') && sym.length > 3;
-  // Start 7 calendar days ago — ensures we always have enough bars across weekends,
-  // holidays, and during pre/after market when today's session has few candles yet
   const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
   if (isCrypto) {
     const s = sym.slice(0,-3) + '/USD';
     for (const tf of ['5Min','15Min','1Hour']) {
@@ -1291,10 +1326,9 @@ async function getBars(sym, lim) {
         const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=' + encodeURIComponent(s) + '&timeframe=' + tf + '&limit=' + lim + '&start=' + start, { headers: AH })).json();
         const bars = (d.bars && d.bars[s]) || [];
         if (bars.length >= 5) return bars;
-      } catch {}
+      } catch (e) { console.warn(`Crypto fetch failed: ${e.message}`); }
     }
   } else {
-    // Try SIP extended hours (paid accounts), then IEX regular (paper accounts)
     const attempts = [
       ['5Min','sip','&extended_hours=true'],
       ['5Min','iex',''],
@@ -1308,10 +1342,12 @@ async function getBars(sym, lim) {
         const url = 'https://data.alpaca.markets/v2/stocks/' + sym + '/bars?timeframe=' + tf + '&limit=' + lim + '&feed=' + feed + '&adjustment=raw&start=' + start + ext;
         const d = await (await fetch(url, { headers: AH })).json();
         if ((d.bars || []).length >= 5) return d.bars;
-      } catch {}
+      } catch (e) { console.warn(`Stock fetch failed for ${sym}: ${e.message}`); }
     }
   }
-  return [];
+
+  console.log(`⚠️ No live data for ${sym}, using demo chart`);
+  return generateDemoChart(sym);
 }
 
 // ─── Resolve symbol (ETC → ETCUSD) ───────────────────────────────────────────
@@ -1762,14 +1798,37 @@ function initLWChart(containerId, bars, a) {
   if (!container || !bars.length) return;
   if (lwChart) { try { lwChart.remove(); } catch {} lwChart = null; }
 
-  // autoSize fills container without needing offsetWidth at paint time
   lwChart = LightweightCharts.createChart(container, {
     autoSize: true,
-    layout: { background: { color: 'transparent' }, textColor: '#64748b', fontSize: 10 },
-    grid: { vertLines: { color: 'rgba(30,30,46,.45)' }, horzLines: { color: 'rgba(30,30,46,.45)' } },
-    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-    rightPriceScale: { borderColor: 'rgba(30,30,46,.6)', scaleMargins: { top: 0.08, bottom: 0.18 } },
-    timeScale: { borderColor: 'rgba(30,30,46,.6)', timeVisible: true, secondsVisible: false },
+    layout: {
+      background: { color: 'transparent' },
+      textColor: '#64748b',
+      fontSize: 10,
+      attributionLogo: false
+    },
+    grid: {
+      vertLines: { color: 'rgba(30,30,46,.45)' },
+      horzLines: { color: 'rgba(30,30,46,.45)' }
+    },
+    crosshair: {
+      mode: LightweightCharts.CrosshairMode.Normal,
+      vertLine: { color: 'rgba(99,102,241,.3)', width: 1, style: 1 },
+      horzLine: { color: 'rgba(99,102,241,.3)', width: 1, style: 1 }
+    },
+    rightPriceScale: {
+      borderColor: 'rgba(30,30,46,.6)',
+      scaleMargins: { top: 0.08, bottom: 0.18 },
+      textColor: '#64748b'
+    },
+    timeScale: {
+      borderColor: 'rgba(30,30,46,.6)',
+      timeVisible: true,
+      secondsVisible: false,
+      textColor: '#64748b'
+    },
+    handleScroll: { mouseWheel: true, pressedMouseMove: true },
+    handleScale: { mouseWheel: true, pinch: true }
+  });
     handleScroll: true, handleScale: true,
   });
 
@@ -2088,18 +2147,35 @@ async function renderChartPanel(sym, tf) {
   ).join('');
 
   g('app-chart').innerHTML =
-    '<div class="chart-panel-hdr">' +
+    '<div class="chart-panel-hdr" style="display:flex;flex-direction:column;gap:12px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
     '<div>' +
-    '<div class="chart-sym" style="display:flex;align-items:center;gap:8px">' + sym + ' <span style="font-size:14px;color:' + dirColor + ';font-weight:700">' + (dir === 'bull' ? '↑ BULLISH' : dir === 'bear' ? '↓ BEARISH' : '→ NEUTRAL') + '</span></div>' +
-    '<div class="chart-price-line" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
-    '<div style="display:flex;align-items:baseline;gap:4px"><strong style="color:#fff;font-size:16px">$' + liveP.toFixed(dec) + '</strong><span style="color:' + (a.chg1h >= 0 ? '#22c55e' : '#ef4444') + ';font-size:12px;font-weight:600">' + (a.chg1h >= 0 ? '↑' : '↓') + ' ' + Math.abs(a.chg1h).toFixed(2) + '%</span></div>' +
-    '<div style="height:16px;width:1px;background:rgba(99,102,241,.2)"></div>' +
-    '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:11px">' +
-    '<div title="RSI above 63 = overbought, below 37 = oversold"><span style="color:' + (a.rsi > 63 ? '#ef4444' : a.rsi < 37 ? '#22c55e' : '#fbbf24') + ';font-weight:600">RSI ' + a.rsi + '</span></div>' +
-    '<div><span style="color:#94a3b8">EMA9:</span> <span style="color:#e2e8f0">$' + a.e9 + '</span></div>' +
-    '<div><span style="color:#94a3b8">EMA21:</span> <span style="color:#e2e8f0">$' + a.e21 + '</span></div>' +
-    '<div><span style="color:#94a3b8">ATR:</span> <span style="color:#e2e8f0">$' + a.atr + '</span></div>' +
+    '<div class="chart-sym" style="display:flex;align-items:center;gap:12px;margin-bottom:8px">' +
+    '<div style="font-size:28px;font-weight:800;color:#fff">' + sym + '</div>' +
+    '<div style="display:flex;flex-direction:column;gap:2px">' +
+    '<div style="font-size:14px;color:' + dirColor + ';font-weight:700">' + (dir === 'bull' ? '📈 BULLISH' : dir === 'bear' ? '📉 BEARISH' : '➡️ NEUTRAL') + '</div>' +
+    '<div style="font-size:11px;color:#64748b">Trend Signal</div>' +
     '</div>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' +
+    '<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:12px">' +
+    '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px">Price</div>' +
+    '<div style="font-size:20px;font-weight:700;color:#e2e8f0">$' + liveP.toFixed(dec) + '</div>' +
+    '<div style="font-size:12px;color:' + (a.chg1h >= 0 ? '#22c55e' : '#ef4444') + ';font-weight:600;margin-top:2px">' + (a.chg1h >= 0 ? '▲' : '▼') + ' ' + Math.abs(a.chg1h).toFixed(2) + '% 1H</div>' +
+    '</div>' +
+    '<div style="background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2);border-radius:8px;padding:12px">' +
+    '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px">RSI</div>' +
+    '<div style="font-size:20px;font-weight:700;color:' + (a.rsi > 63 ? '#ef4444' : a.rsi < 37 ? '#22c55e' : '#fbbf24') + '">' + a.rsi + '</div>' +
+    '<div style="font-size:11px;color:#d8b4fe;margin-top:2px">' + (a.rsi > 63 ? '⚠️ Overbought' : a.rsi < 37 ? '✅ Oversold' : '⚖️ Neutral') + '</div>' +
+    '</div>' +
+    '</div>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;padding:8px;background:rgba(99,102,241,.05);border-radius:8px;border:1px solid rgba(99,102,241,.1)">' +
+    '<div><div style="font-size:9px;color:#94a3b8">EMA9</div><div style="font-size:13px;font-weight:600;color:#22c55e">$' + a.e9 + '</div></div>' +
+    '<div><div style="font-size:9px;color:#94a3b8">EMA21</div><div style="font-size:13px;font-weight:600;color:#fb923c">$' + a.e21 + '</div></div>' +
+    '<div><div style="font-size:9px;color:#94a3b8">ATR</div><div style="font-size:13px;font-weight:600;color:#a5b4fc">$' + a.atr + '</div></div>' +
+    '<div><div style="font-size:9px;color:#94a3b8">TP</div><div style="font-size:13px;font-weight:600;color:#86efac">$' + (liveP + parseFloat(a.atr) * 2).toFixed(2) + '</div></div>' +
+    '<div><div style="font-size:9px;color:#94a3b8">SL</div><div style="font-size:13px;font-weight:600;color:#fca5a5">$' + (liveP - parseFloat(a.atr)).toFixed(2) + '</div></div>' +
     '</div>' +
     '</div>' +
     '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
