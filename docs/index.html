@@ -98,6 +98,90 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 
 /* ── Metric cards ── */
 .mcard{background:linear-gradient(135deg,rgba(30,30,50,.9),rgba(20,20,38,.8));border:1px solid rgba(99,102,241,.2);border-radius:12px;padding:12px 14px;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(99,102,241,.1);transition:all .3s ease;}
+.mcard:hover{transform:translateY(-2px);border-color:rgba(99,102,241,.4);box-shadow:0 12px 32px rgba(99,102,241,.2);}
+
+/* ── Chart Explanation Tooltip ── */
+.chart-help{cursor:help;display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.4);font-size:11px;font-weight:700;color:#6366f1;margin-left:4px;position:relative;}
+.chart-help:hover::after{content:attr(data-tip);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);color:#fff;padding:8px 12px;border-radius:8px;white-space:nowrap;font-size:11px;z-index:100;border:1px solid rgba(99,102,241,.3);box-shadow:0 8px 16px rgba(0,0,0,.6);}
+
+/* ── Chart Legend ── */
+.chart-legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;padding:12px;background:rgba(15,15,28,.5);border-top:1px solid rgba(99,102,241,.1);border-radius:0 0 12px 12px;font-size:11px;}
+.legend-item{display:flex;align-items:center;gap:6px;}
+.legend-color{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+.legend-color.ema9{background:linear-gradient(135deg,#3b82f6,#06b6d4);}
+.legend-color.ema21{background:linear-gradient(135deg,#f59e0b,#ec4899);}
+.legend-color.rsi{background:linear-gradient(135deg,#8b5cf6,#d946ef);}
+.legend-label{color:#94a3b8;}
+
+/* ── Interactive Chart Panel ── */
+.chart-panel{position:relative;overflow:hidden;border-radius:12px;background:linear-gradient(135deg,rgba(20,20,35,.6),rgba(15,15,28,.8));}
+.chart-panel:hover{background:linear-gradient(135deg,rgba(25,25,45,.8),rgba(15,15,28,.9));}
+.chart-info{padding:12px;border-bottom:1px solid rgba(99,102,241,.1);display:flex;justify-content:space-between;align-items:center;}
+.chart-title{font-size:12px;font-weight:700;color:#e2e8f0;display:flex;align-items:center;gap:6px;}
+.chart-meta{font-size:10px;color:#64748b;}
+
+/* ── Animated Chart Container ── */
+#chart{animation:fadeIn .6s ease-out;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── RSI Analysis Box ── */
+.rsi-box{background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(168,85,247,.05));border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:10px 12px;margin:8px 0;font-size:11px;line-height:1.4;}
+.rsi-box strong{color:#a78bfa;}
+.rsi-label{display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:600;margin-right:4px;}
+.rsi-label.overbought{background:rgba(239,68,68,.15);color:#fca5a5;}
+.rsi-label.oversold{background:rgba(34,197,94,.15);color:#86efac;}
+.rsi-label.neutral{background:rgba(107,114,128,.15);color:#d1d5db;}
+
+/* ── Enhanced Ticker Cards ── */
+.tr{
+  background:linear-gradient(135deg,rgba(20,25,45,.6),rgba(15,18,32,.8));
+  border-left:3px solid rgba(99,102,241,.2);
+  border-radius:8px;
+  padding:12px;
+  margin-bottom:8px;
+  cursor:pointer;
+  transition:all .2s ease;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.tr:hover{
+  background:linear-gradient(135deg,rgba(30,40,60,.8),rgba(20,25,40,.9));
+  border-left-color:rgba(99,102,241,.6);
+  transform:translateX(4px);
+  box-shadow:0 8px 20px rgba(99,102,241,.15);
+}
+.tr.bullish{border-left-color:rgba(34,197,94,.4);}
+.tr.bearish{border-left-color:rgba(239,68,68,.4);}
+.tr.bullish:hover{border-left-color:rgba(34,197,94,.8);}
+.tr.bearish:hover{border-left-color:rgba(239,68,68,.8);}
+
+/* ── Status Badges Enhanced ── */
+.status-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:4px 8px;
+  border-radius:6px;
+  font-size:10px;
+  font-weight:600;
+  background:rgba(99,102,241,.1);
+  color:#a5b4fc;
+  border:1px solid rgba(99,102,241,.2);
+}
+.status-badge.up{background:rgba(34,197,94,.1);color:#86efac;border-color:rgba(34,197,94,.3);}
+.status-badge.down{background:rgba(239,68,68,.1);color:#fca5a5;border-color:rgba(239,68,68,.3);}
+
+/* ── Loading Animation ── */
+@keyframes shimmer{
+  0%{background-position:0 0;}
+  100%{background-position:1000px 0;}
+}
+.loading{
+  background:linear-gradient(90deg,rgba(99,102,241,.1),rgba(99,102,241,.2),rgba(99,102,241,.1));
+  background-size:1000px 100%;
+  animation:shimmer 2s infinite;
+  border-radius:6px;
+  height:20px;
+}
 .mcard:hover{border-color:rgba(99,102,241,.4);box-shadow:0 12px 32px rgba(99,102,241,.15);transform:translateY(-2px);}
 .mcard::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(99,102,241,.4),transparent);}
 .mcard .ml{font-size:9px;color:#475569;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-weight:600;}
@@ -1918,10 +2002,17 @@ async function renderChartPanel(sym, tf) {
   g('app-chart').innerHTML =
     '<div class="chart-panel-hdr">' +
     '<div>' +
-    '<div class="chart-sym">' + sym + ' <span style="font-size:14px;color:' + dirColor + ';font-weight:700">' + (dir === 'bull' ? '↑ BULL' : dir === 'bear' ? '↓ BEAR' : '→ WAIT') + '</span></div>' +
-    '<div class="chart-price-line"><strong style="color:#fff">$' + liveP.toFixed(dec) + '</strong>' +
-    ' <span style="color:' + (a.chg1h >= 0 ? '#22c55e' : '#ef4444') + '">' + (a.chg1h >= 0 ? '+' : '') + a.chg1h + '%</span>' +
-    ' <span style="color:#334155">· RSI ' + a.rsi + ' · EMA9 $' + a.e9 + ' · EMA21 $' + a.e21 + ' · ATR $' + a.atr + '</span></div>' +
+    '<div class="chart-sym" style="display:flex;align-items:center;gap:8px">' + sym + ' <span style="font-size:14px;color:' + dirColor + ';font-weight:700">' + (dir === 'bull' ? '↑ BULLISH' : dir === 'bear' ? '↓ BEARISH' : '→ NEUTRAL') + '</span></div>' +
+    '<div class="chart-price-line" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
+    '<div style="display:flex;align-items:baseline;gap:4px"><strong style="color:#fff;font-size:16px">$' + liveP.toFixed(dec) + '</strong><span style="color:' + (a.chg1h >= 0 ? '#22c55e' : '#ef4444') + ';font-size:12px;font-weight:600">' + (a.chg1h >= 0 ? '↑' : '↓') + ' ' + Math.abs(a.chg1h).toFixed(2) + '%</span></div>' +
+    '<div style="height:16px;width:1px;background:rgba(99,102,241,.2)"></div>' +
+    '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:11px">' +
+    '<div title="RSI above 63 = overbought, below 37 = oversold"><span style="color:' + (a.rsi > 63 ? '#ef4444' : a.rsi < 37 ? '#22c55e' : '#fbbf24') + ';font-weight:600">RSI ' + a.rsi + '</span></div>' +
+    '<div><span style="color:#94a3b8">EMA9:</span> <span style="color:#e2e8f0">$' + a.e9 + '</span></div>' +
+    '<div><span style="color:#94a3b8">EMA21:</span> <span style="color:#e2e8f0">$' + a.e21 + '</span></div>' +
+    '<div><span style="color:#94a3b8">ATR:</span> <span style="color:#e2e8f0">$' + a.atr + '</span></div>' +
+    '</div>' +
+    '</div>' +
     '</div>' +
     '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
     '<div style="display:flex;gap:4px">' + tfHtml + '</div>' +
@@ -1930,15 +2021,14 @@ async function renderChartPanel(sym, tf) {
     '</div>' +
     '<div class="chart-wrap"><div id="chart-container"></div></div>' +
     '<div class="chart-legend">' +
-    '<span style="color:#22c55e">— EMA9</span>' +
-    '<span style="color:#fb923c">— EMA21</span>' +
-    '<span style="color:rgba(96,165,250,.7)">-- EMA50</span>' +
-    '<span style="color:#fbbf24">— VWAP</span>' +
-    '<span style="color:rgba(99,102,241,.6)">· BB</span>' +
-    '<span style="color:rgba(99,102,241,.7)">-- S/R</span>' +
-    '<span style="color:#22c55e">-- TP</span>' +
-    '<span style="color:#ef4444">-- SL</span>' +
-    '<span style="color:#334155;margin-left:auto">scroll=zoom · drag=pan</span>' +
+    '<div style="flex:1;display:flex;gap:12px;flex-wrap:wrap;align-items:center">' +
+    '<div title="Fast moving average - shows trend direction" style="display:flex;align-items:center;gap:4px;padding:4px 6px;background:rgba(34,197,94,.1);border-radius:4px;border:1px solid rgba(34,197,94,.2)"><span style="width:8px;height:2px;background:#22c55e;display:inline-block"></span><span style="color:#22c55e;font-size:10px;font-weight:600">EMA9</span></div>' +
+    '<div title="Slow moving average - confirms trend" style="display:flex;align-items:center;gap:4px;padding:4px 6px;background:rgba(251,146,60,.1);border-radius:4px;border:1px solid rgba(251,146,60,.2)"><span style="width:8px;height:2px;background:#fb923c;display:inline-block"></span><span style="color:#fb923c;font-size:10px;font-weight:600">EMA21</span></div>' +
+    '<div title="Support/Resistance levels" style="display:flex;align-items:center;gap:4px;padding:4px 6px;background:rgba(99,102,241,.1);border-radius:4px;border:1px solid rgba(99,102,241,.2)"><span style="width:8px;height:2px;background:rgba(99,102,241,.7);display:inline-block;border-top:1px dashed rgba(99,102,241,.5)"></span><span style="color:#a5b4fc;font-size:10px;font-weight:600">S/R</span></div>' +
+    '<div title="Take profit target" style="display:flex;align-items:center;gap:4px;padding:4px 6px;background:rgba(34,197,94,.1);border-radius:4px;border:1px solid rgba(34,197,94,.2)"><span style="width:8px;height:2px;background:#22c55e;display:inline-block;border-top:2px dashed #22c55e"></span><span style="color:#86efac;font-size:10px;font-weight:600">TP</span></div>' +
+    '<div title="Stop loss level" style="display:flex;align-items:center;gap:4px;padding:4px 6px;background:rgba(239,68,68,.1);border-radius:4px;border:1px solid rgba(239,68,68,.2)"><span style="width:8px;height:2px;background:#ef4444;display:inline-block;border-top:2px dashed #ef4444"></span><span style="color:#fca5a5;font-size:10px;font-weight:600">SL</span></div>' +
+    '</div>' +
+    '<div style="color:#334155;font-size:9px;white-space:nowrap">🔍 scroll=zoom · ✋ drag=pan</div>' +
     '</div>' +
     '<div class="rsi-wrap"><div id="rsi-container"></div></div>' +
     buildModal(sym, a, cfg, bars, null);
