@@ -1776,10 +1776,9 @@ function analyse(bars) {
   const hs = bars.map(b => b.h), ls = bars.map(b => b.l);
   const n = cls.length;
 
-  // 📊 TIER 2: Calculate VWAP, Pivots, Order Flow
-  const vwap = calculateVWAP(bars);
-  const pivots = calculatePivots(bars[0].o, Math.max(...hs), Math.min(...ls), cls[n-1]);
-  const orderFlow = calculateOrderFlow(bars);
+  // 📊 TIER 2: Calculate Pivots, Order Flow (VWAP calculated below)
+  const pivots_t2 = calculatePivots(bars[0].o, Math.max(...hs), Math.min(...ls), cls[n-1]);
+  const orderFlow_t2 = calculateOrderFlow(bars);
 
   // EMAs
   let e9 = cls[0], e21 = cls[0], e50 = cls[0], e12 = cls[0], e26 = cls[0];
@@ -1887,10 +1886,9 @@ function analyse(bars) {
     aboveVwap: last.c>vwap, priceUp: n>=4 && cls[n-1]>cls[n-4],
     vwap:+vwap.toFixed(2), sH:+sH.toFixed(2), sL:+sL.toFixed(2),
     price:+last.c, chg1h:+(((cls[n-1]-cls[n-1-cN])/cls[n-1-cN])*100).toFixed(2), n,
-    // 📊 TIER 2: Add VWAP, Pivots, Order Flow
-    vwap_t2: vwap ? +vwap.toFixed(2) : null,
-    pivots: pivots,
-    orderFlow: orderFlow
+    // 📊 TIER 2: Add Pivots, Order Flow
+    pivots: pivots_t2,
+    orderFlow: orderFlow_t2
   };
 }
 
