@@ -2992,12 +2992,15 @@ async function renderModal(sym) {
   }
   const ts = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   g('modal-body').innerHTML =
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
-    '<span style="font-size:10px;color:#8ba0c0">Analysis at ' + ts + ' · auto-refreshes every 60s</span>' +
-    '<button id="modal-refresh-btn" onclick="modalRefresh(\'' + sym + '\')" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#94a3b8;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer">↻ Refresh now</button>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
+    '<span style="font-size:10px;color:#8ba0c0">Analysis at ' + ts + '</span>' +
+    '<button id="modal-refresh-btn" onclick="modalRefresh(\'' + sym + '\')" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#94a3b8;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer">↻ Refresh</button>' +
     '</div>' +
+    '<div id="lwchart-container" style="height:300px;width:100%;margin-bottom:14px;border-radius:8px;overflow:hidden;background:rgba(15,15,28,.6);border:1px solid rgba(99,102,241,.1)"></div>' +
     buildModal(sym, a, cfg, bars, htfA);
-  // Live price element inside modal also updates via display loop (data-px attr already set)
+
+  // Render the Lightweight Chart
+  setTimeout(() => { initLWChart('lwchart-container', bars, a); }, 100);
 }
 
 async function modalRefresh(sym) {
