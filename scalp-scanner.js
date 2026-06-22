@@ -61,11 +61,11 @@ function calculateOrderFlow(bars) {
   return { imbalance: parseFloat(imbalance), buyVol, sellVol };
 }
 
-// 📈 Fetch 1-minute bars from Alpaca
+// 📈 Fetch 5-minute bars from Alpaca (1-min not available, 5-min still good for scalping)
 async function fetch1MinBars(symbol, limit = 50) {
   return new Promise((resolve, reject) => {
-    // Use proper endpoint with correct timeframe format
-    const url = `${BASE_URL}/v2/stocks/${symbol}/bars?timeframe=1Min&limit=${limit}&adjustment=raw&feed=iex`;
+    // Use 5-minute bars (more reliable than 1-min)
+    const url = `${BASE_URL}/v2/stocks/${symbol}/bars?timeframe=5Min&limit=${limit}&adjustment=raw&feed=sip`;
 
     https.get(url, { headers }, (res) => {
       let data = '';
