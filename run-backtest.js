@@ -101,8 +101,7 @@ function checkOLD(bars) {
 // ADX (Average Directional Index) > 20 = real trend, breakouts have follow-through.
 // ADX < 15 = ranging/sideways, breakouts are noise.
 // Classic rule: don't use breakout strategies in low-ADX markets.
-// ITER 12: 5-stock universe, loosen to get 15-20 trades at 70%+ WR.
-// Loosen: ADX>23 (was 25), vol>1.4x (was 1.5x), keep RSI 51-62 / 38-49.
+// ITER 13: 5-stock, loosen more: ADX>22, vol>1.3x, RSI 50-63 / 37-50.
 function checkIMPROVED(bars) {
   if (bars.length<60) return null;
   const n=bars.length,cls=bars.map(b=>b.c),hs=bars.map(b=>b.h),ls=bars.map(b=>b.l);
@@ -112,25 +111,25 @@ function checkIMPROVED(bars) {
 
   if (atr/cls[n-1]*100 < 0.3) return null;
   const adx = adxOf(bars);
-  if (adx < 23) return null;  // Loosened from 25
+  if (adx < 22) return null;  // Back to 22
 
   const last=bars[n-1], prev=bars[n-2];
 
-  // Strict AND: vol>1.4x (loosened from 1.5x) + body>40%
+  // Strict AND: vol>1.3x + body>40%
   const vArr = vs.slice(-11,-1).filter(v=>v>0);
   const vAvg = vArr.length ? vArr.reduce((a,b)=>a+b,0)/vArr.length : 1;
   const vRatio = vAvg>0 ? vs[n-1]/vAvg : 1;
-  if (vRatio < 1.4) return null;  // Loosened from 1.5
+  if (vRatio < 1.3) return null;  // Back to 1.3x
   const range = (last.h-last.l)||0.001;
   const body  = Math.abs(last.c-last.o)/range;
   if (body < 0.40) return null;
 
   const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
 
-  // Keep tight RSI: 51-62 bull / 38-49 bear
-  if (e9>e21 && r>51 && r<62 && last.c>sH && prev.c<=sH && last.c>last.o)
+  // RSI 50-63 / 37-50
+  if (e9>e21 && r>50 && r<63 && last.c>sH && prev.c<=sH && last.c>last.o)
     return {side:'buy',  atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
-  if (e9<e21 && r>38 && r<49 && last.c<sL && prev.c>=sL && last.c<last.o)
+  if (e9<e21 && r>37 && r<50 && last.c<sL && prev.c>=sL && last.c<last.o)
     return {side:'sell', atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
   return null;
 }
