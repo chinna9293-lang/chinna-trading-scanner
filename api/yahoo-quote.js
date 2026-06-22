@@ -1,7 +1,6 @@
-import https from 'https';
+const https = require('https');
 
-export default function handler(req, res) {
-  // Enable CORS
+module.exports = (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Content-Type', 'application/json');
@@ -23,13 +22,9 @@ export default function handler(req, res) {
     let data = '';
     apiRes.on('data', chunk => data += chunk);
     apiRes.on('end', () => {
-      try {
-        res.status(200).send(data);
-      } catch (e) {
-        res.status(500).json({ error: e.message });
-      }
+      res.status(200).send(data);
     });
   }).on('error', (e) => {
     res.status(500).json({ error: e.message });
   });
-}
+};
