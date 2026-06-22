@@ -14,24 +14,14 @@ const ALP_SEC = process.env.ALPACA_SECRET || 'EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHG
 const DATA    = 'https://data.alpaca.markets';
 
 // ITER 10: Revert to HOURLY + 3mo (proven at 61.5% WR in iter8).
-// ITER 9 (daily) had too much noise — daily breakouts are choppy for most crypto.
-// Instead, focus on HIGH-WR universe from iter8:
-// Stocks: CRM, META, GOOGL, ORCL, COST (all 50%+ in iter8, ORCL/COST 66-75%)
-// Crypto: BTC, ETH, LINK, DOGE (all 100% in iter8; skip LTC/SOL which failed on daily)
+// Use Yahoo Finance for all symbols (stocks + crypto in -USD format).
+// Crypto: BTC-USD, ETH-USD, LINK-USD, DOGE-USD work on Yahoo hourly.
 const UNIVERSE = {
   CRM:'stock', META:'stock', GOOGL:'stock', ORCL:'stock', COST:'stock',
-  'BTC/USD':'crypto','ETH/USD':'crypto','LINK/USD':'crypto','DOGE/USD':'crypto',
+  'BTC-USD':'crypto','ETH-USD':'crypto','LINK-USD':'crypto','DOGE-USD':'crypto',
 };
-const alpH = { 'APCA-API-KEY-ID': ALP_KEY, 'APCA-API-SECRET-KEY': ALP_SEC };
 
 async function getBars(symbol, limit) {
-  if (symbol.includes('/')) {
-    const sym   = symbol.replace('/','%2F');
-    const start = new Date(Date.now()-90*86400000).toISOString().slice(0,10);
-    const url   = `${DATA}/v1beta3/crypto/us/bars?symbols=${sym}&timeframe=1Hour&limit=${limit}&start=${start}`;
-    const d     = await (await fetch(url,{headers:alpH})).json();
-    return (d.bars&&d.bars[symbol])||[];
-  }
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1h&range=3mo`;
     const d   = await (await fetch(url,{headers:{'User-Agent':'Mozilla/5.0'}})).json();
