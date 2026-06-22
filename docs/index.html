@@ -682,6 +682,11 @@ button, input[type="button"], .scalper-btn, .chip, .sbtn {
     </div>
   </div>
 
+  <div class="news-bar">
+    <span class="news-label">📰 Market News</span>
+    <div class="news-scroll"><div class="news-track" id="news-track"><span class="nh" style="color:#8ba0c0">Loading headlines...</span></div></div>
+  </div>
+
   <div class="app-layout">
 
     <!-- ── LEFT SIDEBAR (admin only) ── -->
@@ -803,11 +808,6 @@ button, input[type="button"], .scalper-btn, .chip, .sbtn {
       </div>
     </div>
 
-  </div>
-
-  <div class="news-bar">
-    <span class="news-label">📰 Market News</span>
-    <div class="news-scroll"><div class="news-track" id="news-track"><span class="nh" style="color:#8ba0c0">Loading headlines...</span></div></div>
   </div>
 </div>
 
@@ -1024,7 +1024,7 @@ async function doSignup() {
 }
 
 function grant() {
-  sessionStorage.setItem('ct','1');
+  try { sessionStorage.setItem('ct','1'); } catch (e) { console.warn('sessionStorage unavailable:', e); }
   g('pg-login').style.display = 'none';
   g('pg-dash').style.display  = 'block';
   const isAdmin = !currentUser || currentUser.role === 'admin' || currentUser.email === ADMIN_EMAIL;
@@ -1039,7 +1039,7 @@ function grant() {
 }
 
 async function doLogout() {
-  sessionStorage.removeItem('ct');
+  try { sessionStorage.removeItem('ct'); } catch (e) { console.warn('sessionStorage unavailable:', e); }
   stopAll();
   if (FB_READY && fbAuth) await fbAuth.signOut();
   currentUser = null;
@@ -1109,9 +1109,10 @@ async function adminDelete(uid) {
   } catch(e) { showToast('Error: ' + e.message, '#ef4444'); }
 }
 
-if (sessionStorage.getItem('ct') === '1') {
-  g('pg-login').style.display = 'none';
-  g('pg-dash').style.display = 'block';
+try {
+  if (sessionStorage.getItem('ct') === '1') {
+    g('pg-login').style.display = 'none';
+    g('pg-dash').style.display = 'block';
 }
 
 // ─── Alpaca ──────────────────────────────────────────────────────────────────
@@ -3000,20 +3001,49 @@ async function modalRefresh(sym) {
 }
 
 async function openModal(sym) {
+  console.log('📱 Opening modal for:', sym, 'Width:', window.innerWidth);
+
   // Desktop: show in right panel if available
   if (window.innerWidth >= 700 && g('app-chart')) {
+    console.log('🖥️  Desktop mode - using chart panel');
     await openChartPanel(sym);
     return;
   }
+
   // Mobile: slide-up modal overlay
+  console.log('📱 Mobile mode - opening modal');
   modalSym = sym;
   if (modalTimer) { clearInterval(modalTimer); modalTimer = null; }
-  g('modal').classList.add('open');
-  g('modal-body').innerHTML = '<div class="empty">Loading ' + sym + '...</div>';
-  await renderModal(sym);
+
+  const modal = g('modal');
+  const modalBody = g('modal-body');
+
+  if (!modal || !modalBody) {
+    console.error('❌ Modal elements not found');
+    alert('Error: Modal elements missing');
+    return;
+  }
+
+  modal.classList.add('open');
+  modalBody.innerHTML = '<div class="empty" style="padding:40px;text-align:center">⏳ Loading ' + sym + ' chart...</div>';
+
+  try {
+    console.log('🔄 Calling renderModal...');
+    await renderModal(sym);
+    console.log('✅ renderModal complete');
+  } catch (e) {
+    console.error('❌ renderModal error:', e);
+    modalBody.innerHTML = '<div class="empty" style="padding:40px;color:#ef4444"><strong>Error loading chart:</strong><br>' + e.message + '</div>';
+    return;
+  }
+
   modalTimer = setInterval(() => {
-    if (modalSym && g('modal').classList.contains('open')) renderModal(modalSym);
-    else { clearInterval(modalTimer); modalTimer = null; }
+    if (modalSym && g('modal').classList.contains('open')) {
+      renderModal(modalSym).catch(e => console.warn('Auto-refresh error:', e));
+    } else {
+      clearInterval(modalTimer);
+      modalTimer = null;
+    }
   }, 60000);
 }
 
