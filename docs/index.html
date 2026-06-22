@@ -1028,10 +1028,10 @@ function startAlpacaStream() {
 // Snapshot fallback for closed market / pre-market seed prices
 async function pollSnapshot() {
   try {
-    // Primary source: Yahoo Finance via allorigins CORS proxy
-    const yahooUrl = 'https://query2.finance.yahoo.com/v7/finance/quote?symbols=' + STOCKS.join(',');
-    const corsUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(yahooUrl);
-    const d = await (await fetch(corsUrl, { signal: AbortSignal.timeout(6000) })).json();
+    // Primary source: Local proxy server (http://localhost:3001)
+    // Run: node proxy-server.js
+    const proxyUrl = 'http://localhost:3001/yahoo-quote?symbols=' + STOCKS.join(',');
+    const d = await (await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) })).json();
     (d?.quoteResponse?.result || []).forEach(q => {
       const session = getMarketSession();
       const p = session === 'premarket' ? (q.preMarketPrice || q.regularMarketPrice)
