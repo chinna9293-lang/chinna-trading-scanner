@@ -22,6 +22,7 @@ const UNIVERSE = {
   CRM:'stock', META:'stock', GOOGL:'stock', ORCL:'stock', COST:'stock',
   'BTC/USD':'crypto','ETH/USD':'crypto','LINK/USD':'crypto','DOGE/USD':'crypto',
 };
+const alpH = { 'APCA-API-KEY-ID': ALP_KEY, 'APCA-API-SECRET-KEY': ALP_SEC };
 
 async function getBars(symbol, limit) {
   if (symbol.includes('/')) {
