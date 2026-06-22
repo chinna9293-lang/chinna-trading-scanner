@@ -64,7 +64,8 @@ function calculateOrderFlow(bars) {
 // 📈 Fetch 1-minute bars from Alpaca
 async function fetch1MinBars(symbol, limit = 50) {
   return new Promise((resolve, reject) => {
-    const url = `${BASE_URL}/v2/stocks/${symbol}/bars?timeframe=1Min&limit=${limit}&adjustment=raw`;
+    // Use proper endpoint with correct timeframe format
+    const url = `${BASE_URL}/v2/stocks/${symbol}/bars?timeframe=1Min&limit=${limit}&adjustment=raw&feed=iex`;
 
     https.get(url, { headers }, (res) => {
       let data = '';
