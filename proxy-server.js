@@ -47,24 +47,35 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    const yahooUrl = `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`;
+    // Fetch from Finnhub (much better rate limits)
+    const symbolList = symbols.split(',');
+    const finnhubUrl = `https://finnhub.io/api/v1/quote?symbol=${symbolList[0]}&token=demo`;
 
-    https.get(yahooUrl, (apiRes) => {
+    https.get(finnhubUrl, (apiRes) => {
       let data = '';
       apiRes.on('data', chunk => data += chunk);
       apiRes.on('end', () => {
         try {
-          console.log(`Response length: ${data.length}, First 200 chars: ${data.substring(0, 200)}`);
           const jsonData = JSON.parse(data);
-          CACHE[symbols] = { data: jsonData, timestamp: Date.now() };
-          console.log(`✓ Fetched ${symbols} from Yahoo Finance`);
+          // Convert Finnhub format to Yahoo-like format
+          const yahooFormat = {
+            quoteResponse: {
+              result: symbolList.map(sym => ({
+                symbol: sym,
+                regularMarketPrice: jsonData.c,
+                preMarketPrice: jsonData.c,
+                postMarketPrice: jsonData.c
+              }))
+            }
+          };
+          CACHE[symbols] = { data: yahooFormat, timestamp: Date.now() };
+          console.log(`✓ Fetched from Finnhub: ${symbols}`);
           res.writeHead(200);
-          res.end(data);
+          res.end(JSON.stringify(yahooFormat));
         } catch (e) {
-          console.error(`Parse error for ${symbols}: ${e.message}`);
-          console.error(`Raw response: ${data.substring(0, 500)}`);
-          res.writeHead(200);
-          res.end(data); // Return raw data anyway
+          console.error(`Parse error: ${e.message}`);
+          res.writeHead(500);
+          res.end(JSON.stringify({ error: 'Parse error' }));
         }
       });
     }).on('error', (e) => {
