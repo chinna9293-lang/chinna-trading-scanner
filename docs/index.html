@@ -3588,21 +3588,21 @@ async function startAll() {
   startAlpacaStream();                               // stocks — Alpaca WebSocket (real-time streaming)
   _timers.push(setInterval(pollSnapshot, 120000));   // fallback snapshot refresh every 2min (if WS drops)
   _timers.push(setInterval(refreshDisplay, 1000));   // push LP → DOM every 1s
-  _timers.push(setInterval(loadAccount, 5000));     // account every 5s for real-time prices
+  _timers.push(setInterval(loadAccount, 30000));    // account every 30s (avoid Alpaca rate limits)
 
   // 🎯 PROFESSIONAL SCALPER FEATURES
   try { await fetchAccountStatus(); } catch (e) { console.warn('Account status fetch failed:', e); }
-  _timers.push(setInterval(fetchAccountStatus, 10000)); // Update account every 10s
+  _timers.push(setInterval(fetchAccountStatus, 30000)); // Update account every 30s
 
   // Load scanner signals from cloud scanner
   try { await loadScannerSignals(); } catch (e) { console.warn('Load scanner signals failed:', e); }
   _timers.push(setInterval(loadScannerSignals, 60000)); // Refresh scanner signals every 1 minute
 
   // Fetch real bid/ask for all stocks
-  STOCKS.forEach((sym, i) => setTimeout(() => fetchRealQuote(sym), i * 300));
+  STOCKS.forEach((sym, i) => setTimeout(() => fetchRealQuote(sym), i * 500));
   _timers.push(setInterval(() => {
-    STOCKS.forEach((sym, i) => setTimeout(() => fetchRealQuote(sym), i * 100));
-  }, 5000)); // Refresh bid/ask every 5s
+    STOCKS.forEach((sym, i) => setTimeout(() => fetchRealQuote(sym), i * 500));
+  }, 30000)); // Refresh bid/ask every 30s
 
   // Load core dashboard data
   try { await loadAccount(); } catch (e) { console.warn('Load account failed:', e); }
