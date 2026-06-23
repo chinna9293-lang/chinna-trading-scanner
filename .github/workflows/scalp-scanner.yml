@@ -10,6 +10,8 @@ on:
 jobs:
   scalp_scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,15 +27,17 @@ jobs:
       - name: Commit Updated Signals
         if: always()
         run: |
-          git config user.name "Scanner Bot"
-          git config user.email "scanner@automated.trading"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git diff --quiet docs/signals.json; then
             echo "No signal changes to commit"
           else
             git add docs/signals.json
             git commit -m "Update signals.json from latest scan - $(date +'%Y-%m-%d %H:%M:%S UTC')"
-            git push
+            git push origin main
           fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log Scan Results
         if: always()
