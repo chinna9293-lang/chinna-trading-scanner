@@ -3598,11 +3598,23 @@ async function startAll() {
   try { await loadScannerSignals(); } catch (e) { console.warn('Load scanner signals failed:', e); }
   _timers.push(setInterval(loadScannerSignals, 60000)); // Refresh scanner signals every 1 minute
 
-  // Fetch real bid/ask for all stocks
-  STOCKS.forEach((sym, i) => setTimeout(() => fetchRealQuote(sym), i * 500));
+  // Check if it's weekend (skip stock fetching on Sat/Sun)
+  function isWeekend() {
+    const day = new Date().getDay();
+    return day === 0 || day === 6; // 0=Sunday, 6=Saturday
+  }
+
+  // Fetch real bid/ask for all stocks (skip weekends, crypto 24/7)
+  const fetchStocks = () => {
+    if (!isWeekend()) {
+      STOCKS.forEach((sym, i) => setTimeout(() => fetchRealQuote(sym), i * 500));
+    }
+  };
+
+  fetchStocks(); // Initial fetch
   _timers.push(setInterval(() => {
-    STOCKS.forEach((sym, i) => setTimeout(() => fetchRealQuote(sym), i * 500));
-  }, 30000)); // Refresh bid/ask every 30s
+    fetchStocks(); // Only fetch stocks Mon-Fri, crypto fetches anyway
+  }, 30000)); // Refresh every 30s
 
   // Load core dashboard data
   try { await loadAccount(); } catch (e) { console.warn('Load account failed:', e); }
