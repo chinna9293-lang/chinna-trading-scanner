@@ -532,7 +532,8 @@ async function runScan() {
 
             if (!isBuy && !isSell) {
               console.log(`    ⚠️  Unknown signal type: ${signal.type}`);
-              await sendAlert(signal);
+              const alertResult = await sendAlert(signal);
+              console.log(`    ${alertResult}`);
               continue;
             }
 
@@ -548,7 +549,8 @@ async function runScan() {
                   type: 'EXIT',
                   message: signal.message.replace('BEAR setup', 'EXIT OPPORTUNITY')
                 };
-                await sendAlert(exitSignal, null);
+                const alertResult = await sendAlert(exitSignal, null);
+                console.log(`    ${alertResult}`);
                 results.push({ ...signal, executed: false, type: 'EXIT', reason: 'Exit signal - Manual action recommended' });
                 totalSignals++;
               } catch (alertErr) {
@@ -575,7 +577,8 @@ async function runScan() {
               totalExecuted++;
 
               // Send alert with execution details
-              await sendAlert(signal, orderResult, qty);
+              const alertResult = await sendAlert(signal, orderResult, qty);
+              console.log(`    ${alertResult}`);
               results.push({ ...signal, order: orderResult, executed: true, qty });
               totalSignals++;
             }
@@ -584,7 +587,8 @@ async function runScan() {
             console.error(`    ❌ BUY Execution failed: ${e.message}`);
             // Send alert anyway (signal detected but order failed)
             try {
-              await sendAlert(signal, null);
+              const alertResult = await sendAlert(signal, null);
+              console.log(`    ${alertResult}`);
               results.push({ ...signal, executed: false, error: e.message });
               totalSignals++;
             } catch (alertErr) {
