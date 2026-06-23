@@ -73,11 +73,11 @@ async function fetch1MinBars(symbol, type = 'stock', limit = 50) {
 
     if (type === 'crypto') {
       // Kraken API: 24/7 crypto data (public, no auth needed)
-      // Convert BTCUSD → XXBTZUSD (Kraken's format)
-      const krakenPair = symbol === 'BTCUSD' ? 'XXBTZUSD' :
-                         symbol === 'ETHUSD' ? 'XETHZUSD' :
-                         symbol === 'XRPUSD' ? 'XXRPZUSD' :
-                         symbol === 'SOLUSD' ? 'SOLZUSD' : symbol;
+      // Convert to Kraken's pair format (use USD pairs)
+      const krakenPair = symbol === 'BTCUSD' ? 'BTCUSD' :
+                         symbol === 'ETHUSD' ? 'ETHUSD' :
+                         symbol === 'XRPUSD' ? 'XRPUSD' :
+                         symbol === 'SOLUSD' ? 'SOLUSD' : symbol;
 
       url = `https://api.kraken.com/0/public/OHLC?pair=${krakenPair}&interval=5`;
       options = {};
