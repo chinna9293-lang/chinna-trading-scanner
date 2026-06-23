@@ -546,21 +546,24 @@ async function runScan() {
               try {
                 // Auto-execute SELL (similar to BUY auto-execution)
                 const currentPrice = parseFloat(signal.price);
-                console.log(`    🔴 AUTO-EXECUTE SELL: ${qty || 1} ${assetSymbol} @ $${currentPrice}`);
+                const atr = Math.abs(Math.max(...bars.map(b => parseFloat(b.h))) - Math.min(...bars.map(b => parseFloat(b.l)))) / bars.length;
+                const sellQty = account ? calculatePositionSize(currentPrice, atr, account.equity) : 1;
 
-                const sellQty = qty || 1; // Use same quantity as was bought
+                console.log(`    🔴 AUTO-EXECUTE SELL: ${sellQty} ${assetSymbol} @ $${currentPrice}`);
+
                 const orderResult = await placeOrder(assetSymbol, 'sell', sellQty, currentPrice);
 
                 console.log(`    ✅ SELL ORDER EXECUTED`);
                 console.log(`       Order ID: ${orderResult.id}`);
                 console.log(`       Status: ${orderResult.status}`);
+                console.log(`       Qty: ${sellQty}`);
                 totalExecuted++;
 
                 // Send alert with execution details
                 const exitSignal = {
                   ...signal,
                   type: 'EXIT',
-                  message: signal.message.replace('BEAR setup', 'EXIT EXECUTED')
+                  message: signal.message.replace('BEAR setup', 'SELL EXECUTED')
                 };
                 const alertResult = await sendAlert(exitSignal, orderResult, sellQty);
                 console.log(`    ${alertResult}`);
