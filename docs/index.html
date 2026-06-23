@@ -933,6 +933,16 @@ button, input[type="button"], .scalper-btn, .chip, .sbtn {
 <div class="mbg" id="modal" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="modal-drag-handle"></div>
+    <div class="modal-header" id="modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid rgba(99,102,241,.1)">
+      <div>
+        <div id="modal-sym" style="font-size:11px;color:#94a3b8">Loading...</div>
+        <div id="modal-price" style="font-size:20px;font-weight:900;color:#fff;margin-top:2px">—</div>
+      </div>
+      <div style="text-align:right">
+        <div id="modal-change" style="font-size:12px;color:#94a3b8">—</div>
+        <div id="modal-rsi" style="font-size:12px;color:#94a3b8;margin-top:2px">—</div>
+      </div>
+    </div>
     <button class="mcl" onclick="closeModal()">✕</button>
     <div id="modal-body"><div class="empty">Loading...</div></div>
     <button class="modal-close-bar" onclick="closeModal()">Close</button>
@@ -3266,7 +3276,13 @@ async function renderModal(sym) {
   const htfA = htfBars.length >= 5 ? analyse(htfBars) : null;
   const cfg = UNI[sym] || null;
   if (!a) {
-    g('modal-body').innerHTML = '<div class="mticker">' + ((cfg&&cfg.label)||sym) + '</div>' +
+    // Update modal header
+    g('modal-sym').textContent = cfg ? cfg.label : sym;
+    g('modal-price').textContent = '—';
+    g('modal-change').textContent = '—';
+    g('modal-rsi').textContent = '—';
+
+    g('modal-body').innerHTML =
       '<div class="nbox" style="margin-top:16px"><p><strong style="color:#fff">No bar data returned</strong><br><br>' +
       '• Alpaca SIP feed may not have data for this symbol<br>' +
       '• Try searching the exact ticker (e.g. TSLA, AAPL, BTC/USD)<br>' +
@@ -3275,6 +3291,19 @@ async function renderModal(sym) {
       (cfg?'<div class="stitle">Backtest stats</div><div class="nbox"><div class="hrow"><span style="color:#94a3b8">Win rate</span><span>'+cfg.hw+'%</span></div><div class="hrow"><span style="color:#94a3b8">P&L</span><span class="'+(cfg.hp>=0?'g':'r')+'">'+(cfg.hp>=0?'+':'')+cfg.hp+'%</span></div></div>':'');
     return;
   }
+  // Update modal header with symbol and price
+  const liveP = (LP[sym] && LP[sym].price) || a.price;
+  const dec2 = liveP < 1 ? 5 : 2;
+  const chgColor = a.chg1h >= 0 ? '#22c55e' : '#ef4444';
+  const chgSign = a.chg1h >= 0 ? '+' : '';
+
+  g('modal-sym').textContent = cfg ? cfg.label : sym;
+  g('modal-price').textContent = '$' + liveP.toFixed(dec2);
+  g('modal-price').style.color = chgColor;
+  g('modal-change').textContent = chgSign + a.chg1h + '%';
+  g('modal-change').style.color = chgColor;
+  g('modal-rsi').textContent = 'RSI ' + a.rsi;
+
   const ts = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   g('modal-body').innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
