@@ -580,7 +580,7 @@ async function runScan() {
     console.log(`   Message: No scalp signals detected`);
   }
 
-  // Save signals to JSON file for dashboard display
+  // Save signals to JSON file for dashboard display (in docs folder for Vercel)
   const signalsData = {
     timestamp: new Date().toISOString(),
     totalSignals,
@@ -599,9 +599,10 @@ async function runScan() {
   };
 
   try {
-    const signalsFile = path.join(process.cwd(), 'signals.json');
+    // Save to docs folder so it gets deployed by Vercel
+    const signalsFile = path.join(process.cwd(), 'docs', 'signals.json');
     fs.writeFileSync(signalsFile, JSON.stringify(signalsData, null, 2));
-    console.log(`\n💾 Signals saved to signals.json`);
+    console.log(`\n💾 Signals saved to docs/signals.json for Vercel deployment`);
   } catch (e) {
     console.error(`⚠️  Could not save signals file: ${e.message}`);
   }
