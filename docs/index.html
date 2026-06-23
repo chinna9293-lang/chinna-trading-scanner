@@ -2574,10 +2574,11 @@ function buildModal(sym, a, cfg, bars, htfA) {
   const atrVal = a.atr || (liveP * 0.015);
   const tpDist = 2.0 * atrVal;
   const slDist = 1.0 * atrVal;
-  const tpPct  = +(tpDist / liveP * 100).toFixed(2);
-  const slPct  = +(slDist / liveP * 100).toFixed(2);
+  // Correct percentage signs based on direction
   const tpPrice = dir === 'bull' ? (liveP + tpDist).toFixed(dec2) : (liveP - tpDist).toFixed(dec2);
   const slPrice = dir === 'bull' ? (liveP - slDist).toFixed(dec2) : (liveP + slDist).toFixed(dec2);
+  const tpPct = dir === 'bull' ? +(tpDist / liveP * 100).toFixed(2) : -(tpDist / liveP * 100).toFixed(2);
+  const slPct = dir === 'bull' ? -(slDist / liveP * 100).toFixed(2) : +(slDist / liveP * 100).toFixed(2);
 
   let signal, signalColor, signalIcon;
   if (bPassed === 3) {
@@ -2606,9 +2607,9 @@ function buildModal(sym, a, cfg, bars, htfA) {
       '<div class="card-row"><div style="font-size:24px">'+signalIcon+'</div><div><strong style="color:'+signalColor+';font-size:16px">'+signal+'</strong></div></div>' +
       (signal!=='NO SIGNAL' ? (
         '<div class="card-row"><div class="card-label">Entry</div><div class="card-data">$'+liveP.toFixed(dec2)+'</div></div>' +
-        '<div class="card-row"><div class="card-label">🎯 Target</div><div class="card-data" style="color:#22c55e">$'+tpPrice+' (+'+tpPct+'%)</div></div>' +
-        '<div class="card-row"><div class="card-label">⛔ Stop</div><div class="card-data" style="color:#ef4444">$'+slPrice+' (-'+slPct+'%)</div></div>' +
-        '<div class="card-row"><div class="card-label">ATR / R:R</div><div class="card-data">$'+atrVal.toFixed(dec2)+' / 2:1</div></div>'
+        '<div class="card-row"><div class="card-label">🎯 TP1</div><div class="card-data" style="color:'+(dir==='bull'?'#22c55e':'#ef4444')+'">'+(tpPct>=0?'+':'')+tpPct+'% ($'+tpPrice+')</div></div>' +
+        '<div class="card-row"><div class="card-label">⛔ Stop</div><div class="card-data" style="color:#ef4444">'+(slPct>=0?'+':'')+slPct+'% ($'+slPrice+')</div></div>' +
+        '<div class="card-row"><div class="card-label">ATR</div><div class="card-data">$'+atrVal.toFixed(dec2)+'</div></div>'
       ) : '') +
     '</div>' +
 
