@@ -2187,7 +2187,7 @@ function resolveSym(raw) {
   // Check if it's already a crypto (ends with USD)
   if (c.endsWith('USD')) return c;
   // Check if adding USD makes it crypto
-  if ([...CRYPTO].includes(c + 'USD')) return c + 'USD';
+  if (CRYPTOS.includes(c + 'USD')) return c + 'USD';
   // Check if it's in stocks list
   if (STOCKS.includes(c)) return c;
   // Default: return as-is (let Alpaca handle it)
@@ -3709,8 +3709,8 @@ async function loadAccount() {
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-async // 🔄 CLEAR CACHE & RELOAD (for mobile updates)
-function clearAppCache() {
+// 🔄 CLEAR CACHE & RELOAD (for mobile updates)
+async function clearAppCache() {
   if (confirm('Clear cache and reload? This will refresh all data.')) {
     // Clear localStorage
     try { localStorage.clear(); } catch (e) {}
