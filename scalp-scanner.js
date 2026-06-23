@@ -342,16 +342,29 @@ async function placeOrder(symbol, side, qty, price) {
 // 🔔 Send ntfy alert WITH order execution
 async function sendAlert(signal, orderResult = null, qty = null) {
   return new Promise((resolve, reject) => {
-    // Build alert message with clear buy/sell indicators
+    // Build alert message with clear buy/sell/exit indicators
     let alertMessage = signal.message;
-    let emoji = signal.type === 'BUY' ? '🟢' : '🔴';
-    let actionText = signal.type === 'BUY' ? 'BUY' : 'SELL';
+    let emoji, actionText, title;
+
+    if (signal.type === 'BUY' || signal.type === 'EXIT') {
+      emoji = signal.type === 'BUY' ? '🟢' : '🟡';
+      actionText = signal.type === 'BUY' ? 'BUY / ENTRY' : 'SELL / EXIT';
+    } else {
+      emoji = '🔴';
+      actionText = 'SELL';
+    }
 
     // Add trade details
     alertMessage += `\n\n${emoji} ACTION: ${actionText}`;
-    alertMessage += `\n💵 Entry: $${signal.price}`;
+    alertMessage += `\n💵 Price: $${signal.price}`;
     alertMessage += `\n🎯 Target: $${signal.targetPrice}`;
-    alertMessage += `\n📈 Profit: ${signal.margin}`;
+    alertMessage += `\n📈 Return: ${signal.margin}`;
+
+    if (signal.type === 'EXIT') {
+      alertMessage += `\n\n⭐ EXIT OPPORTUNITY`;
+      alertMessage += `\n👉 MANUAL ACTION REQUIRED`;
+      alertMessage += `\n📊 Review your BUY position and consider selling`;
+    }
 
     if (signal.pattern === 'DOUBLE_BOTTOM') {
       alertMessage += `\n\n⭐ PATTERN: Double Bottom Reversal`;
@@ -368,15 +381,20 @@ async function sendAlert(signal, orderResult = null, qty = null) {
       alertMessage += `\nOrder ID: ${orderResult.id}`;
     }
 
-    // High priority for VERY_HIGH strength signals
+    // High priority for VERY_HIGH strength signals, EXIT signals
     let priority = 5; // Default high
-    if (signal.strength === 'VERY_HIGH') priority = 5;
+    if (signal.type === 'EXIT') priority = 5; // HIGH priority for exits
+    else if (signal.strength === 'VERY_HIGH') priority = 5;
     else if (signal.strength === 'HIGH') priority = 4;
     else priority = 3;
 
+    title = signal.type === 'EXIT'
+      ? `🟡 ${signal.symbol} EXIT OPPORTUNITY`
+      : `${emoji} ${signal.symbol} ${actionText}${orderResult ? ' [EXECUTED]' : ''}`;
+
     const payload = JSON.stringify({
       topic: NTFY_TOPIC,
-      title: `${emoji} ${signal.symbol} ${signal.type}${orderResult ? ' [EXECUTED]' : ''}`,
+      title: title,
       message: alertMessage,
       priority: priority,
       tags: ['trading', 'scalp', 'alert', signal.symbol.toLowerCase(), signal.type.toLowerCase(), orderResult ? 'executed' : 'pending'],
@@ -486,13 +504,20 @@ async function runScan() {
               continue;
             }
 
-            // 🟢 BULLISH-ONLY MODE: Only execute BUY signals, send alerts for SELL signals
+            // 🔴 SELL SIGNAL: Show as EXIT/TAKE PROFIT opportunity (don't execute - manual only)
             if (isSell) {
-              // SELL signal: Just send alert, don't execute
-              console.log(`    📢 BEARISH ALERT (No Trade): ${signal.message}`);
+              // SELL signal = EXIT signal for your BUY position
+              console.log(`    🎯 EXIT SIGNAL: ${signal.message}`);
+              console.log(`       💰 Take Profit Target: $${signal.targetPrice} | Potential Gain: ${signal.margin}`);
               try {
-                await sendAlert(signal, null);
-                results.push({ ...signal, executed: false, reason: 'Bearish alert only (manual review recommended)' });
+                // Create exit alert with clear messaging
+                const exitSignal = {
+                  ...signal,
+                  type: 'EXIT',
+                  message: signal.message.replace('BEAR setup', 'EXIT OPPORTUNITY')
+                };
+                await sendAlert(exitSignal, null);
+                results.push({ ...signal, executed: false, type: 'EXIT', reason: 'Exit signal - Manual action recommended' });
                 totalSignals++;
               } catch (alertErr) {
                 console.error(`    ❌ Alert failed: ${alertErr.message}`);
