@@ -14,7 +14,7 @@ const ALPACA_SECRET = process.env.ALPACA_SECRET;
 const NTFY_TOPIC = process.env.NTFY_TOPIC || 'chinna-trading-alerts';
 
 const STOCKS = ['GOOGL', 'CRM', 'META', 'ORCL', 'COST'];
-const CRYPTO = ['BTCUSD', 'ETHUSD', 'SOLUSD', 'XRPUSD'];
+const CRYPTO = ['BTCUSD', 'ETHUSD', 'ETCUSD', 'SOLUSD', 'XRPUSD'];
 const ASSETS = [...STOCKS.map(s => ({ symbol: s, type: 'stock' })), ...CRYPTO.map(c => ({ symbol: c, type: 'crypto' }))];
 const BASE_URL = 'https://paper-api.alpaca.markets';
 const CRYPTO_BASE_URL = 'https://data.alpaca.markets';
