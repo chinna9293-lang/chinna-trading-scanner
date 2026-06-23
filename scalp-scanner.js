@@ -537,24 +537,51 @@ async function runScan() {
               continue;
             }
 
-            // 🔴 SELL SIGNAL: Show as EXIT/TAKE PROFIT opportunity (don't execute - manual only)
+            // 🔴 SELL SIGNAL: Auto-execute EXIT to close BUY position
             if (isSell) {
               // SELL signal = EXIT signal for your BUY position
-              console.log(`    🎯 EXIT SIGNAL: ${signal.message}`);
+              console.log(`    🎯 SELL SIGNAL: ${signal.message}`);
               console.log(`       💰 Take Profit Target: $${signal.targetPrice} | Potential Gain: ${signal.margin}`);
+
               try {
-                // Create exit alert with clear messaging
+                // Auto-execute SELL (similar to BUY auto-execution)
+                const currentPrice = parseFloat(signal.price);
+                console.log(`    🔴 AUTO-EXECUTE SELL: ${qty || 1} ${assetSymbol} @ $${currentPrice}`);
+
+                const sellQty = qty || 1; // Use same quantity as was bought
+                const orderResult = await placeOrder(assetSymbol, 'sell', sellQty, currentPrice);
+
+                console.log(`    ✅ SELL ORDER EXECUTED`);
+                console.log(`       Order ID: ${orderResult.id}`);
+                console.log(`       Status: ${orderResult.status}`);
+                totalExecuted++;
+
+                // Send alert with execution details
                 const exitSignal = {
                   ...signal,
                   type: 'EXIT',
-                  message: signal.message.replace('BEAR setup', 'EXIT OPPORTUNITY')
+                  message: signal.message.replace('BEAR setup', 'EXIT EXECUTED')
                 };
-                const alertResult = await sendAlert(exitSignal, null);
+                const alertResult = await sendAlert(exitSignal, orderResult, sellQty);
                 console.log(`    ${alertResult}`);
-                results.push({ ...signal, executed: false, type: 'EXIT', reason: 'Exit signal - Manual action recommended' });
+                results.push({ ...signal, order: orderResult, executed: true, type: 'EXIT', qty: sellQty });
                 totalSignals++;
-              } catch (alertErr) {
-                console.error(`    ❌ Alert failed: ${alertErr.message}`);
+              } catch (e) {
+                console.error(`    ❌ SELL Execution failed: ${e.message}`);
+                // Send alert anyway (signal detected but order failed)
+                try {
+                  const exitSignal = {
+                    ...signal,
+                    type: 'EXIT',
+                    message: signal.message.replace('BEAR setup', 'EXIT SIGNAL')
+                  };
+                  const alertResult = await sendAlert(exitSignal, null);
+                  console.log(`    ${alertResult}`);
+                  results.push({ ...signal, executed: false, type: 'EXIT', error: e.message });
+                  totalSignals++;
+                } catch (alertErr) {
+                  console.error(`    ❌ Alert also failed: ${alertErr.message}`);
+                }
               }
               continue;
             }
