@@ -1,38 +1,6 @@
 {
-  "timestamp": "2026-06-23T03:53:16.692Z",
-  "totalSignals": 3,
+  "timestamp": "2026-06-23T04:00:40.048Z",
+  "totalSignals": 0,
   "totalExecuted": 0,
-  "signals": [
-    {
-      "symbol": "ETHUSD",
-      "type": "EXIT",
-      "price": "1727.64",
-      "targetPrice": "1693.09",
-      "margin": "2.00%",
-      "message": "🔽 ETHUSD: BEAR setup - Price $1727.64 → Target $1693.09 (-2.00%)",
-      "executed": false,
-      "strength": "HIGH"
-    },
-    {
-      "symbol": "SOLUSD",
-      "type": "BUY",
-      "pattern": "DOUBLE_BOTTOM",
-      "price": "71.90",
-      "targetPrice": "71.66",
-      "margin": "-0.34%",
-      "message": "📈 SOLUSD: DOUBLE BOTTOM REVERSAL - Bottoms @ $71.25/$71.45, Resistance @ $71.50 → Target $71.66 (+-0.34%)",
-      "executed": false,
-      "strength": "VERY_HIGH"
-    },
-    {
-      "symbol": "XRPUSD",
-      "type": "EXIT",
-      "price": "1.13",
-      "targetPrice": "-3.87",
-      "margin": "443.66%",
-      "message": "🔽 XRPUSD: BEAR setup - Price $1.13 → Target $-3.87 (-443.66%)",
-      "executed": false,
-      "strength": "HIGH"
-    }
-  ]
+  "signals": []
 }
