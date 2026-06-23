@@ -2180,15 +2180,17 @@ async function getBars(sym, lim) {
 }
 
 // ─── Resolve symbol (ETC → ETCUSD) ───────────────────────────────────────────
-async function resolveSym(raw) {
+function resolveSym(raw) {
   const c = raw.toUpperCase().replace(/[\/\-]/g, '');
+  // Check if symbol exists in universal list
   if (UNI[c]) return c;
-  const b1 = await getBars(c, 8);
-  if (b1.length >= 3) return c;
-  if (!c.endsWith('USD')) {
-    const b2 = await getBars(c + 'USD', 8);
-    if (b2.length >= 3) return c + 'USD';
-  }
+  // Check if it's already a crypto (ends with USD)
+  if (c.endsWith('USD')) return c;
+  // Check if adding USD makes it crypto
+  if ([...CRYPTO].includes(c + 'USD')) return c + 'USD';
+  // Check if it's in stocks list
+  if (STOCKS.includes(c)) return c;
+  // Default: return as-is (let Alpaca handle it)
   return c;
 }
 
