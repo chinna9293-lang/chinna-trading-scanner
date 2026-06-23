@@ -572,7 +572,8 @@ async function runScan() {
 
   // Summary
   console.log(`\n📊 SCAN COMPLETE`);
-  console.log(`   Total signals: ${totalSignals}`);
+  console.log(`   Total signals detected: ${totalSignals}`);
+  console.log(`   Results array length: ${results.length}`);
   console.log(`   Orders executed: ${totalExecuted}`);
   console.log(`   Time: ${new Date().toISOString()}`);
 
@@ -583,26 +584,28 @@ async function runScan() {
   // Save signals to JSON file for dashboard display (in docs folder for Vercel)
   const signalsData = {
     timestamp: new Date().toISOString(),
-    totalSignals,
+    totalSignals: results.length,  // Use actual results length instead of totalSignals
     totalExecuted,
     signals: results.map(r => ({
-      symbol: r.symbol,
-      type: r.type,
-      pattern: r.pattern,
-      price: r.price,
-      targetPrice: r.targetPrice,
-      margin: r.margin,
-      message: r.message,
-      executed: r.executed,
-      strength: r.strength
+      symbol: r.symbol || 'UNKNOWN',
+      type: r.type || 'UNKNOWN',
+      pattern: r.pattern || 'NONE',
+      price: r.price || '0',
+      targetPrice: r.targetPrice || '0',
+      margin: r.margin || '0%',
+      message: r.message || 'No message',
+      executed: r.executed || false,
+      strength: r.strength || 'MEDIUM'
     }))
   };
+
+  console.log(`   Signals to save: ${JSON.stringify(signalsData)}`);
 
   try {
     // Save to docs folder so it gets deployed by Vercel
     const signalsFile = path.join(process.cwd(), 'docs', 'signals.json');
     fs.writeFileSync(signalsFile, JSON.stringify(signalsData, null, 2));
-    console.log(`\n💾 Signals saved to docs/signals.json for Vercel deployment`);
+    console.log(`\n💾 Signals saved to docs/signals.json (${results.length} signals) for Vercel deployment`);
   } catch (e) {
     console.error(`⚠️  Could not save signals file: ${e.message}`);
   }
