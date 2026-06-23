@@ -3856,15 +3856,15 @@ async function startAll() {
   try { await loadTickers(); } catch (e) { console.warn('Load tickers failed:', e); }
   try { loadNews(); } catch (e) { console.warn('Load news failed:', e); }
 
-  // Load Congress Trades, Trump Posts, and Stock Upgrades
-  try { await loadPoliticalTrades(); } catch (e) { console.warn('Load congress trades failed:', e); }
-  _timers.push(setInterval(() => loadPoliticalTrades().catch(e => console.warn('Congress trades update failed:', e)), 300000)); // Refresh every 5 minutes
-
-  try { await loadTrumpPosts(); } catch (e) { console.warn('Load Trump posts failed:', e); }
-  _timers.push(setInterval(() => loadTrumpPosts().catch(e => console.warn('Trump posts update failed:', e)), 300000)); // Refresh every 5 minutes
-
+  // Load Stock Upgrades (local data - Congress & Trump APIs blocked)
   try { loadStockUpgrades(); } catch (e) { console.warn('Load stock upgrades failed:', e); }
   _timers.push(setInterval(loadStockUpgrades, 600000)); // Refresh every 10 minutes
+
+  // Note: Congress Trades & Trump Posts require external API access
+  // These are currently disabled due to API limitations:
+  // - Congress API returns 401 (quota/auth issue)
+  // - Trump RSS returns 403 (access blocked)
+  // System works fine with Alpaca data + local analyst upgrades
 }
 
 // Start app (sessionStorage may fail on data URLs, so we use try-catch)
