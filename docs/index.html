@@ -861,8 +861,11 @@ button, input[type="button"], .scalper-btn, .chip, .sbtn {
     <div class="app-list">
       <div class="list-hdr">
         <div class="search-row">
-          <input class="sinp" id="s-sym" placeholder="Search ticker…" onkeydown="if(event.key==='Enter')doSearch()"/>
+          <input class="sinp" id="s-sym" placeholder="GOOGL, COST, BTCUSD, ETHUSD…" onkeydown="if(event.key==='Enter')doSearch()" onkeyup="searchSuggest(this.value)"/>
           <button class="sbtn" onclick="doSearch()">→</button>
+        </div>
+        <div id="search-suggest" style="display:none;position:absolute;background:#1a1a24;border:1px solid #2d2d3d;border-radius:6px;padding:6px;margin-top:2px;max-height:150px;overflow-y:auto;width:200px;z-index:10">
+          <div id="search-items" style="font-size:10px;color:#94a3b8"></div>
         </div>
         <div class="chips">
           <div class="chip on" id="f-all" onclick="filterTickers('all')">All</div>
@@ -2306,16 +2309,22 @@ async function getBars(sym, lim) {
 
 // ─── Resolve symbol (ETC → ETCUSD) ───────────────────────────────────────────
 function resolveSym(raw) {
-  const c = raw.toUpperCase().replace(/[\/\-]/g, '');
-  // Check if symbol exists in universal list
+  const c = raw.toUpperCase().replace(/[\/\-]/g, '').trim();
+  if (!c) return null;
+
+  // 1. Check our universal list first (fastest)
   if (UNI[c]) return c;
-  // Check if it's already a crypto (ends with USD)
-  if (c.endsWith('USD')) return c;
-  // Check if adding USD makes it crypto
+
+  // 2. Check if already crypto format (BTCUSD, ETHUSD, etc)
+  if (c.endsWith('USD') && CRYPTOS.includes(c)) return c;
+
+  // 3. Add USD if it's a known crypto base
   if (CRYPTOS.includes(c + 'USD')) return c + 'USD';
-  // Check if it's in stocks list
+
+  // 4. Check if it's a stock
   if (STOCKS.includes(c)) return c;
-  // Default: return as-is (let Alpaca handle it)
+
+  // 5. Return as-is for Alpaca validation
   return c;
 }
 
@@ -3398,14 +3407,57 @@ function closeModal() {
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
+function searchSuggest(query) {
+  const q = (query || '').toUpperCase().trim();
+  const suggest = g('search-suggest');
+  const items = g('search-items');
+
+  if (!q || q.length < 1) {
+    suggest.style.display = 'none';
+    return;
+  }
+
+  // Find matches
+  const allSyms = [...STOCKS, ...CRYPTOS];
+  const matches = allSyms.filter(s => s.startsWith(q)).slice(0, 8);
+
+  if (matches.length === 0) {
+    suggest.style.display = 'none';
+    return;
+  }
+
+  // Show suggestions
+  items.innerHTML = matches.map(m =>
+    '<div style="padding:4px 6px;cursor:pointer;border-radius:3px;margin-bottom:2px" onclick="g(\'s-sym\').value=\'' + m + '\';doSearch()" onmouseover="this.style.background=\'rgba(99,102,241,.2)\'" onmouseout="this.style.background=\'\'">✓ ' + m + '</div>'
+  ).join('');
+  suggest.style.display = 'block';
+}
+
 async function doSearch() {
-  const raw = (g('s-sym').value || '').trim();
-  if (!raw) { g('s-sym').focus(); return; }
-  g('modal').classList.add('open');
-  g('modal-body').innerHTML = '<div class="empty">Resolving ' + raw.toUpperCase() + '...</div>';
-  const sym = await resolveSym(raw);
-  if (sym !== raw.toUpperCase()) g('s-sym').value = sym;
-  openModal(sym);
+  const raw = (g('s-sym').value || '').trim().toUpperCase();
+  const suggest = g('search-suggest');
+  if (suggest) suggest.style.display = 'none';
+
+  // Quick validation
+  if (!raw) {
+    g('s-sym').focus();
+    return;
+  }
+
+  // Resolve symbol instantly (no await needed)
+  const sym = resolveSym(raw);
+  if (!sym) {
+    g('s-sym').style.borderColor = '#ef4444';
+    setTimeout(() => { g('s-sym').style.borderColor = ''; }, 2000);
+    return;
+  }
+
+  // Update input with resolved symbol
+  if (sym !== raw) g('s-sym').value = sym;
+
+  // Clear input and open modal
+  g('s-sym').value = '';
+  await openModal(sym);
 }
 
 // ─── Alert system ─────────────────────────────────────────────────────────────
