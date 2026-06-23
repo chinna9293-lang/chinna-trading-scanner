@@ -6,6 +6,8 @@
  */
 
 import https from 'https';
+import fs from 'fs';
+import path from 'path';
 
 const ALPACA_KEY = process.env.ALPACA_KEY;
 const ALPACA_SECRET = process.env.ALPACA_SECRET;
@@ -576,6 +578,32 @@ async function runScan() {
 
   if (totalSignals === 0) {
     console.log(`   Message: No scalp signals detected`);
+  }
+
+  // Save signals to JSON file for dashboard display
+  const signalsData = {
+    timestamp: new Date().toISOString(),
+    totalSignals,
+    totalExecuted,
+    signals: results.map(r => ({
+      symbol: r.symbol,
+      type: r.type,
+      pattern: r.pattern,
+      price: r.price,
+      targetPrice: r.targetPrice,
+      margin: r.margin,
+      message: r.message,
+      executed: r.executed,
+      strength: r.strength
+    }))
+  };
+
+  try {
+    const signalsFile = path.join(process.cwd(), 'signals.json');
+    fs.writeFileSync(signalsFile, JSON.stringify(signalsData, null, 2));
+    console.log(`\n💾 Signals saved to signals.json`);
+  } catch (e) {
+    console.error(`⚠️  Could not save signals file: ${e.message}`);
   }
 
   return results;
