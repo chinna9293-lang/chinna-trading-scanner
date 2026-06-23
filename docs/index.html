@@ -3644,6 +3644,21 @@ async function loadTickers() {
     );
   }
   g('tgrid').innerHTML = cards.join('');
+
+  // Add mobile-friendly click handlers
+  setTimeout(() => {
+    const allCards = document.querySelectorAll('.tc');
+    allCards.forEach(card => {
+      card.addEventListener('click', function(e) {
+        const sym = this.getAttribute('data-sym');
+        if (sym) {
+          e.preventDefault();
+          e.stopPropagation();
+          openModal(sym);
+        }
+      });
+    });
+  }, 100);
 }
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
