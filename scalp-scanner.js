@@ -420,6 +420,14 @@ async function runScan() {
       if (signals.length > 0) {
         console.log(`    🎯 Found ${signals.length} signal(s)`);
         for (const signal of signals) {
+          // Log signal details
+          if (signal.pattern === 'DOUBLE_BOTTOM') {
+            console.log(`    📈 ${signal.message}`);
+            console.log(`       Bottoms: $${signal.bottom1} & $${signal.bottom2} | Resistance: $${signal.resistance}`);
+          } else {
+            console.log(`    📊 ${signal.message}`);
+          }
+
           try {
             // Determine trade side
             const isBuy = signal.type.includes('BUY') || signal.type.includes('CROSS');
