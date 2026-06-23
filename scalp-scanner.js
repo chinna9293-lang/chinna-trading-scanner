@@ -129,6 +129,63 @@ function calculateProfitTarget(price) {
   return Math.max(minTarget, percentTarget);
 }
 
+// 🎯 Detect double-bottom reversal pattern
+function detectDoubleBottom(bars) {
+  if (!bars || bars.length < 8) return null;
+
+  const lows = bars.map(b => parseFloat(b.l));
+  const closes = bars.map(b => parseFloat(b.c));
+
+  // Find the two lowest points in the last 8 bars
+  let firstBottomIdx = 0, secondBottomIdx = 0;
+  let lowestPrice = Infinity;
+
+  for (let i = 0; i < lows.length - 1; i++) {
+    if (lows[i] < lowestPrice) {
+      lowestPrice = lows[i];
+      firstBottomIdx = i;
+    }
+  }
+
+  lowestPrice = Infinity;
+  for (let i = firstBottomIdx + 1; i < lows.length; i++) {
+    if (lows[i] < lowestPrice) {
+      lowestPrice = lows[i];
+      secondBottomIdx = i;
+    }
+  }
+
+  const bottom1 = lows[firstBottomIdx];
+  const bottom2 = lows[secondBottomIdx];
+  const middleHigh = Math.max(...lows.slice(firstBottomIdx + 1, secondBottomIdx));
+  const currentPrice = closes[closes.length - 1];
+
+  // Check for double bottom: two lows at similar levels, middle peak between them
+  const tolerance = (Math.max(bottom1, bottom2) * 0.02); // 2% tolerance
+  const isDoubleBottom = Math.abs(bottom1 - bottom2) <= tolerance &&
+                         middleHigh > Math.max(bottom1, bottom2) &&
+                         currentPrice > middleHigh &&
+                         secondBottomIdx < lows.length - 2; // Not the most recent bar
+
+  if (isDoubleBottom) {
+    const avgBottom = (bottom1 + bottom2) / 2;
+    const resistance = middleHigh;
+    const breakoutTarget = resistance + (resistance - avgBottom); // Project upward
+
+    return {
+      type: 'DOUBLE_BOTTOM',
+      bottom1: bottom1.toFixed(2),
+      bottom2: bottom2.toFixed(2),
+      middleHigh: middleHigh.toFixed(2),
+      resistance,
+      target: breakoutTarget,
+      strength: 'VERY_HIGH'
+    };
+  }
+
+  return null;
+}
+
 // 🎯 Detect scalp signals based on PRICE PROJECTION (bull vs bear margins)
 function detectSignals(symbol, bars, quote) {
   if (!bars || bars.length < 5) return [];
@@ -140,6 +197,27 @@ function detectSignals(symbol, bars, quote) {
 
   const currentPrice = parseFloat(quote.bp || quote.ap || bars[bars.length - 1].c);
   const profitTarget = calculateProfitTarget(currentPrice);
+
+  // 🎯 SIGNAL 0: DOUBLE BOTTOM PATTERN (Highest confidence)
+  const doubleBottomSignal = detectDoubleBottom(bars);
+  if (doubleBottomSignal) {
+    const target = doubleBottomSignal.target.toFixed(2);
+    const margin = ((doubleBottomSignal.target - currentPrice) / currentPrice * 100).toFixed(2);
+
+    signals.push({
+      type: 'BUY',
+      pattern: 'DOUBLE_BOTTOM',
+      symbol,
+      price: currentPrice.toFixed(2),
+      bottom1: doubleBottomSignal.bottom1,
+      bottom2: doubleBottomSignal.bottom2,
+      resistance: doubleBottomSignal.middleHigh,
+      targetPrice: target,
+      margin: `${margin}%`,
+      message: `📈 ${symbol}: DOUBLE BOTTOM REVERSAL - Bottoms @ $${doubleBottomSignal.bottom1}/$${doubleBottomSignal.bottom2}, Resistance @ $${doubleBottomSignal.middleHigh} → Target $${target} (+${margin}%)`,
+      strength: 'VERY_HIGH'
+    });
+  }
 
   // Recent price direction (last 5 bars)
   const recentHigh = Math.max(...highs.slice(-5));
