@@ -6,6 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Trading Dashboard</title>
@@ -3856,11 +3857,11 @@ async function startAll() {
   try { loadNews(); } catch (e) { console.warn('Load news failed:', e); }
 
   // Load Congress Trades, Trump Posts, and Stock Upgrades
-  try { loadCongressTrades(); } catch (e) { console.warn('Load congress trades failed:', e); }
-  _timers.push(setInterval(loadCongressTrades, 300000)); // Refresh every 5 minutes
+  try { await loadPoliticalTrades(); } catch (e) { console.warn('Load congress trades failed:', e); }
+  _timers.push(setInterval(() => loadPoliticalTrades().catch(e => console.warn('Congress trades update failed:', e)), 300000)); // Refresh every 5 minutes
 
-  try { loadTrumpPosts(); } catch (e) { console.warn('Load Trump posts failed:', e); }
-  _timers.push(setInterval(loadTrumpPosts, 300000)); // Refresh every 5 minutes
+  try { await loadTrumpPosts(); } catch (e) { console.warn('Load Trump posts failed:', e); }
+  _timers.push(setInterval(() => loadTrumpPosts().catch(e => console.warn('Trump posts update failed:', e)), 300000)); // Refresh every 5 minutes
 
   try { loadStockUpgrades(); } catch (e) { console.warn('Load stock upgrades failed:', e); }
   _timers.push(setInterval(loadStockUpgrades, 600000)); // Refresh every 10 minutes
