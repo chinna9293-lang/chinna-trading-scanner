@@ -386,7 +386,7 @@ async function runScan() {
         console.log(`    ✓ No signals`);
       }
     } catch (e) {
-      console.error(`  ❌ ${symbol} error: ${e.message}`);
+      console.error(`  ❌ ${assetSymbol} error: ${e.message}`);
     }
   }
 
