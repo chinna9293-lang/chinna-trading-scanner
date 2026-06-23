@@ -325,18 +325,19 @@ async function runScan() {
   }
 
   for (const asset of ASSETS) {
+    const assetSymbol = asset.symbol;
+    const assetType = asset.type;
     try {
-      const { symbol, type } = asset;
-      console.log(`  📊 Scanning ${symbol} (${type.toUpperCase()})...`);
-      const bars = await fetch1MinBars(symbol, type, 50);
-      const quote = type === 'crypto' ? {} : await fetchQuote(symbol);
+      console.log(`  📊 Scanning ${assetSymbol} (${assetType.toUpperCase()})...`);
+      const bars = await fetch1MinBars(assetSymbol, assetType, 50);
+      const quote = assetType === 'crypto' ? {} : await fetchQuote(assetSymbol);
 
       if (!bars || bars.length < 5) {
-        console.log(`    ⚠️  No data for ${symbol}`);
+        console.log(`    ⚠️  No data for ${assetSymbol}`);
         continue;
       }
 
-      const signals = detectSignals(symbol, bars, quote);
+      const signals = detectSignals(assetSymbol, bars, quote);
 
       if (signals.length > 0) {
         console.log(`    🎯 Found ${signals.length} signal(s)`);
@@ -358,8 +359,8 @@ async function runScan() {
             const qty = account ? calculatePositionSize(currentPrice, atr, account.equity) : 1;
 
             // Place order
-            console.log(`    💳 Placing ${isBuy ? 'BUY' : 'SELL'} order: ${qty} shares of ${symbol} at $${currentPrice}`);
-            const orderResult = await placeOrder(symbol, isBuy ? 'buy' : 'sell', qty, currentPrice);
+            console.log(`    💳 Placing ${isBuy ? 'BUY' : 'SELL'} order: ${qty} shares of ${assetSymbol} at $${currentPrice}`);
+            const orderResult = await placeOrder(assetSymbol, isBuy ? 'buy' : 'sell', qty, currentPrice);
 
             console.log(`    ✅ Order executed: ${orderResult.id}`);
             totalExecuted++;
