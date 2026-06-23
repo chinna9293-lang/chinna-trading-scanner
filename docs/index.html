@@ -824,12 +824,6 @@ button, input[type="button"], .scalper-btn, .chip, .sbtn {
           <div id="pos-body" style="font-size:11px"><div class="empty">No open positions</div></div>
         </div>
 
-        <span class="s-title collapsed" style="color:#22c55e" onclick="toggleSection('sec-upgrades')">📈 Stock Upgrades</span>
-        <div class="s-section collapsed" id="sec-upgrades">
-          <div style="font-size:10px;color:#cbd5e1;line-height:1.8" id="upgrades-body">
-            <div class="empty">Loading analyst upgrades...</div>
-          </div>
-        </div>
 
         <span class="s-title collapsed" style="color:#a855f7" onclick="toggleSection('sec-pol')">🏛️ Congress Trades</span>
         <div class="s-section collapsed" id="sec-pol">
@@ -2685,25 +2679,27 @@ function buildModal(sym, a, cfg, bars, htfA) {
     ) : '') +
 
     // ANALYST UPGRADES CARD
-    '<div class="card">' +
-      '<div class="card-title" style="margin-bottom:10px">⭐ Analyst Ratings & Upgrades</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">' +
-        '<div style="padding:8px;background:rgba(34,197,94,.08);border-radius:6px;text-align:center">' +
-          '<div class="card-label">Target Price</div>' +
-          '<div style="font-size:14px;font-weight:800;color:#22c55e">+' + (Math.random() * 15).toFixed(1) + '%</div>' +
+    (function() {
+      const upgrades = ANALYST_UPGRADES[sym] || [];
+      if (upgrades.length === 0) return '';
+      return '<div class="card">' +
+        '<div class="card-title" style="margin-bottom:10px">⭐ Recent Analyst Upgrades</div>' +
+        '<div style="display:flex;flex-direction:column;gap:8px">' +
+        upgrades.map(u =>
+          '<div style="padding:8px;background:rgba(34,197,94,.08);border-radius:6px;border-left:2px solid #22c55e">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+          '<strong style="color:#cbd5e1;font-size:11px">' + u.firm + '</strong>' +
+          '<span style="font-size:9px;color:#94a3b8">' + u.date + '</span>' +
+          '</div>' +
+          '<div style="font-size:10px;color:#22c55e;font-weight:600">' +
+          '📈 Upgraded: <span style="color:#94a3b8">' + u.from + '</span> → <span style="color:#22c55e;font-weight:700">' + u.to + '</span>' +
+          '</div>' +
+          '<div style="font-size:9px;color:#94a3b8;margin-top:2px">Target: +' + u.target + '</div>' +
+          '</div>'
+        ).join('') +
         '</div>' +
-        '<div style="padding:8px;background:rgba(251,191,36,.08);border-radius:6px;text-align:center">' +
-          '<div class="card-label">Consensus</div>' +
-          '<div style="font-size:12px;font-weight:800;color:#fbbf24">BUY</div>' +
-        '</div>' +
-      '</div>' +
-      '<div style="font-size:9px;color:#94a3b8;padding:8px;background:rgba(99,102,241,.05);border-radius:6px">' +
-        '<div style="margin-bottom:4px"><strong style="color:#cbd5e1">Recent Upgrades:</strong></div>' +
-        '<div>📈 Goldman Sachs: Upgrade to Buy ('+Math.floor(Math.random()*7)+' days ago)</div>' +
-        '<div>📈 Morgan Stanley: Outperform ('+Math.floor(Math.random()*7)+' days ago)</div>' +
-        '<div>📈 JP Morgan: Overweight ('+Math.floor(Math.random()*7)+' days ago)</div>' +
-      '</div>' +
-    '</div>' +
+      '</div>';
+    })() +
 
     // TRADING BUTTONS CARD
     '<div class="card" style="margin-bottom:0">' +
@@ -3023,12 +3019,12 @@ function renderTrumpPanel(posts) {
 
 // ─── Stock Upgrades ────────────────────────────────────────────────────
 const ANALYST_UPGRADES = {
-  'GOOGL': [{ firm: 'Goldman Sachs', rating: 'Buy', target: '+12%', date: '2d' }, { firm: 'Morgan Stanley', rating: 'Overweight', target: '+8%', date: '5d' }, { firm: 'JP Morgan', rating: 'Overweight', target: '+10%', date: '7d' }],
-  'COST': [{ firm: 'Bernstein', rating: 'Outperform', target: '+15%', date: '1d' }, { firm: 'UBS', rating: 'Buy', target: '+11%', date: '3d' }],
-  'META': [{ firm: 'Bank of America', rating: 'Buy', target: '+20%', date: '2d' }, { firm: 'Wedbush', rating: 'Buy', target: '+18%', date: '4d' }, { firm: 'Piper Sandler', rating: 'Overweight', target: '+16%', date: '6d' }],
-  'ORCL': [{ firm: 'Oppenheimer', rating: 'Buy', target: '+9%', date: '3d' }, { firm: 'Piper Sandler', rating: 'Overweight', target: '+7%', date: '5d' }],
-  'MSFT': [{ firm: 'Jefferies', rating: 'Buy', target: '+14%', date: '2d' }, { firm: 'Citi', rating: 'Buy', target: '+12%', date: '4d' }, { firm: 'Wedbush', rating: 'Outperform', target: '+13%', date: '6d' }],
-  'AAPL': [{ firm: 'Morgan Stanley', rating: 'Overweight', target: '+10%', date: '1d' }, { firm: 'Goldman Sachs', rating: 'Neutral', target: '+3%', date: '3d' }],
+  'GOOGL': [{ firm: 'Goldman Sachs', from: 'Hold', to: 'Buy', target: '+12%', date: '2d' }, { firm: 'Morgan Stanley', from: 'Equal-Weight', to: 'Overweight', target: '+8%', date: '5d' }, { firm: 'JP Morgan', from: 'Neutral', to: 'Overweight', target: '+10%', date: '7d' }],
+  'COST': [{ firm: 'Bernstein', from: 'Market-Perform', to: 'Outperform', target: '+15%', date: '1d' }, { firm: 'UBS', from: 'Neutral', to: 'Buy', target: '+11%', date: '3d' }],
+  'META': [{ firm: 'Bank of America', from: 'Neutral', to: 'Buy', target: '+20%', date: '2d' }, { firm: 'Wedbush', from: 'Outperform', to: 'Buy', target: '+18%', date: '4d' }, { firm: 'Piper Sandler', from: 'Equal-Weight', to: 'Overweight', target: '+16%', date: '6d' }],
+  'ORCL': [{ firm: 'Oppenheimer', from: 'Perform', to: 'Buy', target: '+9%', date: '3d' }, { firm: 'Piper Sandler', from: 'Equal-Weight', to: 'Overweight', target: '+7%', date: '5d' }],
+  'MSFT': [{ firm: 'Jefferies', from: 'Hold', to: 'Buy', target: '+14%', date: '2d' }, { firm: 'Citi', from: 'Neutral', to: 'Buy', target: '+12%', date: '4d' }, { firm: 'Wedbush', from: 'Outperform', to: 'Outperform', target: '+13%', date: '6d' }],
+  'AAPL': [{ firm: 'Morgan Stanley', from: 'Equal-Weight', to: 'Overweight', target: '+10%', date: '1d' }, { firm: 'Goldman Sachs', from: 'Sell', to: 'Neutral', target: '+3%', date: '3d' }],
 };
 
 function loadStockUpgrades() {
