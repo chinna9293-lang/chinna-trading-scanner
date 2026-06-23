@@ -2,9 +2,9 @@ name: Scalp Scanner (5-Minute Signals)
 
 on:
   schedule:
-    # Run every 5 minutes during market hours (9:30 AM - 4:00 PM ET = 1:30 PM - 8:00 PM UTC)
-    # GitHub Actions cron uses UTC time!
-    - cron: '*/5 13-20 * * 1-5'  # Every 5 minutes, 1:30 PM - 8:00 PM UTC (9:30 AM - 4:00 PM ET), Mon-Fri
+    # Run 24/7 for crypto + stocks (crypto trades 24/7, stocks during market hours)
+    # Every 5 minutes, all day, every day
+    - cron: '*/5 * * * *'  # Every 5 minutes, 24/7/365
   workflow_dispatch:
 
 jobs:

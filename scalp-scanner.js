@@ -12,7 +12,10 @@ const ALPACA_SECRET = process.env.ALPACA_SECRET;
 const NTFY_TOPIC = process.env.NTFY_TOPIC || 'chinna-trading-alerts';
 
 const STOCKS = ['GOOGL', 'CRM', 'META', 'ORCL', 'COST'];
+const CRYPTO = ['BTCUSD', 'ETHUSD', 'SOLUSD', 'XRPUSD'];
+const ASSETS = [...STOCKS.map(s => ({ symbol: s, type: 'stock' })), ...CRYPTO.map(c => ({ symbol: c, type: 'crypto' }))];
 const BASE_URL = 'https://paper-api.alpaca.markets';
+const CRYPTO_BASE_URL = 'https://data.alpaca.markets';
 
 const headers = {
   'APCA-API-KEY-ID': ALPACA_KEY,
@@ -61,11 +64,19 @@ function calculateOrderFlow(bars) {
   return { imbalance: parseFloat(imbalance), buyVol, sellVol };
 }
 
-// 📈 Fetch 5-minute bars from Alpaca (1-min not available, 5-min still good for scalping)
-async function fetch1MinBars(symbol, limit = 50) {
+// 📈 Fetch 5-minute bars (works for stocks & crypto)
+async function fetch1MinBars(symbol, type = 'stock', limit = 50) {
   return new Promise((resolve, reject) => {
-    // Use 5-minute bars (more reliable than 1-min)
-    const url = `${BASE_URL}/v2/stocks/${symbol}/bars?timeframe=5Min&limit=${limit}&adjustment=raw&feed=sip`;
+    let url;
+
+    if (type === 'crypto') {
+      // Crypto: BTCUSD → BTC/USD
+      const cryptoPair = symbol.slice(0, -3) + '/' + symbol.slice(-3);
+      url = `${CRYPTO_BASE_URL}/v1beta3/crypto/us/bars?symbols=${encodeURIComponent(cryptoPair)}&timeframe=5Min&limit=${limit}`;
+    } else {
+      // Stocks: Use SIP feed
+      url = `${BASE_URL}/v2/stocks/${symbol}/bars?timeframe=5Min&limit=${limit}&adjustment=raw&feed=sip`;
+    }
 
     https.get(url, { headers }, (res) => {
       let data = '';
@@ -73,7 +84,15 @@ async function fetch1MinBars(symbol, limit = 50) {
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          const bars = json.bars || [];
+          let bars = [];
+
+          if (type === 'crypto') {
+            const cryptoPair = symbol.slice(0, -3) + '/' + symbol.slice(-3);
+            bars = (json.bars && json.bars[cryptoPair]) || [];
+          } else {
+            bars = json.bars || [];
+          }
+
           resolve(bars);
         } catch (e) {
           reject(new Error(`Parse error: ${e.message}`));
@@ -305,11 +324,12 @@ async function runScan() {
     console.error(`⚠️  Could not fetch account balance: ${e.message}`);
   }
 
-  for (const symbol of STOCKS) {
+  for (const asset of ASSETS) {
     try {
-      console.log(`  📊 Scanning ${symbol}...`);
-      const bars = await fetch1MinBars(symbol, 50);
-      const quote = await fetchQuote(symbol);
+      const { symbol, type } = asset;
+      console.log(`  📊 Scanning ${symbol} (${type.toUpperCase()})...`);
+      const bars = await fetch1MinBars(symbol, type, 50);
+      const quote = type === 'crypto' ? {} : await fetchQuote(symbol);
 
       if (!bars || bars.length < 5) {
         console.log(`    ⚠️  No data for ${symbol}`);
