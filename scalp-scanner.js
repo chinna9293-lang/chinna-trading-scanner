@@ -66,21 +66,28 @@ function calculateOrderFlow(bars) {
   return { imbalance: parseFloat(imbalance), buyVol, sellVol };
 }
 
-// 📈 Fetch 5-minute bars (works for stocks & crypto)
+// 📈 Fetch 5-minute bars (stocks from Alpaca, crypto from Kraken)
 async function fetch1MinBars(symbol, type = 'stock', limit = 50) {
   return new Promise((resolve, reject) => {
-    let url;
+    let url, options;
 
     if (type === 'crypto') {
-      // Crypto: BTCUSD → BTC/USD
-      const cryptoPair = symbol.slice(0, -3) + '/' + symbol.slice(-3);
-      url = `${CRYPTO_BASE_URL}/v1beta3/crypto/us/bars?symbols=${encodeURIComponent(cryptoPair)}&timeframe=5Min&limit=${limit}`;
+      // Kraken API: 24/7 crypto data (public, no auth needed)
+      // Convert BTCUSD → XXBTZUSD (Kraken's format)
+      const krakenPair = symbol === 'BTCUSD' ? 'XXBTZUSD' :
+                         symbol === 'ETHUSD' ? 'XETHZUSD' :
+                         symbol === 'XRPUSD' ? 'XXRPZUSD' :
+                         symbol === 'SOLUSD' ? 'SOLZUSD' : symbol;
+
+      url = `https://api.kraken.com/0/public/OHLC?pair=${krakenPair}&interval=5`;
+      options = {};
     } else {
-      // Stocks: Use SIP feed
+      // Stocks: Use Alpaca SIP feed
       url = `${BASE_URL}/v2/stocks/${symbol}/bars?timeframe=5Min&limit=${limit}&adjustment=raw&feed=sip`;
+      options = { headers };
     }
 
-    https.get(url, { headers }, (res) => {
+    https.get(url, options, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
@@ -89,8 +96,20 @@ async function fetch1MinBars(symbol, type = 'stock', limit = 50) {
           let bars = [];
 
           if (type === 'crypto') {
-            const cryptoPair = symbol.slice(0, -3) + '/' + symbol.slice(-3);
-            bars = (json.bars && json.bars[cryptoPair]) || [];
+            // Kraken response format: { result: { PAIR: [ [time, open, high, low, close, vwap, volume, count], ... ] } }
+            if (json.result) {
+              const pairKey = Object.keys(json.result)[0];
+              const krakenBars = json.result[pairKey] || [];
+              // Convert Kraken format to Alpaca-like format
+              bars = krakenBars.map(bar => ({
+                t: parseInt(bar[0]),
+                o: parseFloat(bar[1]),
+                h: parseFloat(bar[2]),
+                l: parseFloat(bar[3]),
+                c: parseFloat(bar[4]),
+                v: parseFloat(bar[6])
+              }));
+            }
           } else {
             bars = json.bars || [];
           }
