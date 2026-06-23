@@ -486,30 +486,45 @@ async function runScan() {
               continue;
             }
 
-            // Calculate position size
-            const currentPrice = parseFloat(signal.price);
-            const atr = Math.abs(Math.max(...bars.map(b => parseFloat(b.h))) - Math.min(...bars.map(b => parseFloat(b.l)))) / bars.length;
-            const qty = account ? calculatePositionSize(currentPrice, atr, account.equity) : 1;
+            // 🟢 BULLISH-ONLY MODE: Only execute BUY signals, send alerts for SELL signals
+            if (isSell) {
+              // SELL signal: Just send alert, don't execute
+              console.log(`    📢 BEARISH ALERT (No Trade): ${signal.message}`);
+              try {
+                await sendAlert(signal, null);
+                results.push({ ...signal, executed: false, reason: 'Bearish alert only (manual review recommended)' });
+                totalSignals++;
+              } catch (alertErr) {
+                console.error(`    ❌ Alert failed: ${alertErr.message}`);
+              }
+              continue;
+            }
 
-            // Place PAPER TRADE order
-            const sideEmoji = isBuy ? '🟢' : '🔴';
-            console.log(`    ${sideEmoji} PAPER TRADE: ${isBuy ? 'BUY' : 'SELL'} ${qty} ${assetSymbol} @ $${currentPrice}`);
-            console.log(`       Target: $${signal.targetPrice} | Expected Return: ${signal.margin}`);
+            // BUY signal: Execute the trade
+            if (isBuy) {
+              const currentPrice = parseFloat(signal.price);
+              const atr = Math.abs(Math.max(...bars.map(b => parseFloat(b.h))) - Math.min(...bars.map(b => parseFloat(b.l)))) / bars.length;
+              const qty = account ? calculatePositionSize(currentPrice, atr, account.equity) : 1;
 
-            const orderResult = await placeOrder(assetSymbol, isBuy ? 'buy' : 'sell', qty, currentPrice);
+              // Place PAPER TRADE order (BUY only)
+              console.log(`    🟢 PAPER TRADE: BUY ${qty} ${assetSymbol} @ $${currentPrice}`);
+              console.log(`       Target: $${signal.targetPrice} | Expected Return: ${signal.margin}`);
 
-            console.log(`    ✅ PAPER TRADE EXECUTED`);
-            console.log(`       Order ID: ${orderResult.id}`);
-            console.log(`       Status: ${orderResult.status}`);
-            totalExecuted++;
+              const orderResult = await placeOrder(assetSymbol, 'buy', qty, currentPrice);
 
-            // Send alert with execution details
-            await sendAlert(signal, orderResult, qty);
-            results.push({ ...signal, order: orderResult, executed: true, qty });
-            totalSignals++;
+              console.log(`    ✅ PAPER TRADE EXECUTED`);
+              console.log(`       Order ID: ${orderResult.id}`);
+              console.log(`       Status: ${orderResult.status}`);
+              totalExecuted++;
+
+              // Send alert with execution details
+              await sendAlert(signal, orderResult, qty);
+              results.push({ ...signal, order: orderResult, executed: true, qty });
+              totalSignals++;
+            }
 
           } catch (e) {
-            console.error(`    ❌ Execution failed: ${e.message}`);
+            console.error(`    ❌ BUY Execution failed: ${e.message}`);
             // Send alert anyway (signal detected but order failed)
             try {
               await sendAlert(signal, null);
