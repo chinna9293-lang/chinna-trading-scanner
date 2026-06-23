@@ -1171,23 +1171,35 @@ const LP = {};  // sym → {price, prev}
 // ─── Load Scanner Signals ────────────────────────────────────────────────────────
 async function loadScannerSignals() {
   try {
-    // Try Vercel deployment first
-    let response = await fetch('/signals.json', { signal: AbortSignal.timeout(3000) });
+    // Try multiple sources for signals.json
+    const urls = [
+      'https://raw.githubusercontent.com/chinna9293-lang/chinna-trading-scanner/main/docs/signals.json',  // GitHub (always available)
+      '/signals.json',  // Vercel (when deployed)
+      'https://chinna-trading-scanner.vercel.app/signals.json'  // Vercel direct
+    ];
 
-    // If 404, try GitHub raw URL as fallback
-    if (!response.ok) {
-      response = await fetch('https://raw.githubusercontent.com/chinna9293-lang/chinna-trading-scanner/main/docs/signals.json',
-        { signal: AbortSignal.timeout(3000) });
+    let data = null;
+    for (const url of urls) {
+      try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(2000) });
+        if (response.ok) {
+          data = await response.json();
+          console.log('[scanner] loaded from', url, '-', data.totalSignals, 'signals');
+          break;
+        }
+      } catch (e) {
+        // Try next URL
+      }
     }
 
-    if (response.ok) {
-      const data = await response.json();
+    if (data) {
       sessionStorage.setItem('scannerSignals', JSON.stringify(data));
-      console.log('[scanner] loaded', data.totalSignals, 'signals from cloud scanner');
+      console.log('[scanner] successfully loaded', data.totalSignals, 'signals from cloud scanner');
+    } else {
+      console.log('[scanner] signals not available from any source');
     }
   } catch (e) {
-    // Signals file may not exist yet - that's OK
-    console.log('[scanner] signals not available yet:', e.message);
+    console.log('[scanner] error loading signals:', e.message);
   }
 }
 
