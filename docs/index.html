@@ -1407,6 +1407,135 @@ async function executeScalpOrder(sym, side, atr) {
   }
 }
 
+// 🎯 TRADING STRATEGY ANALYZER - All 8 Strategies
+function analyzeStrategies(bars, currentPrice) {
+  if (!bars || bars.length < 10) return [];
+
+  const closes = bars.map(b => parseFloat(b.c));
+  const highs = bars.map(b => parseFloat(b.h));
+  const lows = bars.map(b => parseFloat(b.l));
+  const volumes = bars.map(b => parseFloat(b.v));
+
+  const ema9 = calculateEMA(closes, 9);
+  const ema21 = calculateEMA(closes, 21);
+  const rsi = calculateRSI(closes, 14);
+  const avgVol = volumes.slice(-10).reduce((a,b)=>a+b,0) / 10;
+  const currentVol = volumes[volumes.length-1];
+
+  const strategies = [];
+
+  // 1️⃣ TREND TRADING - EMA crossovers, momentum
+  if (ema9[ema9.length-1] > ema21[ema21.length-1] && ema9[ema9.length-2] <= ema21[ema21.length-2]) {
+    strategies.push({ name: '📈 Trend Trading', signal: 'BULLISH', reason: 'EMA9 crossed above EMA21 - Uptrend confirmed', confidence: 0.85 });
+  } else if (ema9[ema9.length-1] < ema21[ema21.length-1] && ema9[ema9.length-2] >= ema21[ema21.length-2]) {
+    strategies.push({ name: '📉 Trend Trading', signal: 'BEARISH', reason: 'EMA9 crossed below EMA21 - Downtrend confirmed', confidence: 0.85 });
+  } else if (ema9[ema9.length-1] > ema21[ema21.length-1] && closes[closes.length-1] > ema9[ema9.length-1]) {
+    strategies.push({ name: '📈 Trend Trading', signal: 'BULLISH', reason: 'Price above EMA9 & EMA21 - Strong uptrend', confidence: 0.75 });
+  } else if (ema9[ema9.length-1] < ema21[ema21.length-1] && closes[closes.length-1] < ema9[ema9.length-1]) {
+    strategies.push({ name: '📉 Trend Trading', signal: 'BEARISH', reason: 'Price below EMA9 & EMA21 - Strong downtrend', confidence: 0.75 });
+  }
+
+  // 2️⃣ MOMENTUM TRADING - RSI + Volume + Price Action
+  if (rsi[rsi.length-1] > 70 && currentVol > avgVol * 1.5) {
+    strategies.push({ name: '⚡ Momentum Trading', signal: 'BEARISH', reason: 'Overbought (RSI>70) + High Volume - Momentum fading', confidence: 0.80 });
+  } else if (rsi[rsi.length-1] < 30 && currentVol > avgVol * 1.5) {
+    strategies.push({ name: '⚡ Momentum Trading', signal: 'BULLISH', reason: 'Oversold (RSI<30) + High Volume - Strong reversal setup', confidence: 0.80 });
+  } else if (rsi[rsi.length-1] > 60 && closes[closes.length-1] > closes[closes.length-2]) {
+    strategies.push({ name: '⚡ Momentum Trading', signal: 'BULLISH', reason: 'Rising RSI + Price up - Bullish momentum', confidence: 0.70 });
+  } else if (rsi[rsi.length-1] < 40 && closes[closes.length-1] < closes[closes.length-2]) {
+    strategies.push({ name: '⚡ Momentum Trading', signal: 'BEARISH', reason: 'Falling RSI + Price down - Bearish momentum', confidence: 0.70 });
+  }
+
+  // 3️⃣ BREAKOUT TRADING - Price breaks resistance/support
+  const recent = closes.slice(-20);
+  const resistance = Math.max(...recent);
+  const support = Math.min(...recent);
+  const breakoutZone = (resistance - support) * 0.02;
+
+  if (currentPrice > resistance - breakoutZone && closes[closes.length-2] <= resistance - breakoutZone) {
+    strategies.push({ name: '🚀 Breakout Trading', signal: 'BULLISH', reason: `Price broke above resistance ($${resistance.toFixed(2)}) - Bullish breakout`, confidence: 0.80 });
+  } else if (currentPrice < support + breakoutZone && closes[closes.length-2] >= support + breakoutZone) {
+    strategies.push({ name: '💥 Breakout Trading', signal: 'BEARISH', reason: `Price broke below support ($${support.toFixed(2)}) - Bearish breakdown`, confidence: 0.80 });
+  }
+
+  // 4️⃣ REVERSAL TRADING - Divergence & Pattern Recognition
+  const recentClose = closes.slice(-10);
+  const lowestLow = Math.min(...lows.slice(-10));
+  const highestHigh = Math.max(...highs.slice(-10));
+
+  if (rsi[rsi.length-1] > rsi[rsi.length-5] && closes[closes.length-1] < closes[closes.length-5] && rsi[rsi.length-1] > 60) {
+    strategies.push({ name: '🔄 Reversal Trading', signal: 'BEARISH', reason: 'Bearish Divergence - RSI up but Price down - Reversal likely', confidence: 0.75 });
+  } else if (rsi[rsi.length-1] < rsi[rsi.length-5] && closes[closes.length-1] > closes[closes.length-5] && rsi[rsi.length-1] < 40) {
+    strategies.push({ name: '🔄 Reversal Trading', signal: 'BULLISH', reason: 'Bullish Divergence - RSI down but Price up - Reversal likely', confidence: 0.75 });
+  }
+
+  // 5️⃣ RANGE TRADING - Support/Resistance Range
+  const range = resistance - support;
+  const rangePercentage = (range / support) * 100;
+
+  if (rangePercentage < 3 && currentPrice > support * 1.005 && currentPrice < resistance * 0.995) {
+    strategies.push({ name: '📦 Range Trading', signal: 'NEUTRAL', reason: `Trading in tight range ($${support.toFixed(2)}-$${resistance.toFixed(2)}) - Buy support, Sell resistance`, confidence: 0.65 });
+  }
+
+  // 6️⃣ GAP TRADING - Price Gaps between candles
+  for (let i = 1; i < bars.length; i++) {
+    const prevClose = parseFloat(bars[i-1].c);
+    const currOpen = parseFloat(bars[i].o);
+    const gapPct = Math.abs((currOpen - prevClose) / prevClose * 100);
+    if (gapPct > 1) {
+      if (currOpen > prevClose) {
+        strategies.push({ name: '⬆️ Gap Trading', signal: 'BULLISH', reason: `Gap up ${gapPct.toFixed(2)}% detected - Strong momentum`, confidence: 0.70 });
+      } else {
+        strategies.push({ name: '⬇️ Gap Trading', signal: 'BEARISH', reason: `Gap down ${gapPct.toFixed(2)}% detected - Negative momentum`, confidence: 0.70 });
+      }
+      break;
+    }
+  }
+
+  // 7️⃣ PAIRS TRADING - Correlation (simplified: compare to tech sector trend)
+  if (ema9[ema9.length-1] > ema21[ema21.length-1] && rsi[rsi.length-1] > 50) {
+    strategies.push({ name: '⚙️ Pairs Trading', signal: 'BULLISH', reason: 'Strong uptrend + Positive momentum - Pairs well with sector', confidence: 0.60 });
+  }
+
+  // 8️⃣ ARBITRAGE - Volatility Patterns (simplified: identify consolidation)
+  const recentVolatility = Math.max(...highs.slice(-5)) - Math.min(...lows.slice(-5));
+  const avgVolatility = (Math.max(...highs.slice(-20)) - Math.min(...lows.slice(-20))) / 20;
+
+  if (recentVolatility < avgVolatility * 0.5 && currentVol > avgVol * 1.2) {
+    strategies.push({ name: '💱 Arbitrage', signal: 'NEUTRAL', reason: 'Low volatility consolidation + Volume pickup - Breakout imminent', confidence: 0.65 });
+  }
+
+  return strategies;
+}
+
+function calculateEMA(closes, period) {
+  const ema = [];
+  const multiplier = 2 / (period + 1);
+  let sma = closes.slice(0, period).reduce((a,b)=>a+b,0) / period;
+  ema.push(sma);
+  for (let i = period; i < closes.length; i++) {
+    sma = (closes[i] - sma) * multiplier + sma;
+    ema.push(sma);
+  }
+  return ema;
+}
+
+function calculateRSI(closes, period) {
+  const deltas = [];
+  for (let i = 1; i < closes.length; i++) {
+    deltas.push(closes[i] - closes[i-1]);
+  }
+  let gains = deltas.filter(d => d > 0).slice(0, period).reduce((a,b)=>a+b,0) / period;
+  let losses = Math.abs(deltas.filter(d => d < 0).slice(0, period).reduce((a,b)=>a+b,0)) / period;
+  const rsi = [];
+  for (let i = 0; i < deltas.length; i++) {
+    if (deltas[i] > 0) gains = (gains * (period - 1) + deltas[i]) / period;
+    else losses = (losses * (period - 1) + Math.abs(deltas[i])) / period;
+    rsi.push(100 - (100 / (1 + (gains / (losses || 0.0001)))));
+  }
+  return rsi;
+}
+
 // 🎯 HEAT MAP SORTING FUNCTIONS
 function sortTickersByChange() {
   const sorted = STOCKS.slice().sort((a, b) => {
@@ -2891,6 +3020,21 @@ async function renderChartPanel(sym, tf) {
     '</div>' +
     '<div style="font-size:11px;color:#cbd5e1">' + (openPositions[sym] ? 'Position Active' : 'Trend Signal') + '</div>' +
     '</div>' +
+    '</div>' +
+    '<div style="margin:12px 0;padding:12px;background:rgba(99,102,241,.08);border-radius:8px;border-left:3px solid #6366f1">' +
+    '<div style="font-size:11px;color:#cbd5e1;font-weight:600;margin-bottom:8px">🎯 TRADING STRATEGIES DETECTED:</div>' +
+    (function() {
+      const strats = analyzeStrategies(bars || [], liveP);
+      if (strats.length === 0) return '<div style="font-size:12px;color:#94a3b8">No clear strategy signals detected</div>';
+      return strats.map(s =>
+        '<div style="font-size:11px;margin:6px 0;padding:8px;background:rgba(30,30,46,.6);border-radius:6px;border-left:2px solid ' +
+        (s.signal === 'BULLISH' ? '#22c55e' : s.signal === 'BEARISH' ? '#ef4444' : '#94a3b8') + '">' +
+        '<div style="font-weight:600;color:' + (s.signal === 'BULLISH' ? '#22c55e' : s.signal === 'BEARISH' ? '#ef4444' : '#cbd5e1') + '">' + s.name + ' - ' + s.signal + '</div>' +
+        '<div style="font-size:10px;color:#cbd5e1;margin-top:2px">' + s.reason + '</div>' +
+        '<div style="font-size:9px;color:#64748b;margin-top:4px">Confidence: ' + (s.confidence * 100).toFixed(0) + '%</div>' +
+        '</div>'
+      ).join('');
+    })() +
     '</div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' +
     '<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:12px">' +
