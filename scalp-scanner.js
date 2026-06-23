@@ -340,20 +340,46 @@ async function placeOrder(symbol, side, qty, price) {
 }
 
 // 🔔 Send ntfy alert WITH order execution
-async function sendAlert(signal, orderResult = null) {
+async function sendAlert(signal, orderResult = null, qty = null) {
   return new Promise((resolve, reject) => {
+    // Build alert message with clear buy/sell indicators
     let alertMessage = signal.message;
+    let emoji = signal.type === 'BUY' ? '🟢' : '🔴';
+    let actionText = signal.type === 'BUY' ? 'BUY' : 'SELL';
+
+    // Add trade details
+    alertMessage += `\n\n${emoji} ACTION: ${actionText}`;
+    alertMessage += `\n💵 Entry: $${signal.price}`;
+    alertMessage += `\n🎯 Target: $${signal.targetPrice}`;
+    alertMessage += `\n📈 Profit: ${signal.margin}`;
+
+    if (signal.pattern === 'DOUBLE_BOTTOM') {
+      alertMessage += `\n\n⭐ PATTERN: Double Bottom Reversal`;
+      alertMessage += `\n📍 Support: $${signal.bottom1} & $${signal.bottom2}`;
+      alertMessage += `\n⛔ Resistance: $${signal.resistance}`;
+    }
 
     if (orderResult) {
-      alertMessage += `\n✅ ORDER EXECUTED\nSymbol: ${orderResult.symbol}\nSide: ${orderResult.side}\nQty: ${orderResult.qty}\nPrice: $${orderResult.filled_avg_price}`;
+      alertMessage += `\n\n✅ PAPER TRADE EXECUTED`;
+      alertMessage += `\nSymbol: ${orderResult.symbol}`;
+      alertMessage += `\nSide: ${orderResult.side.toUpperCase()}`;
+      alertMessage += `\nQty: ${orderResult.qty}`;
+      alertMessage += `\nPrice: $${orderResult.filled_avg_price}`;
+      alertMessage += `\nOrder ID: ${orderResult.id}`;
     }
+
+    // High priority for VERY_HIGH strength signals
+    let priority = 5; // Default high
+    if (signal.strength === 'VERY_HIGH') priority = 5;
+    else if (signal.strength === 'HIGH') priority = 4;
+    else priority = 3;
 
     const payload = JSON.stringify({
       topic: NTFY_TOPIC,
-      title: `🎯 ${signal.symbol} - ${signal.type}${orderResult ? ' [EXECUTED]' : ''}`,
+      title: `${emoji} ${signal.symbol} ${signal.type}${orderResult ? ' [EXECUTED]' : ''}`,
       message: alertMessage,
-      priority: signal.strength === 'HIGH' ? 4 : 3,
-      tags: ['trading', 'scalp', signal.symbol.toLowerCase(), orderResult ? 'executed' : 'signal'],
+      priority: priority,
+      tags: ['trading', 'scalp', 'alert', signal.symbol.toLowerCase(), signal.type.toLowerCase(), orderResult ? 'executed' : 'pending'],
       attach: `https://query2.finance.yahoo.com/v7/finance/chart/${signal.symbol}?interval=1m&range=1d`
     });
 
@@ -383,6 +409,27 @@ async function sendAlert(signal, orderResult = null) {
     req.write(payload);
     req.end();
   });
+}
+
+// 🧪 Send test alert (for verification)
+async function sendTestAlert() {
+  const testSignal = {
+    symbol: 'TEST',
+    type: 'BUY',
+    price: '100.00',
+    targetPrice: '102.00',
+    margin: '2.00%',
+    pattern: 'TEST',
+    strength: 'VERY_HIGH',
+    message: '🟢 System Test: Alert notifications are working!'
+  };
+
+  try {
+    const result = await sendAlert(testSignal, null);
+    console.log(`\n✅ TEST ALERT SENT: ${result}\n`);
+  } catch (e) {
+    console.error(`\n❌ TEST ALERT FAILED: ${e.message}\n`);
+  }
 }
 
 // 🚀 Main scanner loop with auto-execution
@@ -444,16 +491,21 @@ async function runScan() {
             const atr = Math.abs(Math.max(...bars.map(b => parseFloat(b.h))) - Math.min(...bars.map(b => parseFloat(b.l)))) / bars.length;
             const qty = account ? calculatePositionSize(currentPrice, atr, account.equity) : 1;
 
-            // Place order
-            console.log(`    💳 Placing ${isBuy ? 'BUY' : 'SELL'} order: ${qty} shares of ${assetSymbol} at $${currentPrice}`);
+            // Place PAPER TRADE order
+            const sideEmoji = isBuy ? '🟢' : '🔴';
+            console.log(`    ${sideEmoji} PAPER TRADE: ${isBuy ? 'BUY' : 'SELL'} ${qty} ${assetSymbol} @ $${currentPrice}`);
+            console.log(`       Target: $${signal.targetPrice} | Expected Return: ${signal.margin}`);
+
             const orderResult = await placeOrder(assetSymbol, isBuy ? 'buy' : 'sell', qty, currentPrice);
 
-            console.log(`    ✅ Order executed: ${orderResult.id}`);
+            console.log(`    ✅ PAPER TRADE EXECUTED`);
+            console.log(`       Order ID: ${orderResult.id}`);
+            console.log(`       Status: ${orderResult.status}`);
             totalExecuted++;
 
             // Send alert with execution details
-            await sendAlert(signal, orderResult);
-            results.push({ ...signal, order: orderResult, executed: true });
+            await sendAlert(signal, orderResult, qty);
+            results.push({ ...signal, order: orderResult, executed: true, qty });
             totalSignals++;
 
           } catch (e) {
