@@ -248,6 +248,116 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 }
 .tc.active{animation:glow 2s infinite;}
 
+/* ── Professional Card Design ── */
+.card {
+  background: linear-gradient(135deg, rgba(30,30,50,.6), rgba(20,20,40,.8));
+  border: 1px solid rgba(99,102,241,.2);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(0,0,0,.3);
+  transition: all .2s ease;
+}
+.card:hover {
+  border-color: rgba(99,102,241,.4);
+  box-shadow: 0 8px 25px rgba(99,102,241,.1);
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(99,102,241,.1);
+}
+.card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.card-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+}
+.card-subtitle {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+.card-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(99,102,241,.05);
+}
+.card-row:last-child {
+  border-bottom: none;
+}
+.card-label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+.card-data {
+  font-size: 13px;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+.btn-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+.btn-compact {
+  padding: 8px 12px;
+  border: 1px solid;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.btn-buy {
+  background: rgba(34,197,94,.15);
+  border-color: rgba(34,197,94,.4);
+  color: #86efac;
+}
+.btn-buy:hover {
+  background: rgba(34,197,94,.25);
+  border-color: rgba(34,197,94,.6);
+}
+.btn-sell {
+  background: rgba(239,68,68,.15);
+  border-color: rgba(239,68,68,.4);
+  color: #fca5a5;
+}
+.btn-sell:hover {
+  background: rgba(239,68,68,.25);
+  border-color: rgba(239,68,68,.6);
+}
+.btn-close {
+  background: rgba(245,158,11,.1);
+  border-color: rgba(245,158,11,.3);
+  color: #fcd34d;
+}
+.btn-close:hover {
+  background: rgba(245,158,11,.2);
+  border-color: rgba(245,158,11,.5);
+}
+
+/* ── Mobile Responsiveness ── */
+@media(max-width:600px) {
+  .card { padding: 12px; margin-bottom: 10px; }
+  .card-value { font-size: 20px; }
+  .btn-group { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .card-row { padding: 6px 0; }
+}
+
 /* ── Enhanced Ticker Grid ── */
 #tgrid{display:grid;grid-template-columns:1fr;gap:6px;max-height:calc(100vh - 140px);overflow-y:auto;}
 .tc{cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1);}
@@ -2443,87 +2553,24 @@ function buildModal(sym, a, cfg, bars, htfA) {
   const dir = getDir(a);
   const dc = dir==='bull'?'#22c55e':dir==='bear'?'#ef4444':'#64748b';
   const patterns = detectPatterns(bars || []);
-  // HTF direction
-  const htfDir = htfA ? getDir(htfA) : null;
-  const htfAligned = htfDir === dir && dir !== 'neutral';
-  const htfColor = htfDir==='bull'?'#22c55e':htfDir==='bear'?'#ef4444':'#64748b';
+  const strats = analyzeStrategies(bars || [], liveP);
 
-  // ── 3-condition logic (mirrors scanner.js) ───────────────────────────────────
   const bullChecks = [
-    { l:'EMA9 > EMA21', pass:a.e9>a.e21, v:'$'+a.e9+' vs $'+a.e21,
-      n: a.e9>a.e21 ? 'Uptrend — short-term above mid-term ✓' : 'Downtrend — EMA9 $'+(a.e21-a.e9).toFixed(2)+' below EMA21' },
-    { l:'RSI 45–65', pass:a.rsi>45&&a.rsi<65, v:'RSI '+a.rsi,
-      n: a.rsi<45 ? 'Too weak ('+a.rsi+') — wait for 45+' : a.rsi>=65 ? 'Overbought ('+a.rsi+') — wait for cooldown below 65' : 'Momentum sweet spot ✓' },
-    { l:'Price above swing high', pass:a.price>a.sH, v:'$'+a.price.toFixed(liveP<1?5:2)+' vs swing high $'+a.sH,
-      n: a.price>a.sH ? 'Breakout — resistance turned support ✓' : '$'+(a.sH-a.price).toFixed(liveP<1?5:2)+' below breakout level $'+a.sH },
+    { l:'EMA9 > EMA21', pass:a.e9>a.e21 },
+    { l:'RSI 45–65', pass:a.rsi>45&&a.rsi<65 },
+    { l:'Price above swing high', pass:a.price>a.sH },
   ];
   const bearChecks = [
-    { l:'EMA9 < EMA21', pass:a.e9<a.e21, v:'$'+a.e9+' vs $'+a.e21,
-      n: a.e9<a.e21 ? 'Downtrend confirmed ✓' : 'EMA9 still above EMA21 — trend not bearish' },
-    { l:'RSI 35–55', pass:a.rsi>35&&a.rsi<55, v:'RSI '+a.rsi,
-      n: a.rsi<35 ? 'Oversold ('+a.rsi+') — bounce risk' : a.rsi>=55 ? 'Too strong ('+a.rsi+') — not bearish yet' : 'Weak momentum zone ✓' },
-    { l:'Price below swing low', pass:a.price<a.sL, v:'$'+a.price.toFixed(liveP<1?5:2)+' vs swing low $'+a.sL,
-      n: a.price<a.sL ? 'Breakdown — support broken ✓' : '$'+(a.price-a.sL).toFixed(liveP<1?5:2)+' above breakdown level $'+a.sL },
+    { l:'EMA9 < EMA21', pass:a.e9<a.e21 },
+    { l:'RSI 35–55', pass:a.rsi>35&&a.rsi<55 },
+    { l:'Price below swing low', pass:a.price<a.sL },
   ];
   const bPassed = bullChecks.filter(c=>c.pass).length;
   const dPassed = bearChecks.filter(c=>c.pass).length;
   const tp=(cfg&&cfg.tp)||2.5, sl=(cfg&&cfg.sl)||1.5, hw=(cfg&&cfg.hw)||50, hp=(cfg&&cfg.hp)||0;
   const ev=((hw/100*tp)-((1-hw/100)*sl)).toFixed(2);
   const risk=cfg&&cfg.risk;
-
-  function cRow(c) {
-    return '<div class="crow"><div class="ci '+(c.pass?'p':'f')+'">'+(c.pass?'✓':'✗')+'</div>' +
-      '<div class="cl"><strong>'+c.l+'</strong> <span style="color:#a0aec0;font-size:11px"> · '+c.v+'</span>' +
-      '<small>'+c.n+'</small></div></div>';
-  }
-
-  // ── Signal: Check scanner signals first ───────────────────────────────────────
-  let signal, signalColor, signalBg, signalBorder, signalIcon, signalMsg;
-
-  // Try to load latest scanner signal for this symbol
-  let scannerSignal = null;
-  try {
-    const signalsData = sessionStorage.getItem('scannerSignals');
-    if (signalsData) {
-      const signals = JSON.parse(signalsData);
-      scannerSignal = signals.signals?.find(s => s.symbol === ticker);
-    }
-  } catch (e) {
-    // Fallback to condition-based signals if load fails
-  }
-
-  // If scanner has a BUY signal, show it (takes priority)
-  if (scannerSignal && scannerSignal.type === 'BUY') {
-    signal='BUY'; signalColor='#22c55e'; signalBg='rgba(34,197,94,.1)'; signalBorder='rgba(34,197,94,.3)'; signalIcon='🟢';
-    signalMsg='✅ SCANNER DETECTED: '+scannerSignal.message+' — Target: $'+scannerSignal.targetPrice+' ('+scannerSignal.margin+')';
-  }
-  // If scanner has an EXIT signal, show it
-  else if (scannerSignal && scannerSignal.type === 'EXIT') {
-    signal='EXIT'; signalColor='#fbbf24'; signalBg='rgba(251,191,36,.1)'; signalBorder='rgba(251,191,36,.3)'; signalIcon='🟡';
-    signalMsg='🎯 EXIT OPPORTUNITY: '+scannerSignal.message+' — Target: $'+scannerSignal.targetPrice;
-  }
-  // Otherwise use condition-based logic
-  else if (bPassed === 3) {
-    signal='BUY'; signalColor='#22c55e'; signalBg='rgba(34,197,94,.1)'; signalBorder='rgba(34,197,94,.3)'; signalIcon='🟢';
-    signalMsg='All 3 bull conditions met — EMA uptrend + RSI in zone + price above swing high';
-  } else if (dPassed === 3) {
-    signal='SELL'; signalColor='#ef4444'; signalBg='rgba(239,68,68,.1)'; signalBorder='rgba(239,68,68,.3)'; signalIcon='🔴';
-    signalMsg='All 3 bear conditions met — EMA downtrend + RSI in zone + price below swing low';
-  } else if (bPassed === 2) {
-    const miss = bullChecks.find(c=>!c.pass);
-    signal='WATCH — BULL'; signalColor='#4ade80'; signalBg='rgba(34,197,94,.07)'; signalBorder='rgba(34,197,94,.2)'; signalIcon='👀';
-    signalMsg='2/3 bull conditions — waiting for: '+( miss?miss.l:'—');
-  } else if (dPassed === 2) {
-    const miss = bearChecks.find(c=>!c.pass);
-    signal='WATCH — BEAR'; signalColor='#f87171'; signalBg='rgba(239,68,68,.07)'; signalBorder='rgba(239,68,68,.2)'; signalIcon='👀';
-    signalMsg='2/3 bear conditions — waiting for: '+(miss?miss.l:'—');
-  } else {
-    signal='NO SIGNAL'; signalColor='#64748b'; signalBg='rgba(100,116,139,.07)'; signalBorder='rgba(100,116,139,.2)'; signalIcon='⬜';
-    signalMsg='No setup — Bull '+bPassed+'/3 · Bear '+dPassed+'/3 · Change timeframe or wait for setup';
-  }
-
   const dec2 = liveP < 1 ? 5 : 2;
-  // ATR-based TP/SL: 2×ATR profit target, 1×ATR stop (2:1 R:R)
   const atrVal = a.atr || (liveP * 0.015);
   const tpDist = 2.0 * atrVal;
   const slDist = 1.0 * atrVal;
@@ -2531,84 +2578,109 @@ function buildModal(sym, a, cfg, bars, htfA) {
   const slPct  = +(slDist / liveP * 100).toFixed(2);
   const tpPrice = dir === 'bull' ? (liveP + tpDist).toFixed(dec2) : (liveP - tpDist).toFixed(dec2);
   const slPrice = dir === 'bull' ? (liveP - slDist).toFixed(dec2) : (liveP + slDist).toFixed(dec2);
-  const tradeBoxHtml =
-    '<div style="background:'+signalBg+';border:2px solid '+signalBorder+';border-radius:10px;padding:14px 16px;margin:12px 0">' +
-    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
-    '<span style="font-size:20px">'+signalIcon+'</span>' +
-    '<strong style="font-size:16px;color:'+signalColor+'">'+signal+'</strong>' +
-    '</div>' +
-    '<p style="font-size:12px;color:#94a3b8;margin:0 0 8px">'+signalMsg+'</p>' +
-    ((signal==='BUY'||signal==='SELL') ?
-      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px">' +
-      '<div style="text-align:center"><div style="font-size:9px;color:#cbd5e1;margin-bottom:2px">Entry</div><strong style="color:#fff;font-size:13px">$'+liveP.toFixed(dec2)+'</strong></div>' +
-      '<div style="text-align:center"><div style="font-size:9px;color:#cbd5e1;margin-bottom:2px">🎯 TP (2×ATR)</div><strong style="color:#22c55e;font-size:13px">$'+tpPrice+'</strong><div style="font-size:9px;color:#22c55e">+'+tpPct+'%</div></div>' +
-      '<div style="text-align:center"><div style="font-size:9px;color:#cbd5e1;margin-bottom:2px">⛔ SL (1×ATR)</div><strong style="color:#ef4444;font-size:13px">$'+slPrice+'</strong><div style="font-size:9px;color:#ef4444">-'+slPct+'%</div></div>' +
-      '<div style="text-align:center"><div style="font-size:9px;color:#cbd5e1;margin-bottom:2px">ATR</div><strong style="color:#818cf8;font-size:13px">$'+atrVal.toFixed(dec2)+'</strong><div style="font-size:9px;color:#a0aec0">R:R 2:1</div></div>' +
-      '</div>' : '') +
-    '</div>';
 
-  const patHtml = patterns.length === 0
-    ? '<div class="nbox"><p style="color:#cbd5e1">No classic patterns detected in current bars. Needs more price history.</p></div>'
-    : patterns.map(p => {
-        const pc = p.dir==='bull'?'#22c55e':'#ef4444';
-        const bg = p.dir==='bull'?'rgba(34,197,94,.08)':'rgba(239,68,68,.08)';
-        const brd = p.dir==='bull'?'rgba(34,197,94,.2)':'rgba(239,68,68,.2)';
-        return '<div style="background:'+bg+';border:1px solid '+brd+';border-radius:8px;padding:12px 14px;margin-bottom:8px">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
-          '<strong style="color:'+pc+';font-size:13px">'+(p.dir==='bull'?'↑ ':'↓ ')+p.name+'</strong>' +
-          '<span style="font-size:10px;background:'+brd+';color:'+pc+';padding:2px 7px;border-radius:10px">'+p.conf+' confidence</span></div>' +
-          '<p style="font-size:12px;color:#94a3b8;line-height:1.5">'+p.desc+'</p></div>';
-      }).join('');
+  let signal, signalColor, signalIcon;
+  if (bPassed === 3) {
+    signal='BUY'; signalColor='#22c55e'; signalIcon='🟢';
+  } else if (dPassed === 3) {
+    signal='SELL'; signalColor='#ef4444'; signalIcon='🔴';
+  } else if (bPassed === 2) {
+    signal='WATCH BULL'; signalColor='#4ade80'; signalIcon='👀';
+  } else if (dPassed === 2) {
+    signal='WATCH BEAR'; signalColor='#f87171'; signalIcon='👀';
+  } else {
+    signal='NO SIGNAL'; signalColor='#64748b'; signalIcon='⬜';
+  }
 
-  return '<div class="mticker">' + label + '</div>' +
-    '<div class="mprice"><strong style="font-size:17px;color:#fff">$'+liveP.toFixed(liveP<1?5:2)+'</strong>' +
-    ' <span style="color:'+(a.chg1h>=0?'#22c55e':'#ef4444')+'">'+(a.chg1h>=0?'+':'')+a.chg1h+'% recent</span>' +
-    ' <span style="color:#8ba0c0">· '+a.n+' bars · RSI '+a.rsi+'</span></div>' +
-
-    '<div class="mdir '+dir+'"><div style="font-size:36px;color:'+dc+';line-height:1">'+(dir==='bull'?'↑':dir==='bear'?'↓':'→')+'</div>' +
-    '<div><h4 style="color:'+dc+'">'+dir.toUpperCase()+'</h4>' +
-    '<p style="font-size:12px;color:#cbd5e1;margin-top:3px">EMA9 $'+a.e9+' · EMA21 $'+a.e21+' · RSI '+a.rsi+'</p></div></div>' +
-
-    tradeBoxHtml +
-
-    // 3-condition checklist side by side
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">' +
-    '<div>' +
-    '<div class="stitle" style="margin-top:0;color:#22c55e">▲ BUY CONDITIONS ('+bPassed+'/3)</div>' +
-    bullChecks.map(cRow).join('') +
-    '</div>' +
-    '<div>' +
-    '<div class="stitle" style="margin-top:0;color:#ef4444">▼ SELL CONDITIONS ('+dPassed+'/3)</div>' +
-    bearChecks.map(cRow).join('') +
-    '</div>' +
+  return (
+    // HEADER CARD
+    '<div class="card">' +
+      '<div class="card-header">' +
+        '<div><div class="card-title">Symbol</div><div class="card-value">'+label+'</div></div>' +
+        '<div style="text-align:right"><div class="card-title">Price</div><div class="card-value" style="color:'+(a.chg1h>=0?'#22c55e':'#ef4444')+'">$'+liveP.toFixed(dec2)+'</div><div class="card-subtitle">'+(a.chg1h>=0?'+':'')+a.chg1h+'% · RSI '+a.rsi+'</div></div>' +
+      '</div>' +
     '</div>' +
 
-    '<div class="stitle">Chart Pattern Recognition</div>' + patHtml +
+    // SIGNAL CARD
+    '<div class="card" style="border-left:3px solid '+signalColor+'">' +
+      '<div class="card-row"><div style="font-size:24px">'+signalIcon+'</div><div><strong style="color:'+signalColor+';font-size:16px">'+signal+'</strong></div></div>' +
+      (signal!=='NO SIGNAL' ? (
+        '<div class="card-row"><div class="card-label">Entry</div><div class="card-data">$'+liveP.toFixed(dec2)+'</div></div>' +
+        '<div class="card-row"><div class="card-label">🎯 Target</div><div class="card-data" style="color:#22c55e">$'+tpPrice+' (+'+tpPct+'%)</div></div>' +
+        '<div class="card-row"><div class="card-label">⛔ Stop</div><div class="card-data" style="color:#ef4444">$'+slPrice+' (-'+slPct+'%)</div></div>' +
+        '<div class="card-row"><div class="card-label">ATR / R:R</div><div class="card-data">$'+atrVal.toFixed(dec2)+' / 2:1</div></div>'
+      ) : '') +
+    '</div>' +
 
-    '<div class="stitle">Key Levels</div>' +
-    '<div class="nbox"><p>' +
-    '<strong>Breakout target:</strong> $'+a.sH+' — 2 closes above = BUY<br>' +
-    '<strong>Support:</strong> $'+a.sL+' — close below = danger<br>' +
-    '<strong>VWAP:</strong> $'+a.vwap+' — '+(a.aboveVwap?'✅ price above':'❌ price below')+'<br>' +
-    '<strong>EMA9/21/50:</strong> $'+a.e9+' / $'+a.e21+' / $'+a.e50 +
-    '</p></div>' +
-
-    (cfg ?
-      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0">' +
-      '<div style="background:rgba(15,15,28,.8);border:1px solid rgba(99,102,241,.1);border-radius:7px;padding:7px;text-align:center">' +
-      '<div style="font-size:8px;color:#a0aec0;text-transform:uppercase;margin-bottom:2px">Win Rate</div>' +
-      '<div style="font-size:15px;font-weight:800;color:'+(hw>=55?'#22c55e':hw>=45?'#f59e0b':'#ef4444')+'">'+hw+'%</div></div>' +
-      '<div style="background:rgba(15,15,28,.8);border:1px solid rgba(99,102,241,.1);border-radius:7px;padding:7px;text-align:center">' +
-      '<div style="font-size:8px;color:#a0aec0;text-transform:uppercase;margin-bottom:2px">P&L</div>' +
-      '<div style="font-size:15px;font-weight:800;color:'+(hp>=0?'#22c55e':'#ef4444')+'">'+(hp>=0?'+':'')+hp+'%</div></div>' +
-      '<div style="background:rgba(15,15,28,.8);border:1px solid rgba(99,102,241,.1);border-radius:7px;padding:7px;text-align:center">' +
-      '<div style="font-size:8px;color:#a0aec0;text-transform:uppercase;margin-bottom:2px">EV/Trade</div>' +
-      '<div style="font-size:15px;font-weight:800;color:'+(parseFloat(ev)>=0?'#22c55e':'#ef4444')+'">'+(parseFloat(ev)>=0?'+':'')+ev+'%</div></div>' +
-      '<div style="background:rgba(15,15,28,.8);border:1px solid rgba(99,102,241,.1);border-radius:7px;padding:7px;text-align:center">' +
-      '<div style="font-size:8px;color:#a0aec0;text-transform:uppercase;margin-bottom:2px">Rating</div>' +
-      '<div style="font-size:12px;font-weight:800;color:'+(risk==='low'?'#22c55e':'#f59e0b')+'">'+(risk==='low'?'✅ LOW':'⚠️ RISK')+'</div></div>' +
+    // STRATEGIES CARD
+    (strats.length > 0 ? (
+      '<div class="card">' +
+        '<div style="font-size:11px;font-weight:700;color:#cbd5e1;margin-bottom:10px">🎯 TRADING STRATEGIES</div>' +
+        strats.map(s =>
+          '<div style="padding:8px;background:rgba(99,102,241,.05);border-radius:6px;margin-bottom:6px;border-left:2px solid '+(s.signal==='BULLISH'?'#22c55e':s.signal==='BEARISH'?'#ef4444':'#94a3b8')+'">' +
+          '<div style="font-weight:600;font-size:11px;color:'+(s.signal==='BULLISH'?'#22c55e':s.signal==='BEARISH'?'#ef4444':'#cbd5e1')+'">'+s.name+' - '+s.signal+'</div>' +
+          '<div style="font-size:10px;color:#94a3b8;margin-top:2px">'+s.reason+'</div>' +
+          '</div>'
+        ).join('') +
       '</div>'
-    : '');
+    ) : '') +
+
+    // CONDITIONS CARD
+    '<div class="card">' +
+      '<div class="card-row"><div class="card-label">Bull Conditions</div><div class="card-data">'+bPassed+'/3</div></div>' +
+      '<div class="card-row"><div class="card-label">Bear Conditions</div><div class="card-data">'+dPassed+'/3</div></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">' +
+        '<div style="padding:8px;background:rgba(34,197,94,.08);border-radius:6px">' +
+          bullChecks.map(c => '<div style="display:flex;gap:4px;align-items:center;margin:4px 0"><div style="font-size:10px;color:'+(c.pass?'#22c55e':'#ef4444')+'">'+(c.pass?'✓':'✗')+'</div><div style="font-size:9px;color:#cbd5e1">'+c.l+'</div></div>').join('') +
+        '</div>' +
+        '<div style="padding:8px;background:rgba(239,68,68,.08);border-radius:6px">' +
+          bearChecks.map(c => '<div style="display:flex;gap:4px;align-items:center;margin:4px 0"><div style="font-size:10px;color:'+(c.pass?'#22c55e':'#ef4444')+'">'+(c.pass?'✓':'✗')+'</div><div style="font-size:9px;color:#cbd5e1">'+c.l+'</div></div>').join('') +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    // KEY LEVELS CARD
+    '<div class="card">' +
+      '<div class="card-row"><div class="card-label">Resistance</div><div class="card-data">$'+a.sH+'</div></div>' +
+      '<div class="card-row"><div class="card-label">Support</div><div class="card-data">$'+a.sL+'</div></div>' +
+      '<div class="card-row"><div class="card-label">VWAP</div><div class="card-data" style="color:'+(a.aboveVwap?'#22c55e':'#ef4444')+'">$'+a.vwap+'</div></div>' +
+      '<div class="card-row"><div class="card-label">EMA 9/21/50</div><div class="card-data">$'+a.e9+' / $'+a.e21+' / $'+a.e50+'</div></div>' +
+    '</div>' +
+
+    // PATTERNS CARD
+    (patterns.length > 0 ? (
+      '<div class="card">' +
+        '<div class="card-title" style="margin-bottom:8px">📊 Chart Patterns</div>' +
+        patterns.map(p =>
+          '<div style="padding:8px;background:rgba(99,102,241,.05);border-radius:6px;margin-bottom:6px;border-left:2px solid '+(p.dir==='bull'?'#22c55e':'#ef4444')+'">' +
+          '<div style="font-weight:600;font-size:11px;color:'+(p.dir==='bull'?'#22c55e':'#ef4444')+'">'+(p.dir==='bull'?'↑ ':'↓ ')+p.name+'</div>' +
+          '<div style="font-size:10px;color:#94a3b8;margin-top:2px">'+p.desc+'</div>' +
+          '</div>'
+        ).join('') +
+      '</div>'
+    ) : '') +
+
+    // STATS CARD
+    (cfg ? (
+      '<div class="card">' +
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">' +
+          '<div style="text-align:center"><div class="card-label">Win Rate</div><div style="font-size:14px;font-weight:800;color:'+(hw>=55?'#22c55e':hw>=45?'#f59e0b':'#ef4444')+'">'+hw+'%</div></div>' +
+          '<div style="text-align:center"><div class="card-label">P&L</div><div style="font-size:14px;font-weight:800;color:'+(hp>=0?'#22c55e':'#ef4444')+'">'+(hp>=0?'+':'')+hp+'%</div></div>' +
+          '<div style="text-align:center"><div class="card-label">EV/Trade</div><div style="font-size:14px;font-weight:800;color:'+(parseFloat(ev)>=0?'#22c55e':'#ef4444')+'">'+(parseFloat(ev)>=0?'+':'')+ev+'%</div></div>' +
+          '<div style="text-align:center"><div class="card-label">Risk Rating</div><div style="font-size:12px;font-weight:800;color:'+(risk==='low'?'#22c55e':'#f59e0b')+'">'+(risk==='low'?'✅ LOW':'⚠️')+'</div></div>' +
+        '</div>' +
+      '</div>'
+    ) : '') +
+
+    // TRADING BUTTONS CARD
+    '<div class="card" style="margin-bottom:0">' +
+      '<div class="btn-group">' +
+        '<button onclick="(async()=>{await scalpBuy(\''+sym+'\','+(LP[sym]&&LP[sym].price?LP[sym].price:a.price).toFixed(4)+',UNI[\''+sym+'\']||null,\'Manual BUY\');renderModal(\''+sym+'\');})()" class="btn-compact btn-buy">⚡ BUY</button>' +
+        '<button onclick="(async()=>{await scalpSell(\''+sym+'\','+(LP[sym]&&LP[sym].price?LP[sym].price:a.price).toFixed(4)+',UNI[\''+sym+'\']||null);renderModal(\''+sym+'\');})()" class="btn-compact btn-sell">⚡ SELL</button>' +
+        '<button onclick="(async()=>{await closePosition(\''+sym+'\');renderModal(\''+sym+'\');})()" class="btn-compact btn-close">✕ CLOSE</button>' +
+      '</div>' +
+    '</div>'
+  );
 }
 
 // ─── Lightweight Charts interactive chart ─────────────────────────────────────
@@ -3731,11 +3803,11 @@ async function startAll() {
   startAlpacaStream();                               // stocks — Alpaca WebSocket (real-time streaming)
   _timers.push(setInterval(pollSnapshot, 120000));   // fallback snapshot refresh every 2min (if WS drops)
   _timers.push(setInterval(refreshDisplay, 1000));   // push LP → DOM every 1s
-  _timers.push(setInterval(loadAccount, 30000));    // account every 30s (avoid Alpaca rate limits)
+  _timers.push(setInterval(loadAccount, 60000));    // account every 60s (avoid Alpaca rate limits)
 
   // 🎯 PROFESSIONAL SCALPER FEATURES
   try { await fetchAccountStatus(); } catch (e) { console.warn('Account status fetch failed:', e); }
-  _timers.push(setInterval(fetchAccountStatus, 30000)); // Update account every 30s
+  _timers.push(setInterval(fetchAccountStatus, 60000)); // Update account every 60s
 
   // Load scanner signals from cloud scanner
   try { await loadScannerSignals(); } catch (e) { console.warn('Load scanner signals failed:', e); }
@@ -3750,14 +3822,14 @@ async function startAll() {
   // Fetch real bid/ask for all stocks (skip weekends, crypto 24/7)
   const fetchStocks = () => {
     if (!isWeekend()) {
-      STOCKS.forEach((sym, i) => setTimeout(() => fetchRealQuote(sym), i * 500));
+      STOCKS.forEach((sym, i) => setTimeout(() => fetchRealQuote(sym), i * 1000)); // Increased delay to 1s
     }
   };
 
   fetchStocks(); // Initial fetch
   _timers.push(setInterval(() => {
     fetchStocks(); // Only fetch stocks Mon-Fri, crypto fetches anyway
-  }, 30000)); // Refresh every 30s
+  }, 90000)); // Refresh every 90s (was 30s, too frequent)
 
   // Load core dashboard data
   try { await loadAccount(); } catch (e) { console.warn('Load account failed:', e); }
