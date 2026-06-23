@@ -103,7 +103,14 @@ async function fetchQuote(symbol) {
   });
 }
 
-// 🎯 Detect scalp signals
+// 🎯 Calculate profit target based on price
+function calculateProfitTarget(price) {
+  const minTarget = 5; // $5 minimum
+  const percentTarget = price * 0.02; // 2% target
+  return Math.max(minTarget, percentTarget);
+}
+
+// 🎯 Detect scalp signals based on PRICE PROJECTION (bull vs bear margins)
 function detectSignals(symbol, bars, quote) {
   if (!bars || bars.length < 5) return [];
 
@@ -111,89 +118,49 @@ function detectSignals(symbol, bars, quote) {
   const closes = bars.map(b => parseFloat(b.c));
   const highs = bars.map(b => parseFloat(b.h));
   const lows = bars.map(b => parseFloat(b.l));
-  const volumes = bars.map(b => parseFloat(b.v));
 
   const currentPrice = parseFloat(quote.bp || quote.ap || bars[bars.length - 1].c);
-  const avgVol = volumes.slice(-10).reduce((a, b) => a + b, 0) / 10;
-  const currentVol = volumes[volumes.length - 1];
-  const volumeSpike = currentVol > avgVol * 1.5;
+  const profitTarget = calculateProfitTarget(currentPrice);
 
-  // Calculate indicators
-  const vwap = calculateVWAP(bars);
-  const pivots = calculatePivots(
-    parseFloat(bars[0].o),
-    Math.max(...highs),
-    Math.min(...lows),
-    closes[closes.length - 1]
-  );
-  const orderFlow = calculateOrderFlow(bars);
+  // Recent price direction (last 5 bars)
+  const recentHigh = Math.max(...highs.slice(-5));
+  const recentLow = Math.min(...lows.slice(-5));
+  const priceRange = recentHigh - recentLow;
+  const pricePosition = (currentPrice - recentLow) / priceRange; // 0=low, 1=high
 
-  // Calculate RSI
-  let rsi = 50;
-  if (bars.length >= 15) {
-    const gains = [], losses = [];
-    for (let i = 1; i < Math.min(14, bars.length); i++) {
-      const change = closes[i] - closes[i - 1];
-      if (change > 0) gains.push(change);
-      else losses.push(-change);
-    }
-    const avgGain = gains.reduce((a, b) => a + b, 0) / 14 || 0.01;
-    const avgLoss = losses.reduce((a, b) => a + b, 0) / 14 || 0.01;
-    const rs = avgGain / avgLoss;
-    rsi = Math.round(100 - (100 / (1 + rs)));
-  }
+  // 🎯 SIGNAL 1: BULL - Price trending UP toward profit target
+  // If price is in lower half of recent range and has room to go up by profit target
+  if (pricePosition < 0.4 && (recentHigh + profitTarget > recentHigh)) {
+    const bullTarget = currentPrice + profitTarget;
+    const bullMargin = ((bullTarget - currentPrice) / currentPrice * 100).toFixed(2);
 
-  // 🎯 SIGNAL 1: Pivot Bounce (Bottom)
-  if (currentPrice > pivots.s1 && currentPrice < pivots.s1 + 0.10 && volumeSpike && rsi < 40) {
     signals.push({
-      type: 'PIVOT_BOUNCE_BUY',
+      type: 'BUY',
       symbol,
-      price: currentPrice,
-      level: `S1 $${pivots.s1.toFixed(2)}`,
-      rsi,
-      volumeSpike: (currentVol / avgVol).toFixed(1),
-      orderFlow: orderFlow.imbalance,
-      message: `🔼 ${symbol}: Pivot S1 bounce + oversold RSI + volume spike`,
+      price: currentPrice.toFixed(2),
+      profitTarget: profitTarget.toFixed(2),
+      targetPrice: bullTarget.toFixed(2),
+      margin: `${bullMargin}%`,
+      message: `🔼 ${symbol}: BULL setup - Price $${currentPrice.toFixed(2)} → Target $${bullTarget.toFixed(2)} (+${bullMargin}%)`,
       strength: 'HIGH'
     });
   }
 
-  // 🎯 SIGNAL 2: VWAP Cross (Above)
-  if (vwap && currentPrice > vwap && closes[closes.length - 2] <= vwap && volumeSpike) {
-    signals.push({
-      type: 'VWAP_CROSS_UP',
-      symbol,
-      price: currentPrice,
-      vwap: vwap.toFixed(2),
-      volumeSpike: (currentVol / avgVol).toFixed(1),
-      message: `📈 ${symbol}: VWAP cross above + volume spike`,
-      strength: 'MEDIUM'
-    });
-  }
+  // 🎯 SIGNAL 2: BEAR - Price trending DOWN toward profit target
+  // If price is in upper half of recent range and has room to go down by profit target
+  if (pricePosition > 0.6 && (recentLow - profitTarget < recentLow)) {
+    const bearTarget = currentPrice - profitTarget;
+    const bearMargin = ((currentPrice - bearTarget) / currentPrice * 100).toFixed(2);
 
-  // 🎯 SIGNAL 3: Order Flow Extreme (Buying)
-  if (orderFlow.imbalance > 35 && volumeSpike && rsi > 50) {
     signals.push({
-      type: 'ORDER_FLOW_BUY',
+      type: 'SELL',
       symbol,
-      price: currentPrice,
-      imbalance: orderFlow.imbalance,
-      buyVol: Math.floor(orderFlow.buyVol).toLocaleString(),
-      message: `💪 ${symbol}: Strong buying imbalance (${orderFlow.imbalance}%) + volume`,
+      price: currentPrice.toFixed(2),
+      profitTarget: profitTarget.toFixed(2),
+      targetPrice: bearTarget.toFixed(2),
+      margin: `${bearMargin}%`,
+      message: `🔽 ${symbol}: BEAR setup - Price $${currentPrice.toFixed(2)} → Target $${bearTarget.toFixed(2)} (-${bearMargin}%)`,
       strength: 'HIGH'
-    });
-  }
-
-  // 🎯 SIGNAL 4: Pivot Top Resistance
-  if (currentPrice > pivots.r1 - 0.10 && currentPrice < pivots.r1 && volumeSpike && rsi > 65) {
-    signals.push({
-      type: 'PIVOT_RESISTANCE_SELL',
-      symbol,
-      price: currentPrice,
-      level: `R1 $${pivots.r1.toFixed(2)}`,
-      rsi,
-      message: `🔽 ${symbol}: Pivot R1 resistance + overbought RSI`,
-      strength: 'MEDIUM'
     });
   }
 
