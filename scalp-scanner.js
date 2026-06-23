@@ -203,22 +203,27 @@ function detectSignals(symbol, bars, quote) {
   // 🎯 SIGNAL 0: DOUBLE BOTTOM PATTERN (Highest confidence)
   const doubleBottomSignal = detectDoubleBottom(bars);
   if (doubleBottomSignal) {
-    const target = doubleBottomSignal.target.toFixed(2);
-    const margin = ((doubleBottomSignal.target - currentPrice) / currentPrice * 100).toFixed(2);
+    // Validate: target must be ABOVE current price for BUY signals
+    const targetPrice = Math.max(doubleBottomSignal.target, 0); // Clamp to 0 minimum
+    const margin = ((targetPrice - currentPrice) / currentPrice * 100).toFixed(2);
 
-    signals.push({
-      type: 'BUY',
-      pattern: 'DOUBLE_BOTTOM',
-      symbol,
-      price: currentPrice.toFixed(2),
-      bottom1: doubleBottomSignal.bottom1,
-      bottom2: doubleBottomSignal.bottom2,
-      resistance: doubleBottomSignal.middleHigh,
-      targetPrice: target,
-      margin: `${margin}%`,
-      message: `📈 ${symbol}: DOUBLE BOTTOM REVERSAL - Bottoms @ $${doubleBottomSignal.bottom1}/$${doubleBottomSignal.bottom2}, Resistance @ $${doubleBottomSignal.middleHigh} → Target $${target} (+${margin}%)`,
-      strength: 'VERY_HIGH'
-    });
+    // Only add if target > current price (positive margin)
+    if (targetPrice > currentPrice && parseFloat(margin) > 0) {
+      const target = targetPrice.toFixed(2);
+      signals.push({
+        type: 'BUY',
+        pattern: 'DOUBLE_BOTTOM',
+        symbol,
+        price: currentPrice.toFixed(2),
+        bottom1: doubleBottomSignal.bottom1,
+        bottom2: doubleBottomSignal.bottom2,
+        resistance: doubleBottomSignal.middleHigh,
+        targetPrice: target,
+        margin: `${margin}%`,
+        message: `📈 ${symbol}: DOUBLE BOTTOM REVERSAL - Bottoms @ $${doubleBottomSignal.bottom1}/$${doubleBottomSignal.bottom2}, Resistance @ $${doubleBottomSignal.middleHigh} → Target $${target} (+${margin}%)`,
+        strength: 'VERY_HIGH'
+      });
+    }
   }
 
   // Recent price direction (last 5 bars)
@@ -233,34 +238,40 @@ function detectSignals(symbol, bars, quote) {
     const bullTarget = currentPrice + profitTarget;
     const bullMargin = ((bullTarget - currentPrice) / currentPrice * 100).toFixed(2);
 
-    signals.push({
-      type: 'BUY',
-      symbol,
-      price: currentPrice.toFixed(2),
-      profitTarget: profitTarget.toFixed(2),
-      targetPrice: bullTarget.toFixed(2),
-      margin: `${bullMargin}%`,
-      message: `🔼 ${symbol}: BULL setup - Price $${currentPrice.toFixed(2)} → Target $${bullTarget.toFixed(2)} (+${bullMargin}%)`,
-      strength: 'HIGH'
-    });
+    // Validate: target must be ABOVE current price for BUY signals
+    if (bullTarget > currentPrice && parseFloat(bullMargin) > 0) {
+      signals.push({
+        type: 'BUY',
+        symbol,
+        price: currentPrice.toFixed(2),
+        profitTarget: profitTarget.toFixed(2),
+        targetPrice: bullTarget.toFixed(2),
+        margin: `${bullMargin}%`,
+        message: `🔼 ${symbol}: BULL setup - Price $${currentPrice.toFixed(2)} → Target $${bullTarget.toFixed(2)} (+${bullMargin}%)`,
+        strength: 'HIGH'
+      });
+    }
   }
 
   // 🎯 SIGNAL 2: BEAR - Price trending DOWN toward profit target
   // If price is in upper half of recent range and has room to go down by profit target
   if (pricePosition > 0.6 && (recentLow - profitTarget < recentLow)) {
-    const bearTarget = currentPrice - profitTarget;
+    const bearTarget = Math.max(currentPrice - profitTarget, 0); // Clamp to 0 minimum
     const bearMargin = ((currentPrice - bearTarget) / currentPrice * 100).toFixed(2);
 
-    signals.push({
-      type: 'SELL',
-      symbol,
-      price: currentPrice.toFixed(2),
-      profitTarget: profitTarget.toFixed(2),
-      targetPrice: bearTarget.toFixed(2),
-      margin: `${bearMargin}%`,
-      message: `🔽 ${symbol}: BEAR setup - Price $${currentPrice.toFixed(2)} → Target $${bearTarget.toFixed(2)} (-${bearMargin}%)`,
-      strength: 'HIGH'
-    });
+    // Validate: target must be positive and below current price for SELL/EXIT signals
+    if (bearTarget > 0 && bearTarget < currentPrice && parseFloat(bearMargin) > 0) {
+      signals.push({
+        type: 'SELL',
+        symbol,
+        price: currentPrice.toFixed(2),
+        profitTarget: profitTarget.toFixed(2),
+        targetPrice: bearTarget.toFixed(2),
+        margin: `${bearMargin}%`,
+        message: `🔽 ${symbol}: BEAR setup - Price $${currentPrice.toFixed(2)} → Target $${bearTarget.toFixed(2)} (-${bearMargin}%)`,
+        strength: 'HIGH'
+      });
+    }
   }
 
   return signals;
