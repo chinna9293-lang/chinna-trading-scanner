@@ -1,16 +1,16 @@
 {
-  "timestamp": "2026-06-23T06:51:42.294Z",
-  "totalSignals": 2,
+  "timestamp": "2026-06-23T06:53:03.007Z",
+  "totalSignals": 3,
   "totalExecuted": 0,
   "signals": [
     {
       "symbol": "BTCUSD",
       "type": "EXIT",
       "pattern": "NONE",
-      "price": "62849.70",
-      "targetPrice": "61592.71",
+      "price": "62879.90",
+      "targetPrice": "61622.30",
       "margin": "2.00%",
-      "message": "🔽 BTCUSD: BEAR setup - Price $62849.70 → Target $61592.71 (-2.00%)",
+      "message": "🔽 BTCUSD: BEAR setup - Price $62879.90 → Target $61622.30 (-2.00%)",
       "executed": false,
       "strength": "HIGH"
     },
@@ -18,10 +18,21 @@
       "symbol": "ETHUSD",
       "type": "EXIT",
       "pattern": "NONE",
-      "price": "1689.95",
-      "targetPrice": "1656.15",
+      "price": "1690.16",
+      "targetPrice": "1656.36",
       "margin": "2.00%",
-      "message": "🔽 ETHUSD: BEAR setup - Price $1689.95 → Target $1656.15 (-2.00%)",
+      "message": "🔽 ETHUSD: BEAR setup - Price $1690.16 → Target $1656.36 (-2.00%)",
+      "executed": false,
+      "strength": "HIGH"
+    },
+    {
+      "symbol": "SOLUSD",
+      "type": "EXIT",
+      "pattern": "NONE",
+      "price": "70.27",
+      "targetPrice": "65.27",
+      "margin": "7.12%",
+      "message": "🔽 SOLUSD: BEAR setup - Price $70.27 → Target $65.27 (-7.12%)",
       "executed": false,
       "strength": "HIGH"
     }
