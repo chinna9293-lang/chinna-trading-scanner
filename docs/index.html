@@ -561,7 +561,7 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(50,60,100,.7);color:#e2e8f0;v
 .pending-box{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:14px;text-align:center;color:#f59e0b;font-size:13px;margin-top:8px;}
 
 /* ── TF chips ── */
-.tf-chip{padding:3px 8px;font-size:10px;}
+.tf-chip{padding:2px 6px;font-size:9px;}
 
 /* ── Collapsible sidebar sections ── */
 .s-section{overflow:hidden;transition:max-height .35s cubic-bezier(.4,0,.2,1);max-height:2000px;}
@@ -3105,28 +3105,9 @@ async function renderChartPanel(sym, tf) {
     '<div><div style="font-size:9px;color:#94a3b8">SL</div><div style="font-size:13px;font-weight:600;color:#fca5a5">$' + (liveP - parseFloat(a.atr)).toFixed(2) + '</div></div>' +
     '</div>' +
     '</div>' +
-    '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px">' +
+    '<div style="display:flex;justify-content:flex-end;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px">' +
     '<div style="display:flex;gap:4px">' + tfHtml + '</div>' +
     '<button onclick="renderChartPanel(\'' + sym + '\',currentTf)" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#cbd5e1;padding:8px 12px;border-radius:6px;font-size:11px;cursor:pointer;min-width:44px;height:36px" title="Refresh chart">↻</button>' +
-    '</div>' +
-    '</div>' +
-    // Professional Scalper Controls (Mobile-responsive)
-    '<div style="margin-top:12px;padding:8px;background:rgba(99,102,241,.08);border-radius:8px;border:1px solid rgba(99,102,241,.2);font-size:clamp(9px,2vw,12px)">' +
-    // Bid/Ask Display
-    '<div class="bid-ask" style="margin-bottom:12px">' +
-      (bidAsk[sym] ?
-        `<span style="display:flex;justify-content:space-between;align-items:center;width:100%">
-          <span>Bid: $${bidAsk[sym].bid.toFixed(2)}</span>
-          <span style="color:${bidAsk[sym].quality === 'tight' ? '#22c55e' : bidAsk[sym].quality === 'normal' ? '#fbbf24' : '#ef4444'};font-weight:700">
-            Spread: $${bidAsk[sym].spread.toFixed(3)} (${bidAsk[sym].quality})
-          </span>
-          <span>Ask: $${bidAsk[sym].ask.toFixed(2)}</span>
-        </span>`
-        : '<span style="color:#94a3b8">Loading bid/ask...</span>'
-      ) +
-    '</div>' +
-    // Compact Trading Panel - Position Sizing + Quick Trade Buttons
-    '<div style="margin-bottom:12px;padding:8px;background:rgba(30,50,100,.25);border-radius:6px;border:1px solid rgba(99,102,241,.2)">' +
     '</div>' +
     '</div>' +
     '<div class="chart-wrap"><div id="chart-container"></div></div>' +
