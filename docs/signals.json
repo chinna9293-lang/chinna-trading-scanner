@@ -1,6 +1,29 @@
 {
-  "timestamp": "2026-06-23T04:00:40.048Z",
-  "totalSignals": 0,
+  "timestamp": "2026-06-23T06:51:42.294Z",
+  "totalSignals": 2,
   "totalExecuted": 0,
-  "signals": []
+  "signals": [
+    {
+      "symbol": "BTCUSD",
+      "type": "EXIT",
+      "pattern": "NONE",
+      "price": "62849.70",
+      "targetPrice": "61592.71",
+      "margin": "2.00%",
+      "message": "🔽 BTCUSD: BEAR setup - Price $62849.70 → Target $61592.71 (-2.00%)",
+      "executed": false,
+      "strength": "HIGH"
+    },
+    {
+      "symbol": "ETHUSD",
+      "type": "EXIT",
+      "pattern": "NONE",
+      "price": "1689.95",
+      "targetPrice": "1656.15",
+      "margin": "2.00%",
+      "message": "🔽 ETHUSD: BEAR setup - Price $1689.95 → Target $1656.15 (-2.00%)",
+      "executed": false,
+      "strength": "HIGH"
+    }
+  ]
 }
