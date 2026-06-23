@@ -2609,67 +2609,85 @@ function buildModal(sym, a, cfg, bars, htfA) {
   }
 
   return (
-    // 2-COLUMN LAYOUT: Left side (Signal/Conditions) + Right side (Strategies/Levels)
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
-      // LEFT COLUMN: Signal, Entry/TP/Stop, Conditions
+    // LEFT SIDE: Signal + All 8 Strategies (Detailed List) + Price/RSI
+    // RIGHT SIDE: Entry/TP/Stop + Key Levels + Conditions
+    '<div style="display:grid;grid-template-columns:1.2fr 1fr;gap:12px">' +
+      // LEFT COLUMN: Strategies detailed list + Price/RSI bottom
       '<div>' +
         // SIGNAL CARD
         '<div class="card" style="border-left:3px solid '+signalColor+';margin-bottom:10px">' +
-          '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">' +
+          '<div style="display:flex;gap:8px;align-items:center">' +
             '<div style="font-size:32px">'+signalIcon+'</div>' +
             '<div><strong style="color:'+signalColor+';font-size:16px">'+signal+'</strong></div>' +
           '</div>' +
-          (signal!=='NO SIGNAL' ? (
-            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px">' +
-              '<div><span style="color:#94a3b8">Entry:</span><br><strong style="color:#cbd5e1">$'+liveP.toFixed(dec2)+'</strong></div>' +
-              '<div><span style="color:#94a3b8">TP1:</span><br><strong style="color:'+(dir==='bull'?'#22c55e':'#ef4444')+'">'+(tpPct>=0?'+':'')+tpPct+'%</strong></div>' +
-              '<div><span style="color:#94a3b8">Stop:</span><br><strong style="color:#ef4444">'+(slPct>=0?'+':'')+slPct+'%</strong></div>' +
-              '<div><span style="color:#94a3b8">ATR:</span><br><strong style="color:#cbd5e1">$'+atrVal.toFixed(dec2)+'</strong></div>' +
-            '</div>'
-          ) : '') +
         '</div>' +
 
-        // CONDITIONS CARD
-        '<div class="card">' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px;margin-bottom:8px">' +
-            '<div><span style="color:#22c55e;font-weight:600">Bull: '+bPassed+'/3</span></div>' +
-            '<div style="text-align:right"><span style="color:#ef4444;font-weight:600">Bear: '+dPassed+'/3</span></div>' +
+        // ALL 8 STRATEGIES - DETAILED LIST
+        (strats.length > 0 ? (
+          '<div class="card" style="margin-bottom:10px">' +
+            '<div style="font-size:11px;font-weight:700;color:#cbd5e1;margin-bottom:10px">🎯 TRADING STRATEGIES DETECTED:</div>' +
+            strats.map((s, i) =>
+              '<div style="padding:8px;background:rgba(99,102,241,.05);border-radius:6px;margin-bottom:6px;border-left:3px solid '+(s.signal==='BULLISH'?'#22c55e':s.signal==='BEARISH'?'#ef4444':'#94a3b8')+'">' +
+              '<div style="font-weight:600;font-size:11px;color:'+(s.signal==='BULLISH'?'#22c55e':s.signal==='BEARISH'?'#ef4444':'#cbd5e1')+'">'+(i+1)+'️⃣ '+s.name+' - '+s.signal+'</div>' +
+              '<div style="font-size:10px;color:#94a3b8;margin-top:3px">'+s.reason+'</div>' +
+              '</div>'
+            ).join('') +
+          '</div>'
+        ) : '') +
+
+        // PRICE & RSI PANELS (Bottom)
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+          '<div class="card" style="text-align:center">' +
+            '<div class="card-label">Price</div>' +
+            '<div style="font-size:22px;font-weight:900;color:'+(a.chg1h>=0?'#22c55e':'#ef4444')+'">$'+liveP.toFixed(dec2)+'</div>' +
+            '<div style="font-size:11px;color:'+(a.chg1h>=0?'#22c55e':'#ef4444')+';margin-top:2px">'+(a.chg1h>=0?'▲':'▼')+' '+Math.abs(a.chg1h)+'% 1H</div>' +
           '</div>' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">' +
-            '<div>' +
-              bullChecks.map(c => '<div style="display:flex;gap:4px;align-items:center;margin:3px 0;font-size:9px"><div style="color:'+(c.pass?'#22c55e':'#ef4444')+'">'+(c.pass?'✓':'✗')+'</div><div style="color:#cbd5e1">'+c.l+'</div></div>').join('') +
-            '</div>' +
-            '<div>' +
-              bearChecks.map(c => '<div style="display:flex;gap:4px;align-items:center;margin:3px 0;font-size:9px"><div style="color:'+(c.pass?'#22c55e':'#ef4444')+'">'+(c.pass?'✓':'✗')+'</div><div style="color:#cbd5e1">'+c.l+'</div></div>').join('') +
-            '</div>' +
+          '<div class="card" style="text-align:center">' +
+            '<div class="card-label">RSI</div>' +
+            '<div style="font-size:22px;font-weight:900;color:'+(a.rsi>70?'#ef4444':a.rsi<30?'#22c55e':'#fbbf24')+'">'+a.rsi+'</div>' +
+            '<div style="font-size:11px;color:'+(a.rsi>70?'#ef4444':a.rsi<30?'#22c55e':'#fbbf24')+';margin-top:2px">'+(a.rsi>70?'Overbought':a.rsi<30?'Oversold':'Neutral')+'</div>' +
           '</div>' +
         '</div>' +
       '</div>' +
 
-      // RIGHT COLUMN: Strategies + Levels
+      // RIGHT COLUMN: Entry/TP/Stop + Key Levels + Conditions
       '<div>' +
-        // ALL 8 STRATEGIES IN 2-COLUMN GRID
-        (strats.length > 0 ? (
+        // ENTRY/TP/STOP CARD
+        (signal!=='NO SIGNAL' ? (
           '<div class="card" style="margin-bottom:10px">' +
-            '<div style="font-size:11px;font-weight:700;color:#cbd5e1;margin-bottom:8px">⭐ 8 STRATEGIES</div>' +
-            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">' +
-              strats.map(s =>
-                '<div style="padding:6px;background:rgba(99,102,241,.05);border-radius:4px;border-left:2px solid '+(s.signal==='BULLISH'?'#22c55e':s.signal==='BEARISH'?'#ef4444':'#94a3b8')+'">' +
-                '<div style="font-weight:600;font-size:9px;color:'+(s.signal==='BULLISH'?'#22c55e':s.signal==='BEARISH'?'#ef4444':'#cbd5e1')+'">'+s.name.replace(/ .*/,'')+'</div>' +
-                '<div style="font-size:8px;color:'+(s.signal==='BULLISH'?'#22c55e':s.signal==='BEARISH'?'#ef4444':'#94a3b8')+';font-weight:600;margin-top:2px">'+s.signal.substring(0,4)+'</div>' +
-                '</div>'
-              ).join('') +
+            '<div style="font-size:11px;font-weight:700;color:#cbd5e1;margin-bottom:8px">📊 Trade Setup</div>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:10px">' +
+              '<div><span style="color:#94a3b8">Entry</span><br><strong style="color:#cbd5e1">$'+liveP.toFixed(dec2)+'</strong></div>' +
+              '<div><span style="color:#94a3b8">TP1</span><br><strong style="color:'+(dir==='bull'?'#22c55e':'#ef4444')+'">'+(tpPct>=0?'+':'')+tpPct+'%</strong></div>' +
+              '<div><span style="color:#94a3b8">Stop</span><br><strong style="color:#ef4444">'+(slPct>=0?'+':'')+slPct+'%</strong></div>' +
+              '<div><span style="color:#94a3b8">ATR</span><br><strong style="color:#cbd5e1">$'+atrVal.toFixed(dec2)+'</strong></div>' +
             '</div>' +
           '</div>'
         ) : '') +
 
         // KEY LEVELS CARD
-        '<div class="card">' +
+        '<div class="card" style="margin-bottom:10px">' +
+          '<div style="font-size:11px;font-weight:700;color:#cbd5e1;margin-bottom:8px">📈 Key Levels</div>' +
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px">' +
-            '<div><span style="color:#94a3b8">Resist:</span><br><strong style="color:#cbd5e1">$'+a.sH+'</strong></div>' +
-            '<div><span style="color:#94a3b8">Support:</span><br><strong style="color:#cbd5e1">$'+a.sL+'</strong></div>' +
-            '<div><span style="color:#94a3b8">VWAP:</span><br><strong style="color:'+(a.aboveVwap?'#22c55e':'#ef4444')+'">$'+a.vwap+'</strong></div>' +
-            '<div><span style="color:#94a3b8">EMA9:</span><br><strong style="color:#cbd5e1">$'+a.e9+'</strong></div>' +
+            '<div><span style="color:#94a3b8">Resistance</span><br><strong style="color:#cbd5e1">$'+a.sH+'</strong></div>' +
+            '<div><span style="color:#94a3b8">Support</span><br><strong style="color:#cbd5e1">$'+a.sL+'</strong></div>' +
+            '<div><span style="color:#94a3b8">VWAP</span><br><strong style="color:'+(a.aboveVwap?'#22c55e':'#ef4444')+'">$'+a.vwap+'</strong></div>' +
+            '<div><span style="color:#94a3b8">EMA21</span><br><strong style="color:#cbd5e1">$'+a.e21+'</strong></div>' +
+          '</div>' +
+        '</div>' +
+
+        // CONDITIONS CARD
+        '<div class="card">' +
+          '<div style="font-size:11px;font-weight:700;color:#cbd5e1;margin-bottom:8px">✓ Conditions</div>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">' +
+            '<div style="padding:6px;background:rgba(34,197,94,.08);border-radius:4px">' +
+              '<div style="font-size:9px;font-weight:600;color:#22c55e;margin-bottom:4px">🟢 Bull ('+bPassed+'/3)</div>' +
+              bullChecks.map(c => '<div style="display:flex;gap:3px;align-items:center;margin:2px 0;font-size:8px"><div style="color:'+(c.pass?'#22c55e':'#ef4444')+'">'+(c.pass?'✓':'✗')+'</div><div style="color:#cbd5e1">'+c.l+'</div></div>').join('') +
+            '</div>' +
+            '<div style="padding:6px;background:rgba(239,68,68,.08);border-radius:4px">' +
+              '<div style="font-size:9px;font-weight:600;color:#ef4444;margin-bottom:4px">🔴 Bear ('+dPassed+'/3)</div>' +
+              bearChecks.map(c => '<div style="display:flex;gap:3px;align-items:center;margin:2px 0;font-size:8px"><div style="color:'+(c.pass?'#22c55e':'#ef4444')+'">'+(c.pass?'✓':'✗')+'</div><div style="color:#cbd5e1">'+c.l+'</div></div>').join('') +
+            '</div>' +
           '</div>' +
         '</div>' +
       '</div>' +
