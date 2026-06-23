@@ -1168,6 +1168,21 @@ function fmtP(n) { return (n>=0?'+':'') + parseFloat(n).toFixed(2) + '%'; }
 // ─── Live price store ─────────────────────────────────────────────────────────
 const LP = {};  // sym → {price, prev}
 
+// ─── Load Scanner Signals ────────────────────────────────────────────────────────
+async function loadScannerSignals() {
+  try {
+    const response = await fetch('/signals.json', { signal: AbortSignal.timeout(3000) });
+    if (response.ok) {
+      const data = await response.json();
+      sessionStorage.setItem('scannerSignals', JSON.stringify(data));
+      console.log('[scanner] loaded', data.totalSignals, 'signals from cloud scanner');
+    }
+  } catch (e) {
+    // Signals file may not exist yet - that's OK
+    console.log('[scanner] signals not available yet');
+  }
+}
+
 // ─── Political trades (Congress STOCK Act disclosures) ────────────────────────
 let POLITICAL_BUYS = {};  // sym → [{rep, party, date, range, amount, side}]
 
@@ -2311,9 +2326,33 @@ function buildModal(sym, a, cfg, bars, htfA) {
       '<small>'+c.n+'</small></div></div>';
   }
 
-  // ── Signal: all 3 conditions must pass ───────────────────────────────────────
+  // ── Signal: Check scanner signals first ───────────────────────────────────────
   let signal, signalColor, signalBg, signalBorder, signalIcon, signalMsg;
-  if (bPassed === 3) {
+
+  // Try to load latest scanner signal for this symbol
+  let scannerSignal = null;
+  try {
+    const signalsData = sessionStorage.getItem('scannerSignals');
+    if (signalsData) {
+      const signals = JSON.parse(signalsData);
+      scannerSignal = signals.signals?.find(s => s.symbol === ticker);
+    }
+  } catch (e) {
+    // Fallback to condition-based signals if load fails
+  }
+
+  // If scanner has a BUY signal, show it (takes priority)
+  if (scannerSignal && scannerSignal.type === 'BUY') {
+    signal='BUY'; signalColor='#22c55e'; signalBg='rgba(34,197,94,.1)'; signalBorder='rgba(34,197,94,.3)'; signalIcon='🟢';
+    signalMsg='✅ SCANNER DETECTED: '+scannerSignal.message+' — Target: $'+scannerSignal.targetPrice+' ('+scannerSignal.margin+')';
+  }
+  // If scanner has an EXIT signal, show it
+  else if (scannerSignal && scannerSignal.type === 'EXIT') {
+    signal='EXIT'; signalColor='#fbbf24'; signalBg='rgba(251,191,36,.1)'; signalBorder='rgba(251,191,36,.3)'; signalIcon='🟡';
+    signalMsg='🎯 EXIT OPPORTUNITY: '+scannerSignal.message+' — Target: $'+scannerSignal.targetPrice;
+  }
+  // Otherwise use condition-based logic
+  else if (bPassed === 3) {
     signal='BUY'; signalColor='#22c55e'; signalBg='rgba(34,197,94,.1)'; signalBorder='rgba(34,197,94,.3)'; signalIcon='🟢';
     signalMsg='All 3 bull conditions met — EMA uptrend + RSI in zone + price above swing high';
   } else if (dPassed === 3) {
@@ -3534,6 +3573,10 @@ async function startAll() {
   // 🎯 PROFESSIONAL SCALPER FEATURES
   try { await fetchAccountStatus(); } catch (e) { console.warn('Account status fetch failed:', e); }
   _timers.push(setInterval(fetchAccountStatus, 10000)); // Update account every 10s
+
+  // Load scanner signals from cloud scanner
+  try { await loadScannerSignals(); } catch (e) { console.warn('Load scanner signals failed:', e); }
+  _timers.push(setInterval(loadScannerSignals, 60000)); // Refresh scanner signals every 1 minute
 
   // Fetch real bid/ask for all stocks
   STOCKS.forEach((sym, i) => setTimeout(() => fetchRealQuote(sym), i * 300));
