@@ -21,6 +21,20 @@ jobs:
           NTFY_TOPIC:    ${{ secrets.NTFY_TOPIC }}
           ALPACA_KEY:    ${{ secrets.ALPACA_KEY }}
           ALPACA_SECRET: ${{ secrets.ALPACA_SECRET }}
+
+      - name: Commit Updated Signals
+        if: always()
+        run: |
+          git config user.name "Scanner Bot"
+          git config user.email "scanner@automated.trading"
+          if git diff --quiet docs/signals.json; then
+            echo "No signal changes to commit"
+          else
+            git add docs/signals.json
+            git commit -m "Update signals.json from latest scan - $(date +'%Y-%m-%d %H:%M:%S UTC')"
+            git push
+          fi
+
       - name: Log Scan Results
         if: always()
         run: echo "Scalp scan completed at $(date)"
