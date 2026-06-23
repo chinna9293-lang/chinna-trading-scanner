@@ -2599,102 +2599,112 @@ function buildModal(sym, a, cfg, bars, htfA) {
   }
 
   return (
-    // HEADER CARD
-    '<div class="card">' +
-      '<div class="card-header">' +
-        '<div><div class="card-title">Symbol</div><div class="card-value">'+label+'</div></div>' +
-        '<div style="text-align:right"><div class="card-title">Price</div><div class="card-value" style="color:'+(a.chg1h>=0?'#22c55e':'#ef4444')+'">$'+liveP.toFixed(dec2)+'</div><div class="card-subtitle">'+(a.chg1h>=0?'+':'')+a.chg1h+'% · RSI '+a.rsi+'</div></div>' +
+    // 2-COLUMN LAYOUT: Left side (Signal/Conditions) + Right side (Strategies/Levels)
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+      // LEFT COLUMN: Signal, Entry/TP/Stop, Conditions
+      '<div>' +
+        // SIGNAL CARD
+        '<div class="card" style="border-left:3px solid '+signalColor+';margin-bottom:10px">' +
+          '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">' +
+            '<div style="font-size:32px">'+signalIcon+'</div>' +
+            '<div><strong style="color:'+signalColor+';font-size:16px">'+signal+'</strong></div>' +
+          '</div>' +
+          (signal!=='NO SIGNAL' ? (
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px">' +
+              '<div><span style="color:#94a3b8">Entry:</span><br><strong style="color:#cbd5e1">$'+liveP.toFixed(dec2)+'</strong></div>' +
+              '<div><span style="color:#94a3b8">TP1:</span><br><strong style="color:'+(dir==='bull'?'#22c55e':'#ef4444')+'">'+(tpPct>=0?'+':'')+tpPct+'%</strong></div>' +
+              '<div><span style="color:#94a3b8">Stop:</span><br><strong style="color:#ef4444">'+(slPct>=0?'+':'')+slPct+'%</strong></div>' +
+              '<div><span style="color:#94a3b8">ATR:</span><br><strong style="color:#cbd5e1">$'+atrVal.toFixed(dec2)+'</strong></div>' +
+            '</div>'
+          ) : '') +
+        '</div>' +
+
+        // CONDITIONS CARD
+        '<div class="card">' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px;margin-bottom:8px">' +
+            '<div><span style="color:#22c55e;font-weight:600">Bull: '+bPassed+'/3</span></div>' +
+            '<div style="text-align:right"><span style="color:#ef4444;font-weight:600">Bear: '+dPassed+'/3</span></div>' +
+          '</div>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">' +
+            '<div>' +
+              bullChecks.map(c => '<div style="display:flex;gap:4px;align-items:center;margin:3px 0;font-size:9px"><div style="color:'+(c.pass?'#22c55e':'#ef4444')+'">'+(c.pass?'✓':'✗')+'</div><div style="color:#cbd5e1">'+c.l+'</div></div>').join('') +
+            '</div>' +
+            '<div>' +
+              bearChecks.map(c => '<div style="display:flex;gap:4px;align-items:center;margin:3px 0;font-size:9px"><div style="color:'+(c.pass?'#22c55e':'#ef4444')+'">'+(c.pass?'✓':'✗')+'</div><div style="color:#cbd5e1">'+c.l+'</div></div>').join('') +
+            '</div>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
-    '</div>' +
 
-    // SIGNAL CARD
-    '<div class="card" style="border-left:3px solid '+signalColor+'">' +
-      '<div class="card-row"><div style="font-size:24px">'+signalIcon+'</div><div><strong style="color:'+signalColor+';font-size:16px">'+signal+'</strong></div></div>' +
-      (signal!=='NO SIGNAL' ? (
-        '<div class="card-row"><div class="card-label">Entry</div><div class="card-data">$'+liveP.toFixed(dec2)+'</div></div>' +
-        '<div class="card-row"><div class="card-label">🎯 TP1</div><div class="card-data" style="color:'+(dir==='bull'?'#22c55e':'#ef4444')+'">'+(tpPct>=0?'+':'')+tpPct+'% ($'+tpPrice+')</div></div>' +
-        '<div class="card-row"><div class="card-label">⛔ Stop</div><div class="card-data" style="color:#ef4444">'+(slPct>=0?'+':'')+slPct+'% ($'+slPrice+')</div></div>' +
-        '<div class="card-row"><div class="card-label">ATR</div><div class="card-data">$'+atrVal.toFixed(dec2)+'</div></div>'
-      ) : '') +
-    '</div>' +
-
-    // STRATEGIES CARD
-    (strats.length > 0 ? (
-      '<div class="card">' +
-        '<div style="font-size:11px;font-weight:700;color:#cbd5e1;margin-bottom:10px">🎯 TRADING STRATEGIES</div>' +
-        strats.map(s =>
-          '<div style="padding:8px;background:rgba(99,102,241,.05);border-radius:6px;margin-bottom:6px;border-left:2px solid '+(s.signal==='BULLISH'?'#22c55e':s.signal==='BEARISH'?'#ef4444':'#94a3b8')+'">' +
-          '<div style="font-weight:600;font-size:11px;color:'+(s.signal==='BULLISH'?'#22c55e':s.signal==='BEARISH'?'#ef4444':'#cbd5e1')+'">'+s.name+' - '+s.signal+'</div>' +
-          '<div style="font-size:10px;color:#94a3b8;margin-top:2px">'+s.reason+'</div>' +
+      // RIGHT COLUMN: Strategies + Levels
+      '<div>' +
+        // ALL 8 STRATEGIES IN 2-COLUMN GRID
+        (strats.length > 0 ? (
+          '<div class="card" style="margin-bottom:10px">' +
+            '<div style="font-size:11px;font-weight:700;color:#cbd5e1;margin-bottom:8px">⭐ 8 STRATEGIES</div>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">' +
+              strats.map(s =>
+                '<div style="padding:6px;background:rgba(99,102,241,.05);border-radius:4px;border-left:2px solid '+(s.signal==='BULLISH'?'#22c55e':s.signal==='BEARISH'?'#ef4444':'#94a3b8')+'">' +
+                '<div style="font-weight:600;font-size:9px;color:'+(s.signal==='BULLISH'?'#22c55e':s.signal==='BEARISH'?'#ef4444':'#cbd5e1')+'">'+s.name.replace(/ .*/,'')+'</div>' +
+                '<div style="font-size:8px;color:'+(s.signal==='BULLISH'?'#22c55e':s.signal==='BEARISH'?'#ef4444':'#94a3b8')+';font-weight:600;margin-top:2px">'+s.signal.substring(0,4)+'</div>' +
+                '</div>'
+              ).join('') +
+            '</div>' +
           '</div>'
-        ).join('') +
-      '</div>'
-    ) : '') +
+        ) : '') +
 
-    // CONDITIONS CARD
-    '<div class="card">' +
-      '<div class="card-row"><div class="card-label">Bull Conditions</div><div class="card-data">'+bPassed+'/3</div></div>' +
-      '<div class="card-row"><div class="card-label">Bear Conditions</div><div class="card-data">'+dPassed+'/3</div></div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">' +
-        '<div style="padding:8px;background:rgba(34,197,94,.08);border-radius:6px">' +
-          bullChecks.map(c => '<div style="display:flex;gap:4px;align-items:center;margin:4px 0"><div style="font-size:10px;color:'+(c.pass?'#22c55e':'#ef4444')+'">'+(c.pass?'✓':'✗')+'</div><div style="font-size:9px;color:#cbd5e1">'+c.l+'</div></div>').join('') +
-        '</div>' +
-        '<div style="padding:8px;background:rgba(239,68,68,.08);border-radius:6px">' +
-          bearChecks.map(c => '<div style="display:flex;gap:4px;align-items:center;margin:4px 0"><div style="font-size:10px;color:'+(c.pass?'#22c55e':'#ef4444')+'">'+(c.pass?'✓':'✗')+'</div><div style="font-size:9px;color:#cbd5e1">'+c.l+'</div></div>').join('') +
+        // KEY LEVELS CARD
+        '<div class="card">' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px">' +
+            '<div><span style="color:#94a3b8">Resist:</span><br><strong style="color:#cbd5e1">$'+a.sH+'</strong></div>' +
+            '<div><span style="color:#94a3b8">Support:</span><br><strong style="color:#cbd5e1">$'+a.sL+'</strong></div>' +
+            '<div><span style="color:#94a3b8">VWAP:</span><br><strong style="color:'+(a.aboveVwap?'#22c55e':'#ef4444')+'">$'+a.vwap+'</strong></div>' +
+            '<div><span style="color:#94a3b8">EMA9:</span><br><strong style="color:#cbd5e1">$'+a.e9+'</strong></div>' +
+          '</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
 
-    // KEY LEVELS CARD
-    '<div class="card">' +
-      '<div class="card-row"><div class="card-label">Resistance</div><div class="card-data">$'+a.sH+'</div></div>' +
-      '<div class="card-row"><div class="card-label">Support</div><div class="card-data">$'+a.sL+'</div></div>' +
-      '<div class="card-row"><div class="card-label">VWAP</div><div class="card-data" style="color:'+(a.aboveVwap?'#22c55e':'#ef4444')+'">$'+a.vwap+'</div></div>' +
-      '<div class="card-row"><div class="card-label">EMA 9/21/50</div><div class="card-data">$'+a.e9+' / $'+a.e21+' / $'+a.e50+'</div></div>' +
-    '</div>' +
-
-    // PATTERNS CARD
+    // PATTERNS CARD (Full width below)
     (patterns.length > 0 ? (
-      '<div class="card">' +
-        '<div class="card-title" style="margin-bottom:8px">📊 Chart Patterns</div>' +
-        patterns.map(p =>
-          '<div style="padding:8px;background:rgba(99,102,241,.05);border-radius:6px;margin-bottom:6px;border-left:2px solid '+(p.dir==='bull'?'#22c55e':'#ef4444')+'">' +
-          '<div style="font-weight:600;font-size:11px;color:'+(p.dir==='bull'?'#22c55e':'#ef4444')+'">'+(p.dir==='bull'?'↑ ':'↓ ')+p.name+'</div>' +
-          '<div style="font-size:10px;color:#94a3b8;margin-top:2px">'+p.desc+'</div>' +
-          '</div>'
-        ).join('') +
-      '</div>'
-    ) : '') +
-
-    // STATS CARD
-    (cfg ? (
-      '<div class="card">' +
-        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">' +
-          '<div style="text-align:center"><div class="card-label">Win Rate</div><div style="font-size:14px;font-weight:800;color:'+(hw>=55?'#22c55e':hw>=45?'#f59e0b':'#ef4444')+'">'+hw+'%</div></div>' +
-          '<div style="text-align:center"><div class="card-label">P&L</div><div style="font-size:14px;font-weight:800;color:'+(hp>=0?'#22c55e':'#ef4444')+'">'+(hp>=0?'+':'')+hp+'%</div></div>' +
-          '<div style="text-align:center"><div class="card-label">EV/Trade</div><div style="font-size:14px;font-weight:800;color:'+(parseFloat(ev)>=0?'#22c55e':'#ef4444')+'">'+(parseFloat(ev)>=0?'+':'')+ev+'%</div></div>' +
-          '<div style="text-align:center"><div class="card-label">Risk Rating</div><div style="font-size:12px;font-weight:800;color:'+(risk==='low'?'#22c55e':'#f59e0b')+'">'+(risk==='low'?'✅ LOW':'⚠️')+'</div></div>' +
+      '<div class="card" style="margin-top:12px">' +
+        '<div class="card-title" style="margin-bottom:8px;font-size:11px">📊 Chart Patterns</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">' +
+          patterns.map(p =>
+            '<div style="padding:6px;background:rgba(99,102,241,.05);border-radius:4px;border-left:2px solid '+(p.dir==='bull'?'#22c55e':'#ef4444')+'">' +
+            '<div style="font-weight:600;font-size:9px;color:'+(p.dir==='bull'?'#22c55e':'#ef4444')+'">'+(p.dir==='bull'?'↑':'↓')+' '+p.name+'</div>' +
+            '</div>'
+          ).join('') +
         '</div>' +
       '</div>'
     ) : '') +
 
-    // ANALYST UPGRADES CARD
+    // STATS CARD (Full width)
+    (cfg ? (
+      '<div class="card" style="margin-top:12px">' +
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">' +
+          '<div style="text-align:center"><div class="card-label" style="font-size:9px">Win Rate</div><div style="font-size:16px;font-weight:800;color:'+(hw>=55?'#22c55e':hw>=45?'#f59e0b':'#ef4444')+'">'+hw+'%</div></div>' +
+          '<div style="text-align:center"><div class="card-label" style="font-size:9px">P&L</div><div style="font-size:16px;font-weight:800;color:'+(hp>=0?'#22c55e':'#ef4444')+'">'+(hp>=0?'+':'')+hp+'%</div></div>' +
+          '<div style="text-align:center"><div class="card-label" style="font-size:9px">EV/Trade</div><div style="font-size:16px;font-weight:800;color:'+(parseFloat(ev)>=0?'#22c55e':'#ef4444')+'">'+(parseFloat(ev)>=0?'+':'')+ev+'%</div></div>' +
+          '<div style="text-align:center"><div class="card-label" style="font-size:9px">Risk</div><div style="font-size:13px;font-weight:800;color:'+(risk==='low'?'#22c55e':'#f59e0b')+'">'+(risk==='low'?'✅ LOW':'⚠️')+'</div></div>' +
+        '</div>' +
+      '</div>'
+    ) : '') +
+
+    // ANALYST UPGRADES CARD (Full width)
     (function() {
       const upgrades = ANALYST_UPGRADES[sym] || [];
       if (upgrades.length === 0) return '';
-      return '<div class="card">' +
-        '<div class="card-title" style="margin-bottom:10px">⭐ Recent Analyst Upgrades</div>' +
-        '<div style="display:flex;flex-direction:column;gap:8px">' +
-        upgrades.map(u =>
-          '<div style="padding:8px;background:rgba(34,197,94,.08);border-radius:6px;border-left:2px solid #22c55e">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
-          '<strong style="color:#cbd5e1;font-size:11px">' + u.firm + '</strong>' +
-          '<span style="font-size:9px;color:#94a3b8">' + u.date + '</span>' +
+      return '<div class="card" style="margin-top:12px">' +
+        '<div class="card-title" style="margin-bottom:8px;font-size:11px">⭐ Analyst Upgrades</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">' +
+        upgrades.slice(0,3).map(u =>
+          '<div style="padding:6px;background:rgba(34,197,94,.08);border-radius:4px;border-left:2px solid #22c55e">' +
+          '<div style="font-weight:600;font-size:9px;color:#cbd5e1">' + u.firm + '</div>' +
+          '<div style="font-size:8px;color:#22c55e;font-weight:600;margin-top:2px">' +
+          u.from + ' → ' + u.to +
           '</div>' +
-          '<div style="font-size:10px;color:#22c55e;font-weight:600">' +
-          '📈 Upgraded: <span style="color:#94a3b8">' + u.from + '</span> → <span style="color:#22c55e;font-weight:700">' + u.to + '</span>' +
-          '</div>' +
-          '<div style="font-size:9px;color:#94a3b8;margin-top:2px">Target: +' + u.target + '</div>' +
+          '<div style="font-size:8px;color:#94a3b8;margin-top:2px">+' + u.target + '</div>' +
           '</div>'
         ).join('') +
         '</div>' +
