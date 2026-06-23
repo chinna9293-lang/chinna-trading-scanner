@@ -2886,8 +2886,10 @@ async function renderChartPanel(sym, tf) {
     '<div class="chart-sym" style="display:flex;align-items:center;gap:12px;margin-bottom:8px">' +
     '<div style="font-size:28px;font-weight:800;color:#fff">' + sym + '</div>' +
     '<div style="display:flex;flex-direction:column;gap:2px">' +
-    '<div style="font-size:14px;color:' + dirColor + ';font-weight:700">' + (dir === 'bull' ? '📈 BULLISH' : dir === 'bear' ? '📉 BEARISH' : '➡️ NEUTRAL') + '</div>' +
-    '<div style="font-size:11px;color:#cbd5e1">Trend Signal</div>' +
+    '<div style="font-size:14px;color:' + (openPositions[sym] ? '#22c55e' : dirColor) + ';font-weight:700">' +
+    (openPositions[sym] ? '📊 LONG' : (dir === 'bull' ? '📈 BULLISH' : dir === 'bear' ? '📉 BEARISH' : '➡️ NEUTRAL')) +
+    '</div>' +
+    '<div style="font-size:11px;color:#cbd5e1">' + (openPositions[sym] ? 'Position Active' : 'Trend Signal') + '</div>' +
     '</div>' +
     '</div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' +
