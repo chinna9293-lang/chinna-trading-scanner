@@ -3274,17 +3274,25 @@ async function renderModal(sym) {
   // Fetch live price FIRST before showing modal
   await fetchRealQuote(sym);
 
+  // Get the LIVE price immediately after fetching
+  const livePrice = LP[sym]?.price;
+  console.log(`🔄 renderModal ${sym}: LivePrice=${livePrice}`);
+
   let bars = await getBars(sym, 50);
   liveBars[sym] = bars;
 
-  // Use live price if available, otherwise use bar close
-  const livePrice = LP[sym]?.price;
-  const displayPrice = livePrice || (bars.length > 0 ? bars[bars.length - 1].c : null);
+  // Always use the live price we just fetched
+  const barClosePrice = bars.length > 0 ? bars[bars.length - 1].c : null;
+  const displayPrice = livePrice || barClosePrice;
+
+  console.log(`📊 ${sym}: LivePrice=$${livePrice} | BarClose=$${barClosePrice} | Using=$${displayPrice}`);
 
   // Update last bar's close to live price (avoids a fake extra candle)
-  if (bars.length > 0 && displayPrice) {
+  if (bars.length > 0 && displayPrice && livePrice) {
     const last = { ...bars[bars.length - 1] };
-    last.c = displayPrice; last.h = Math.max(last.h, displayPrice); last.l = Math.min(last.l, displayPrice);
+    last.c = livePrice;
+    last.h = Math.max(last.h, livePrice);
+    last.l = Math.min(last.l, livePrice);
     bars = [...bars.slice(0, -1), last];
   }
   const a = bars.length >= 5 ? analyse(bars) : null;
@@ -3325,15 +3333,22 @@ async function renderModal(sym) {
     return;
   }
   // Update modal header with symbol and price
-  const liveP = (LP[sym] && LP[sym].price) || a.price;
+  // FORCE live price - never use stale bar close
+  const liveP = LP[sym]?.price || a.price;
   const dec2 = liveP < 1 ? 5 : 2;
-  const chgColor = a.chg1h >= 0 ? '#22c55e' : '#ef4444';
-  const chgSign = a.chg1h >= 0 ? '+' : '';
+
+  // Calculate 1H change from live price
+  const prev1h = a.price ? liveP : a.price;
+  const chg1h = a.chg1h || 0;
+  const chgColor = chg1h >= 0 ? '#22c55e' : '#ef4444';
+  const chgSign = chg1h >= 0 ? '+' : '';
+
+  console.log(`📱 Modal Price: LIVE=$${liveP} | BAR=$${a.price} | 1H=${chg1h}%`);
 
   g('modal-sym').textContent = cfg ? cfg.label : sym;
   g('modal-price').textContent = '$' + liveP.toFixed(dec2);
   g('modal-price').style.color = chgColor;
-  g('modal-change').textContent = chgSign + a.chg1h + '%';
+  g('modal-change').textContent = chgSign + chg1h + '%';
   g('modal-change').style.color = chgColor;
   g('modal-rsi').textContent = 'RSI ' + a.rsi;
 
