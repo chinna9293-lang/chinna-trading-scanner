@@ -461,38 +461,42 @@ function detectSignals(symbol, bars, quote) {
   // Log analytics
   console.log(`    📊 Analysis: Regime=${regimeScore}/100 | Pattern=${patterns.join(',')} | HTF=${htf.alignment} | Vol=${volPatternDetected} | Session=${validSession}`);
 
-  // ENTRY FILTER: Require regime score >= 60 (STRICTER) AND valid session
-  if (regimeScore < 60 || !validSession) {
+  // ENTRY FILTER: BALANCED - Regime >= 55 (middle ground) AND valid session
+  if (regimeScore < 55 || !validSession) {
     return [];
   }
 
-  // ✅ BUY SIGNAL (LONG ONLY): All conditions aligned
+  // ✅ BUY SIGNAL (LONG ONLY): Balanced approach
   const closesSlice = bars.map(b => parseFloat(b.c));
   const recentHigh = Math.max(...closesSlice.slice(-5));
   const recentLow = Math.min(...closesSlice.slice(-5));
   const priceRange = recentHigh - recentLow;
   const pricePosition = (currentPrice - recentLow) / (priceRange || 1);
 
-  // Bull setup: Very low price position (< 0.32) + strong regime (>= 60) + HTF bullish + volume
-  if (pricePosition < 0.32 && regimeScore >= 60 && htf.bullish && volPatternDetected) {
-    const profitTarget = calculateProfitTarget(currentPrice);
-    const bullTarget = currentPrice + profitTarget;
-    const bullMargin = ((bullTarget - currentPrice) / currentPrice * 100).toFixed(2);
+  // Bull setup: Moderate price position (< 0.36) + regime >= 55 + HTF bullish + volume
+  // Uses ATR for stop loss (0.8 ATR) and profit target (1.6 ATR = 2:1 risk/reward)
+  if (pricePosition < 0.36 && regimeScore >= 55 && htf.bullish && volPatternDetected) {
+    const stopLoss = currentPrice - atr * 0.8;
+    const profitTarget = currentPrice + atr * 1.6;  // 2:1 risk/reward
+    const riskDistance = currentPrice - stopLoss;
+    const bullMargin = ((profitTarget - currentPrice) / currentPrice * 100).toFixed(2);
 
-    if (bullTarget > currentPrice && parseFloat(bullMargin) > 0) {
-      const confidence = regimeScore >= 75 ? 'VERY_HIGH' : 'HIGH';
+    if (profitTarget > currentPrice && riskDistance > 0) {
+      const confidence = regimeScore >= 70 ? 'VERY_HIGH' : 'HIGH';
 
       signals.push({
         type: 'BUY',
         symbol,
         price: currentPrice.toFixed(2),
-        targetPrice: bullTarget.toFixed(2),
+        targetPrice: profitTarget.toFixed(2),
+        stopLoss: stopLoss.toFixed(2),
         margin: `${bullMargin}%`,
+        riskReward: '2:1',
         pattern: patterns.join(',') || 'BULL_SETUP',
         strength: confidence,
         regimeScore,
         candles: patterns,
-        message: `🔼 ${symbol} BUY: Regime ${regimeScore}/100 | Patterns ${patterns.join(',')} | $${currentPrice.toFixed(2)} → $${bullTarget.toFixed(2)} (+${bullMargin}%)`
+        message: `🔼 ${symbol} BUY: Regime ${regimeScore}/100 | $${currentPrice.toFixed(2)} → $${profitTarget.toFixed(2)} | SL: $${stopLoss.toFixed(2)} | 2:1 RR`
       });
     }
   }
