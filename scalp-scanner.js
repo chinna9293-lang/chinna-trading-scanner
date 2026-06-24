@@ -388,36 +388,20 @@ async function sendAlert(signal, orderResult = null, qty = null) {
       actionText = 'SELL';
     }
 
-    // Build clean alert message
+    // Build ultra-clean alert message
     let alertMessage = '';
 
-    // Price and target section
-    alertMessage += `Current Price: $${signal.price}\n`;
-    alertMessage += `Target Price: $${signal.targetPrice}\n`;
-    alertMessage += `Potential Return: ${signal.margin}`;
+    // Simple price section
+    alertMessage += `$${signal.price} → $${signal.targetPrice}\n`;
+    alertMessage += `Return: ${signal.margin}`;
 
-    // Pattern/Setup section
-    if (signal.pattern === 'DOUBLE_BOTTOM') {
-      alertMessage += `\n\n📊 Pattern: Double Bottom\n`;
-      alertMessage += `Support: $${signal.bottom1} & $${signal.bottom2}\n`;
-      alertMessage += `Resistance: $${signal.resistance}`;
-    } else if (signal.pattern && signal.pattern !== 'NONE') {
-      alertMessage += `\n\n📊 Pattern: ${signal.pattern.replace(/_/g, ' ')}`;
-    } else {
-      // Extract pattern from message if available
-      if (signal.message.includes('DOUBLE BOTTOM')) {
-        alertMessage += `\n\n📊 Pattern: Double Bottom Reversal`;
-      } else if (signal.message.includes('setup')) {
-        const setupType = signal.message.includes('BEAR') ? 'Bear Setup' : 'Bull Setup';
-        alertMessage += `\n\n📊 Setup: ${setupType}`;
-      }
-    }
-
-    // Order execution section
-    if (orderResult) {
-      alertMessage += `\n\n✅ EXECUTED\n`;
-      alertMessage += `Qty: ${orderResult.qty} ${orderResult.symbol}\n`;
-      alertMessage += `Price: $${orderResult.filled_avg_price}`;
+    // Pattern/setup info only if double bottom
+    if (signal.pattern === 'DOUBLE_BOTTOM' || signal.message.includes('DOUBLE BOTTOM')) {
+      alertMessage += `\n\nDouble Bottom Pattern`;
+    } else if (signal.message.includes('BEAR')) {
+      alertMessage += `\n\nBear Setup`;
+    } else if (signal.message.includes('BULL')) {
+      alertMessage += `\n\nBull Setup`;
     }
 
     // Set priority based on signal strength
