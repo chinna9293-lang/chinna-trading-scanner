@@ -3266,13 +3266,20 @@ async function renderChartPanel(sym, tf) {
 let modalSym = null, modalTimer = null;
 
 async function renderModal(sym) {
+  // Fetch live price FIRST before showing modal
+  await fetchRealQuote(sym);
+
   let bars = await getBars(sym, 50);
   liveBars[sym] = bars;
+
+  // Use live price if available, otherwise use bar close
+  const livePrice = LP[sym]?.price;
+  const displayPrice = livePrice || (bars.length > 0 ? bars[bars.length - 1].c : null);
+
   // Update last bar's close to live price (avoids a fake extra candle)
-  if (bars.length > 0 && LP[sym] && LP[sym].price) {
-    const lp = LP[sym].price;
+  if (bars.length > 0 && displayPrice) {
     const last = { ...bars[bars.length - 1] };
-    last.c = lp; last.h = Math.max(last.h, lp); last.l = Math.min(last.l, lp);
+    last.c = displayPrice; last.h = Math.max(last.h, displayPrice); last.l = Math.min(last.l, displayPrice);
     bars = [...bars.slice(0, -1), last];
   }
   const a = bars.length >= 5 ? analyse(bars) : null;
