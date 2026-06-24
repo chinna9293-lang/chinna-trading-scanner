@@ -2273,13 +2273,13 @@ async function getBars(sym, lim) {
   }
 
   const isCrypto = sym.endsWith('USD') && sym.length > 3;
-  const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   if (isCrypto) {
     const s = sym.slice(0,-3) + '/USD';
     for (const tf of ['5Min','15Min','1Hour']) {
       try {
-        const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=' + encodeURIComponent(s) + '&timeframe=' + tf + '&limit=' + lim + '&start=' + start, { headers: AH })).json();
+        // Get most recent bars (no start date - Alpaca returns latest by default)
+        const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=' + encodeURIComponent(s) + '&timeframe=' + tf + '&limit=' + lim, { headers: AH })).json();
         const bars = (d.bars && d.bars[s]) || [];
         if (bars.length >= 5) return bars;
       } catch (e) { console.warn(`Crypto fetch failed: ${e.message}`); }
@@ -2295,7 +2295,8 @@ async function getBars(sym, lim) {
     ];
     for (const [tf, feed, ext] of attempts) {
       try {
-        const url = 'https://data.alpaca.markets/v2/stocks/' + sym + '/bars?timeframe=' + tf + '&limit=' + lim + '&feed=' + feed + '&adjustment=raw&start=' + start + ext;
+        // Get most recent bars (no start date - Alpaca returns latest by default)
+        const url = 'https://data.alpaca.markets/v2/stocks/' + sym + '/bars?timeframe=' + tf + '&limit=' + lim + '&feed=' + feed + '&adjustment=raw' + ext;
         const d = await (await fetch(url, { headers: AH })).json();
         if ((d.bars || []).length >= 5) return d.bars;
       } catch (e) { console.warn(`Stock fetch failed for ${sym}: ${e.message}`); }
