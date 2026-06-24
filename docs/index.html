@@ -2771,18 +2771,18 @@ const TF_OPTIONS = [
 async function getBarsForTf(sym, tf, lim) {
   lim = lim || 100;
   const isCrypto = sym.endsWith('USD') && sym.length > 3;
-  const days = tf === '1Day' ? 200 : tf === '4Hour' ? 60 : tf === '1Hour' ? 20 : 10;
-  const start = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   if (isCrypto) {
     const s = sym.slice(0,-3) + '/USD';
     try {
-      const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=' + encodeURIComponent(s) + '&timeframe=' + tf + '&limit=' + lim + '&start=' + start, { headers: AH })).json();
+      // Get most recent bars - no start date
+      const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=' + encodeURIComponent(s) + '&timeframe=' + tf + '&limit=' + lim, { headers: AH })).json();
       return (d.bars && d.bars[s]) || [];
     } catch { return []; }
   } else {
     for (const feed of ['sip','iex']) {
       try {
-        const url = 'https://data.alpaca.markets/v2/stocks/' + sym + '/bars?timeframe=' + tf + '&limit=' + lim + '&feed=' + feed + '&adjustment=raw&start=' + start + '&extended_hours=true';
+        // Get most recent bars - no start date
+        const url = 'https://data.alpaca.markets/v2/stocks/' + sym + '/bars?timeframe=' + tf + '&limit=' + lim + '&feed=' + feed + '&adjustment=raw&extended_hours=true';
         const d = await (await fetch(url, { headers: AH })).json();
         if ((d.bars || []).length >= 5) return d.bars;
       } catch {}
