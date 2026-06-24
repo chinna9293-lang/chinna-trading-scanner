@@ -473,9 +473,13 @@ function detectSignals(symbol, bars, quote) {
   const priceRange = recentHigh - recentLow;
   const pricePosition = (currentPrice - recentLow) / (priceRange || 1);
 
-  // Bull setup: Moderate price position (< 0.36) + regime >= 55 + HTF bullish + volume
+  // Bull setup: EMA9 > EMA21 (classic day trading signal)
+  // Moderate price position (< 0.36) + regime >= 55 + HTF bullish + volume
   // Uses ATR for stop loss (0.8 ATR) and profit target (1.6 ATR = 2:1 risk/reward)
-  if (pricePosition < 0.36 && regimeScore >= 55 && htf.bullish && volPatternDetected) {
+  const ema9 = calculateEMA(bars, 9);
+  const ema21 = calculateEMA(bars, 21);
+
+  if (pricePosition < 0.36 && regimeScore >= 55 && htf.bullish && volPatternDetected && ema9 > ema21) {
     const stopLoss = currentPrice - atr * 0.8;
     const profitTarget = currentPrice + atr * 1.6;  // 2:1 risk/reward
     const riskDistance = currentPrice - stopLoss;
@@ -496,7 +500,7 @@ function detectSignals(symbol, bars, quote) {
         strength: confidence,
         regimeScore,
         candles: patterns,
-        message: `🔼 ${symbol} BUY: Regime ${regimeScore}/100 | $${currentPrice.toFixed(2)} → $${profitTarget.toFixed(2)} | SL: $${stopLoss.toFixed(2)} | 2:1 RR`
+        message: `🔼 ${symbol} BUY: EMA9>${ema21.toFixed(2)} | Regime ${regimeScore}/100 | $${currentPrice.toFixed(2)} → $${profitTarget.toFixed(2)} | SL: $${stopLoss.toFixed(2)}`
       });
     }
   }
