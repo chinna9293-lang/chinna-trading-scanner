@@ -137,15 +137,15 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 .app-layout{display:flex;height:calc(100vh - 80px);overflow:hidden;position:relative;z-index:1;}
 
 /* ── Left sidebar (admin metrics + data) ── */
-.app-sidebar{width:260px;flex-shrink:0;overflow-y:auto;padding:12px;border-right:1px solid rgba(99,102,241,.3);background:rgba(10,15,35,.6);scrollbar-width:thin;scrollbar-color:rgba(99,102,241,.4) transparent;}
+.app-sidebar{width:260px;flex-shrink:0;overflow-y:auto;padding:8px;border-right:1px solid rgba(99,102,241,.3);background:rgba(10,15,35,.6);scrollbar-width:thin;scrollbar-color:rgba(99,102,241,.4) transparent;}
 .app-sidebar::-webkit-scrollbar{width:3px;}
 .app-sidebar::-webkit-scrollbar-thumb{background:rgba(99,102,241,.2);border-radius:2px;}
-.acct-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-.sidebar-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px;}
+.acct-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:10px;}
+.sidebar-metrics{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:2px;}
 .sidebar-sections{}
-.s-title{display:flex;justify-content:space-between;align-items:center;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#8ba0c0;margin:12px 0 6px;font-weight:700;cursor:pointer;user-select:none;padding:4px 2px;border-radius:4px;transition:color .15s;}
-.s-title:hover{color:#cbd5e1;}
-.s-title::after{content:'▾';font-size:10px;opacity:.6;transition:transform .2s;}
+.s-title{display:flex;justify-content:space-between;align-items:center;font-size:8px;text-transform:uppercase;letter-spacing:.05em;color:#8ba0c0;margin:6px 0 3px;font-weight:700;cursor:pointer;user-select:none;padding:2px 1px;border-radius:3px;transition:color .15s;}
+.s-title:hover{color:#cbd5e1;background:rgba(99,102,241,.1);}
+.s-title::after{content:'▾';font-size:9px;opacity:.6;transition:transform .2s;}
 .s-title.collapsed::after{transform:rotate(-90deg);}
 
 /* ── Metric cards ── */
@@ -491,7 +491,7 @@ body::after{content:'';position:fixed;bottom:-20%;right:-10%;width:40vw;height:4
 .mcard .ms{font-size:8px;color:#a0aec0;margin-top:1px;}
 
 /* ── Card (for sidebar) ── */
-.card{background:linear-gradient(135deg,rgba(20,20,34,.9),rgba(12,12,24,.9));border:1px solid rgba(99,102,241,.1);border-radius:10px;padding:12px;margin-bottom:10px;position:relative;overflow:hidden;}
+.card{background:linear-gradient(135deg,rgba(20,20,34,.9),rgba(12,12,24,.9));border:1px solid rgba(99,102,241,.1);border-radius:8px;padding:8px;margin-bottom:6px;position:relative;overflow:hidden;font-size:10px;}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(99,102,241,.2),transparent);}
 .card h3{font-size:9px;color:#a0aec0;margin-bottom:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
 
@@ -613,7 +613,7 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(50,60,100,.7);color:#e2e8f0;v
   .modal-drag-handle{display:block;}
   .modal-close-bar{display:block;}
   .mcl{display:none;}
-  .card{margin-bottom:8px;padding:12px;}
+  .card{margin-bottom:4px;padding:6px;font-size:9px;}
   .btn-compact{padding:6px 10px;font-size:10px;}
   table{min-width:100% !important;font-size:11px;}
   .chips{gap:4px;}
@@ -819,40 +819,34 @@ button, input[type="button"], .scalper-btn, .chip, .sbtn {
         <div class="mcard"><div class="ml">Positions</div><div class="mv" id="m-pos">—</div><div class="ms" id="m-pos-s">—</div></div>
       </div>
       <div class="sidebar-sections">
-        <span class="s-title" onclick="toggleSection('sec-pos')">Open Positions</span>
+        <span class="s-title" onclick="toggleSection('sec-pos')">📊 POSITIONS</span>
         <div class="s-section collapsed" id="sec-pos">
-          <div id="pos-body" style="font-size:11px"><div class="empty">No open positions</div></div>
+          <div id="pos-body" style="font-size:10px"><div class="empty">No open positions</div></div>
         </div>
 
-
-        <span class="s-title collapsed" style="color:#a855f7" onclick="toggleSection('sec-pol')">🏛️ Congress Trades</span>
-        <div class="s-section collapsed" id="sec-pol">
-          <div style="display:flex;gap:8px;margin:4px 0 6px">
-            <span id="pol-buy-count" style="font-size:10px;color:#22c55e;font-weight:700"></span>
-            <span id="pol-sell-count" style="font-size:10px;color:#ef4444;font-weight:700"></span>
-          </div>
-          <div class="pol-hdr"><span>Ticker</span><span>Rep</span><span>P</span><span>Date</span></div>
-          <div class="pol-scroll"><div id="pol-panel-body"><div class="empty">Loading...</div></div></div>
-        </div>
-
-        <span class="s-title" onclick="toggleSection('sec-trump')">🦅 Trump Indicator</span>
-        <div class="s-section" id="sec-trump">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-            <span style="font-size:9px;color:#a0aec0">Truth Social · auto-refresh 5min</span>
-            <button onclick="trumpLastFetch=0;loadTrumpPosts()" style="background:none;border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:4px;padding:2px 7px;font-size:9px;cursor:pointer">↻</button>
-          </div>
-          <div id="trump-panel"><div class="empty" style="font-size:9px">Loading...</div></div>
-        </div>
-
-        <span class="s-title collapsed" onclick="toggleSection('sec-trades')">All Trades</span>
+        <span class="s-title collapsed" onclick="toggleSection('sec-trades')">📈 ALL TRADES</span>
         <div class="s-section collapsed" id="sec-trades">
-          <div class="chips" style="margin:6px 0 8px">
+          <div class="chips" style="margin:4px 0 6px">
             <div class="chip on" id="ch-date" onclick="sortBy('date')">Date</div>
             <div class="chip" id="ch-sym" onclick="sortBy('sym')">Sym</div>
             <div class="chip" id="ch-side" onclick="sortBy('side')">Buy</div>
             <div class="chip" id="ch-price" onclick="sortBy('price')">$</div>
           </div>
-          <div id="ord-body" style="overflow-x:auto"><div class="empty">Loading...</div></div>
+          <div id="ord-body" style="overflow-x:auto;font-size:9px"><div class="empty">Loading...</div></div>
+        </div>
+
+        <span class="s-title collapsed" onclick="toggleSection('sec-stats')">⭐ STATS</span>
+        <div class="s-section collapsed" id="sec-stats">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:9px">
+            <div style="text-align:center;padding:6px;background:rgba(34,197,94,.08);border-radius:4px">
+              <div style="color:#94a3b8;font-size:8px">Win Rate</div>
+              <div id="stat-wr" style="font-size:12px;font-weight:700;color:#22c55e">-</div>
+            </div>
+            <div style="text-align:center;padding:6px;background:rgba(99,102,241,.08);border-radius:4px">
+              <div style="color:#94a3b8;font-size:8px">P&L</div>
+              <div id="stat-pnl" style="font-size:12px;font-weight:700;color:#6366f1">-</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
