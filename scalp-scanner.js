@@ -18,8 +18,7 @@ const NTFY_TOPIC = (process.env.NTFY_TOPIC && process.env.NTFY_TOPIC.trim())
 console.log(`📲 Using ntfy topic: ${NTFY_TOPIC}`);
 
 const STOCKS = ['GOOGL', 'CRM', 'META', 'ORCL', 'COST'];
-const CRYPTO = ['BTCUSD', 'ETHUSD', 'ETCUSD', 'SOLUSD', 'XRPUSD'];
-const ASSETS = [...STOCKS.map(s => ({ symbol: s, type: 'stock' })), ...CRYPTO.map(c => ({ symbol: c, type: 'crypto' }))];
+const ASSETS = STOCKS.map(s => ({ symbol: s, type: 'stock' })); // STOCKS ONLY - NO CRYPTO
 const BASE_URL = 'https://paper-api.alpaca.markets';
 
 const headers = {
@@ -462,20 +461,20 @@ function detectSignals(symbol, bars, quote) {
   // Log analytics
   console.log(`    📊 Analysis: Regime=${regimeScore}/100 | Pattern=${patterns.join(',')} | HTF=${htf.alignment} | Vol=${volPatternDetected} | Session=${validSession}`);
 
-  // ENTRY FILTER: Require regime score >= 50 AND valid session
-  if (regimeScore < 50 || !validSession) {
+  // ENTRY FILTER: Require regime score >= 60 (STRICTER) AND valid session
+  if (regimeScore < 60 || !validSession) {
     return [];
   }
 
-  // ✅ BUY SIGNAL: All conditions aligned
+  // ✅ BUY SIGNAL (LONG ONLY): All conditions aligned
   const closesSlice = bars.map(b => parseFloat(b.c));
   const recentHigh = Math.max(...closesSlice.slice(-5));
   const recentLow = Math.min(...closesSlice.slice(-5));
   const priceRange = recentHigh - recentLow;
   const pricePosition = (currentPrice - recentLow) / (priceRange || 1);
 
-  // Bull setup: Low price position + regime bullish + HTF bullish
-  if (pricePosition < 0.4 && regimeScore >= 50 && htf.bullish && volPatternDetected) {
+  // Bull setup: Very low price position (< 0.32) + strong regime (>= 60) + HTF bullish + volume
+  if (pricePosition < 0.32 && regimeScore >= 60 && htf.bullish && volPatternDetected) {
     const profitTarget = calculateProfitTarget(currentPrice);
     const bullTarget = currentPrice + profitTarget;
     const bullMargin = ((bullTarget - currentPrice) / currentPrice * 100).toFixed(2);
@@ -498,31 +497,7 @@ function detectSignals(symbol, bars, quote) {
     }
   }
 
-  // ✅ SELL SIGNAL: All conditions aligned
-  if (pricePosition > 0.6 && regimeScore >= 50 && htf.bearish && volPatternDetected) {
-    const profitTarget = calculateProfitTarget(currentPrice);
-    const bearTarget = Math.max(currentPrice - profitTarget, 0);
-    const bearMargin = ((currentPrice - bearTarget) / currentPrice * 100).toFixed(2);
-
-    if (bearTarget > 0 && bearTarget < currentPrice && parseFloat(bearMargin) > 0) {
-      const confidence = regimeScore >= 75 ? 'VERY_HIGH' : 'HIGH';
-
-      signals.push({
-        type: 'SELL',
-        symbol,
-        price: currentPrice.toFixed(2),
-        targetPrice: bearTarget.toFixed(2),
-        margin: `${bearMargin}%`,
-        pattern: patterns.join(',') || 'BEAR_SETUP',
-        strength: confidence,
-        regimeScore,
-        candles: patterns,
-        message: `🔽 ${symbol} SELL: Regime ${regimeScore}/100 | Patterns ${patterns.join(',')} | $${currentPrice.toFixed(2)} → $${bearTarget.toFixed(2)} (-${bearMargin}%)`
-      });
-    }
-  }
-
-  // ✅ DOUBLE BOTTOM (Override threshold)
+  // ✅ DOUBLE BOTTOM (Override threshold - LONG ONLY)
   const doubleBottomSignal = detectDoubleBottom(bars);
   if (doubleBottomSignal) {
     const targetPrice = doubleBottomSignal.target;
