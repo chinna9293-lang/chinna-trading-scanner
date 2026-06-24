@@ -11,7 +11,13 @@ import path from 'path';
 
 const ALPACA_KEY = process.env.ALPACA_KEY;
 const ALPACA_SECRET = process.env.ALPACA_SECRET;
-const NTFY_TOPIC = process.env.NTFY_TOPIC || 'chinna-trading-alerts';
+
+// Use environment variable or default to chinna-trading-alerts
+const NTFY_TOPIC = (process.env.NTFY_TOPIC && process.env.NTFY_TOPIC.trim())
+  ? process.env.NTFY_TOPIC.trim()
+  : 'chinna-trading-alerts';
+
+console.log(`📲 Using ntfy topic: ${NTFY_TOPIC}`);
 
 const STOCKS = ['GOOGL', 'CRM', 'META', 'ORCL', 'COST'];
 const CRYPTO = ['BTCUSD', 'ETHUSD', 'ETCUSD', 'SOLUSD', 'XRPUSD'];
