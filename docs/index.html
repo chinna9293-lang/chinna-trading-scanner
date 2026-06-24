@@ -2009,8 +2009,13 @@ async function fetchRealQuote(sym) {
     const data = await res.json();
     if (data.quote) {
       const q = data.quote;
+      const midPrice = (q.bid + q.ask) / 2;
       const spread = q.ask - q.bid;
       const spreadPct = (spread / q.bid * 100).toFixed(3);
+
+      // UPDATE LIVE PRICE
+      onPrice(sym, midPrice);
+
       bidAsk[sym] = {
         bid: q.bid,
         ask: q.ask,
@@ -2020,7 +2025,7 @@ async function fetchRealQuote(sym) {
         askSize: q.ask_size,
         quality: spread <= 0.05 ? 'tight' : spread <= 0.15 ? 'normal' : 'wide'
       };
-      console.log(`📊 ${sym}: ${q.bid} / ${q.ask} (spread: $${spread.toFixed(3)})`);
+      console.log(`📊 ${sym} LIVE: $${midPrice.toFixed(2)} | ${q.bid} / ${q.ask} (spread: $${spread.toFixed(3)})`);
     }
   } catch (e) { console.warn(`Quote fetch failed for ${sym}`); }
 }
