@@ -374,55 +374,61 @@ async function placeOrder(symbol, side, qty, price) {
 // 🔔 Send ntfy alert WITH order execution
 async function sendAlert(signal, orderResult = null, qty = null) {
   return new Promise((resolve, reject) => {
-    // Build alert message with clear buy/sell/exit indicators
-    let alertMessage = signal.message;
+    // Determine emoji and action text
     let emoji, actionText, title;
 
-    if (signal.type === 'BUY' || signal.type === 'EXIT') {
-      emoji = signal.type === 'BUY' ? '🟢' : '🟡';
-      actionText = signal.type === 'BUY' ? 'BUY / ENTRY' : 'SELL / EXIT';
+    if (signal.type === 'BUY') {
+      emoji = '🟢';
+      actionText = 'BUY';
+    } else if (signal.type === 'EXIT') {
+      emoji = '🔴';
+      actionText = 'SELL';
     } else {
       emoji = '🔴';
       actionText = 'SELL';
     }
 
-    // Add trade details
-    alertMessage += `\n\n${emoji} ACTION: ${actionText}`;
-    alertMessage += `\n💵 Price: $${signal.price}`;
-    alertMessage += `\n🎯 Target: $${signal.targetPrice}`;
-    alertMessage += `\n📈 Return: ${signal.margin}`;
+    // Build clean alert message
+    let alertMessage = '';
 
-    if (signal.type === 'EXIT') {
-      alertMessage += `\n\n⭐ EXIT OPPORTUNITY`;
-      alertMessage += `\n👉 MANUAL ACTION REQUIRED`;
-      alertMessage += `\n📊 Review your BUY position and consider selling`;
-    }
+    // Price and target section
+    alertMessage += `Current Price: $${signal.price}\n`;
+    alertMessage += `Target Price: $${signal.targetPrice}\n`;
+    alertMessage += `Potential Return: ${signal.margin}`;
 
+    // Pattern/Setup section
     if (signal.pattern === 'DOUBLE_BOTTOM') {
-      alertMessage += `\n\n⭐ PATTERN: Double Bottom Reversal`;
-      alertMessage += `\n📍 Support: $${signal.bottom1} & $${signal.bottom2}`;
-      alertMessage += `\n⛔ Resistance: $${signal.resistance}`;
+      alertMessage += `\n\n📊 Pattern: Double Bottom\n`;
+      alertMessage += `Support: $${signal.bottom1} & $${signal.bottom2}\n`;
+      alertMessage += `Resistance: $${signal.resistance}`;
+    } else if (signal.pattern && signal.pattern !== 'NONE') {
+      alertMessage += `\n\n📊 Pattern: ${signal.pattern.replace(/_/g, ' ')}`;
+    } else {
+      // Extract pattern from message if available
+      if (signal.message.includes('DOUBLE BOTTOM')) {
+        alertMessage += `\n\n📊 Pattern: Double Bottom Reversal`;
+      } else if (signal.message.includes('setup')) {
+        const setupType = signal.message.includes('BEAR') ? 'Bear Setup' : 'Bull Setup';
+        alertMessage += `\n\n📊 Setup: ${setupType}`;
+      }
     }
 
+    // Order execution section
     if (orderResult) {
-      alertMessage += `\n\n✅ PAPER TRADE EXECUTED`;
-      alertMessage += `\nSymbol: ${orderResult.symbol}`;
-      alertMessage += `\nSide: ${orderResult.side.toUpperCase()}`;
-      alertMessage += `\nQty: ${orderResult.qty}`;
-      alertMessage += `\nPrice: $${orderResult.filled_avg_price}`;
-      alertMessage += `\nOrder ID: ${orderResult.id}`;
+      alertMessage += `\n\n✅ EXECUTED\n`;
+      alertMessage += `Qty: ${orderResult.qty} ${orderResult.symbol}\n`;
+      alertMessage += `Price: $${orderResult.filled_avg_price}`;
     }
 
-    // High priority for VERY_HIGH strength signals, EXIT signals
+    // Set priority based on signal strength
     let priority = 5; // Default high
-    if (signal.type === 'EXIT') priority = 5; // HIGH priority for exits
+    if (signal.type === 'EXIT') priority = 5;
     else if (signal.strength === 'VERY_HIGH') priority = 5;
     else if (signal.strength === 'HIGH') priority = 4;
     else priority = 3;
 
-    title = signal.type === 'EXIT'
-      ? `🟡 ${signal.symbol} EXIT OPPORTUNITY`
-      : `${emoji} ${signal.symbol} ${actionText}${orderResult ? ' [EXECUTED]' : ''}`;
+    // Create title
+    title = `${emoji} ${signal.symbol} ${actionText}${orderResult ? ' ✓' : ''}`;
 
     const payload = JSON.stringify({
       topic: NTFY_TOPIC,
