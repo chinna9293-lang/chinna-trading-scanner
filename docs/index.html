@@ -2264,7 +2264,7 @@ async function getPolygonBars(symbol, multiplier = 5, timespan = 'minute', limit
 
     if (d.results && d.results.length >= 5) {
       return d.results.map(bar => ({
-        time: Math.floor(bar.t / 1000),
+        t: Math.floor(bar.t / 1000),
         o: bar.o,
         h: bar.h,
         l: bar.l,
