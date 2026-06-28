@@ -2779,48 +2779,34 @@ async function getBarsForTf(sym, tf, lim) {
       return (d.bars && d.bars[s]) || [];
     } catch { return []; }
   } else {
-    // ✅ STOCKS: Fetch from Yahoo Finance (free, no subscription needed)
-    try {
-      // Yahoo Finance API - fetch historical data
-      const now = Math.floor(Date.now() / 1000);
-      const period = tf === '1Day' ? 300 * 86400 : tf === '4Hour' ? 90 * 86400 : tf === '1Hour' ? 30 * 86400 : 15 * 86400;
-      const start = now - period;
-
-      const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${sym}?modules=financialData`;
-      const histUrl = `https://query1.finance.yahoo.com/v7/finance/download/${sym}?period1=${start}&period2=${now}&interval=1d&events=history&crumb=`;
-
-      // Try to fetch from Yahoo Finance
-      const response = await fetch(histUrl, { signal: AbortSignal.timeout(5000) });
-      if (!response.ok) throw new Error('Yahoo Finance unavailable');
-
-      const csv = await response.text();
-      const lines = csv.split('\n').slice(1).filter(l => l.trim());
-
-      // Parse CSV and convert to bar format
-      const bars = lines.slice(-lim).map(line => {
-        const [date, open, high, low, close, adjClose, volume] = line.split(',');
-        return {
-          time: Math.floor(new Date(date).getTime() / 1000),
-          o: parseFloat(open),
-          h: parseFloat(high),
-          l: parseFloat(low),
-          c: parseFloat(close),
-          v: parseInt(volume)
-        };
-      }).filter(b => !isNaN(b.c));
-
-      return bars.length >= 5 ? bars : generateDemoChart(sym);
-    } catch (e) {
-      // Fallback to demo chart if Yahoo Finance fails
-      console.log(`📊 Yahoo Finance failed for ${sym}, using demo chart`);
-      return generateDemoChart(sym);
-    }
+    // ✅ STOCKS: Use TradingView embedded widget (free, real data)
+    // Return special marker so buildModal knows to use TradingView embed
+    return { _tradingView: true, symbol: sym };
   }
 }
 
 function initLWChart(containerId, bars, a) {
   const container = document.getElementById(containerId);
   if (!container || !bars.length) return;
+
+  // ✅ Handle TradingView embed for stocks
+  if (bars._tradingView) {
+    const sym = bars.symbol;
+    container.innerHTML = `
+      <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(20,30,60,.9);border-radius:12px;padding:20px;text-align:center;">
+        <div style="color:#86efac;font-size:14px;margin-bottom:20px;">📊 Loading TradingView Chart</div>
+        <iframe
+          src="https://www.tradingview.com/widgetembed/?frameIframe=true&symbol=${sym}&interval=D&hidesidetoolbar=1&hidetoptoolbar=1&theme=dark&style=1&timezone=Etc%2FUTC"
+          style="width:100%;height:100%;border:none;border-radius:8px;"
+          allowtransparency="true"
+          scrolling="no"
+          frameborder="0">
+        </iframe>
+      </div>
+    `;
+    return;
+  }
+
   if (lwChart) { try { lwChart.remove(); } catch {} lwChart = null; }
 
   lwChart = LightweightCharts.createChart(container, {
