@@ -3,18 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Advanced Trading Dashboard</title>
+  <title>Trading Dashboard</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
       color: #e0e6ed;
       line-height: 1.6;
       min-height: 100vh;
     }
-
     .header {
       background: rgba(15, 20, 31, 0.9);
       backdrop-filter: blur(10px);
@@ -27,299 +25,39 @@
       top: 0;
       z-index: 100;
     }
-
-    .logo {
-      font-size: 24px;
-      font-weight: 800;
-      color: #6366f1;
-    }
-
-    .header-stats {
-      display: flex;
-      gap: 40px;
-      align-items: center;
-    }
-
-    .stat {
-      text-align: right;
-    }
-
-    .stat-label {
-      font-size: 11px;
-      color: #8b92a9;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 4px;
-    }
-
-    .stat-value {
-      font-size: 20px;
-      font-weight: 700;
-      color: #fff;
-    }
-
+    .logo { font-size: 24px; font-weight: 800; color: #6366f1; }
+    .header-stats { display: flex; gap: 40px; align-items: center; }
+    .stat { text-align: right; }
+    .stat-label { font-size: 11px; color: #8b92a9; text-transform: uppercase; margin-bottom: 4px; }
+    .stat-value { font-size: 20px; font-weight: 700; color: #fff; }
     .stat-value.positive { color: #10b981; }
     .stat-value.negative { color: #ef4444; }
-
-    .container {
-      max-width: 1500px;
-      margin: 0 auto;
-      padding: 24px;
-    }
-
-    .section-header {
-      margin-bottom: 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-bottom: 12px;
-      border-bottom: 2px solid rgba(99, 102, 241, 0.2);
-    }
-
-    .section-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .section-title::before {
-      content: '';
-      width: 4px;
-      height: 20px;
-      background: #6366f1;
-      border-radius: 2px;
-    }
-
-    .controls {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .filter-btn {
-      background: rgba(99, 102, 241, 0.1);
-      border: 1px solid rgba(99, 102, 241, 0.2);
-      color: #a5b4fc;
-      padding: 8px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-
-    .filter-btn:hover {
-      background: rgba(99, 102, 241, 0.2);
-      border-color: #6366f1;
-    }
-
-    .filter-btn.active {
-      background: #6366f1;
-      border-color: #6366f1;
-      color: #fff;
-    }
-
-    .sort-select {
-      background: rgba(99, 102, 241, 0.1);
-      border: 1px solid rgba(99, 102, 241, 0.2);
-      color: #a5b4fc;
-      padding: 8px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 16px;
-      margin-bottom: 32px;
-    }
-
-    .asset-card {
-      background: rgba(26, 31, 44, 0.6);
-      border: 1px solid rgba(99, 102, 241, 0.15);
-      border-radius: 12px;
-      padding: 16px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .asset-card:hover {
-      background: rgba(26, 31, 44, 0.9);
-      border-color: rgba(99, 102, 241, 0.4);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
-    }
-
-    .asset-card.active {
-      background: rgba(99, 102, 241, 0.15);
-      border-color: #6366f1;
-    }
-
-    .asset-symbol {
-      font-size: 12px;
-      font-weight: 700;
-      color: #6366f1;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-      letter-spacing: 0.05em;
-    }
-
-    .asset-type {
-      font-size: 10px;
-      color: #8b92a9;
-      margin-bottom: 8px;
-      text-transform: uppercase;
-    }
-
-    .asset-price {
-      font-size: 22px;
-      font-weight: 800;
-      color: #fff;
-      margin-bottom: 6px;
-    }
-
-    .asset-change {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .change-positive { color: #10b981; }
-    .change-negative { color: #ef4444; }
-
-    .chart-panel {
-      background: rgba(26, 31, 44, 0.6);
-      border: 1px solid rgba(99, 102, 241, 0.15);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 32px;
-      min-height: 450px;
-    }
-
-    .chart-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid rgba(99, 102, 241, 0.1);
-    }
-
-    .chart-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
-    }
-
-    .timeframe-buttons {
-      display: flex;
-      gap: 8px;
-    }
-
-    .tf-btn {
-      background: rgba(99, 102, 241, 0.1);
-      border: 1px solid rgba(99, 102, 241, 0.2);
-      color: #a5b4fc;
-      padding: 8px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-
-    .tf-btn:hover { background: rgba(99, 102, 241, 0.2); }
-    .tf-btn.active { background: #6366f1; color: #fff; }
-
-    #chart-container {
-      height: 350px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #8b92a9;
-    }
-
-    .positions-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 16px;
-      margin-bottom: 32px;
-    }
-
-    .position-card {
-      background: rgba(26, 31, 44, 0.6);
-      border: 1px solid rgba(99, 102, 241, 0.15);
-      border-radius: 12px;
-      padding: 16px;
-    }
-
-    .position-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid rgba(99, 102, 241, 0.1);
-    }
-
-    .position-symbol {
-      font-size: 13px;
-      font-weight: 700;
-      color: #6366f1;
-      text-transform: uppercase;
-    }
-
-    .position-pnl {
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .position-pnl.profit { color: #10b981; }
-    .position-pnl.loss { color: #ef4444; }
-
-    .position-detail {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      color: #8b92a9;
-      margin-bottom: 4px;
-    }
-
-    .position-detail-value {
-      color: #e0e6ed;
-      font-weight: 600;
-    }
-
-    .signals-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 16px;
-    }
-
-    .signal-card {
-      background: rgba(26, 31, 44, 0.6);
-      border: 2px solid rgba(99, 102, 241, 0.15);
-      border-radius: 12px;
-      padding: 16px;
-      text-align: center;
-    }
-
-    .signal-icon { font-size: 28px; margin-bottom: 8px; }
-    .signal-symbol { font-size: 13px; font-weight: 700; color: #6366f1; text-transform: uppercase; margin-bottom: 6px; }
-    .signal-type { font-size: 11px; font-weight: 700; padding: 4px 8px; background: rgba(16, 185, 129, 0.2); color: #10b981; border-radius: 4px; display: inline-block; }
-    .signal-type.sell { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
-
-    .loading { opacity: 0.5; }
-    .error { color: #ef4444; padding: 20px; text-align: center; }
+    .container { max-width: 1500px; margin: 0 auto; padding: 24px; }
+    .section-header { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid rgba(99, 102, 241, 0.2); }
+    .section-title { font-size: 18px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .section-title::before { content: ''; width: 4px; height: 20px; background: #6366f1; border-radius: 2px; }
+    .controls { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+    .filter-btn { background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); color: #a5b4fc; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s; }
+    .filter-btn.active { background: #6366f1; border-color: #6366f1; color: #fff; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .card { background: rgba(26, 31, 44, 0.6); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.3s ease; }
+    .card:hover { background: rgba(26, 31, 44, 0.9); border-color: rgba(99, 102, 241, 0.4); transform: translateY(-2px); }
+    .card.active { background: rgba(99, 102, 241, 0.15); border-color: #6366f1; }
+    .symbol { font-size: 12px; font-weight: 700; color: #6366f1; text-transform: uppercase; margin-bottom: 6px; }
+    .type { font-size: 10px; color: #8b92a9; text-transform: uppercase; margin-bottom: 8px; }
+    .price { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+    .change { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; }
+    .positive { color: #10b981; }
+    .negative { color: #ef4444; }
+    .position-card { background: rgba(26, 31, 44, 0.6); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .position-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(99, 102, 241, 0.1); }
+    .pos-sym { font-size: 13px; font-weight: 700; color: #6366f1; text-transform: uppercase; }
+    .pos-pnl { font-size: 13px; font-weight: 700; }
+    .pos-detail { display: flex; justify-content: space-between; font-size: 12px; color: #8b92a9; margin-bottom: 4px; }
+    .pos-value { color: #e0e6ed; font-weight: 600; }
     .empty { color: #8b92a9; padding: 40px; text-align: center; }
-
+    .loading { opacity: 0.5; }
+    .error { color: #ef4444; }
     @media (max-width: 768px) {
       .container { padding: 16px; }
       .header-stats { gap: 20px; font-size: 14px; }
@@ -333,11 +71,11 @@
     <div class="header-stats">
       <div class="stat">
         <div class="stat-label">Portfolio</div>
-        <div class="stat-value" id="portfolio">$100,000</div>
+        <div class="stat-value" id="portfolio">Loading...</div>
       </div>
       <div class="stat">
         <div class="stat-label">Today P&L</div>
-        <div class="stat-value" id="pnl">+$0</div>
+        <div class="stat-value" id="pnl">Loading...</div>
       </div>
       <div class="stat">
         <div class="stat-label">Positions</div>
@@ -347,225 +85,145 @@
   </div>
 
   <div class="container">
-    <!-- ASSETS SECTION -->
     <div class="section-header">
-      <div class="section-title">📊 All Assets</div>
-      <div class="controls">
-        <button class="filter-btn active" onclick="filterAssets('all')">All</button>
-        <button class="filter-btn" onclick="filterAssets('stock')">Stocks</button>
-        <button class="filter-btn" onclick="filterAssets('crypto')">Crypto</button>
-        <select class="sort-select" onchange="sortAssets(this.value)">
-          <option value="price-desc">Price (High→Low)</option>
-          <option value="price-asc">Price (Low→High)</option>
-          <option value="change-desc">Change (High→Low)</option>
-          <option value="change-asc">Change (Low→High)</option>
-        </select>
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div class="section-title">📊 All Assets</div>
+        <div class="controls">
+          <button class="filter-btn active" onclick="filterAssets('all')">All</button>
+          <button class="filter-btn" onclick="filterAssets('stock')">Stocks</button>
+          <button class="filter-btn" onclick="filterAssets('crypto')">Crypto</button>
+        </div>
       </div>
     </div>
     <div class="grid" id="assets-grid"></div>
 
-    <!-- CHART SECTION -->
-    <div class="section-header">
-      <div class="section-title">📈 Chart Analysis</div>
-    </div>
-    <div class="chart-panel">
-      <div class="chart-header">
-        <div class="chart-title" id="chart-title">Select an asset to view chart</div>
-        <div class="timeframe-buttons">
-          <button class="tf-btn active" onclick="changeTF(this, '5m')">5m</button>
-          <button class="tf-btn" onclick="changeTF(this, '15m')">15m</button>
-          <button class="tf-btn" onclick="changeTF(this, '1h')">1h</button>
-          <button class="tf-btn" onclick="changeTF(this, '1d')">1d</button>
-        </div>
-      </div>
-      <div id="chart-container">📊 Select an asset card above to view the chart</div>
-    </div>
-
-    <!-- POSITIONS SECTION -->
     <div class="section-header">
       <div class="section-title">💼 Open Positions</div>
     </div>
-    <div class="positions-grid" id="positions-grid">
-      <div class="empty">No open positions</div>
-    </div>
-
-    <!-- SIGNALS SECTION -->
-    <div class="section-header">
-      <div class="section-title">🎯 Trading Signals</div>
-    </div>
-    <div class="signals-grid" id="signals-grid">
-      <div class="empty">Waiting for signals...</div>
-    </div>
+    <div id="positions-container"></div>
   </div>
 
-  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
   <script>
-    // API Credentials
     const ALP_KEY = 'PK3VYJM2GDKUMCAICARZNBDBDX';
     const ALP_SEC = '6tRAaKznU9XXKVpMNP1FrKBi228FeSbTdbLD8HGk9Zx2';
     const ALP_URL = 'https://paper-api.alpaca.markets';
-    const POLYGON_KEY = 'TzNkvBJJSSe74HDhB_9vhlMPyUPO1wAC';
     const DATA_URL = 'https://data.alpaca.markets';
 
-    let ASSETS = [
-      // Stocks - will be filled with real data
-      { symbol: 'COST', type: 'stock', price: 0, change: 0 },
-      { symbol: 'TSLA', type: 'stock', price: 0, change: 0 },
-      { symbol: 'META', type: 'stock', price: 0, change: 0 },
-      { symbol: 'GOOGL', type: 'stock', price: 0, change: 0 },
-      { symbol: 'AMZN', type: 'stock', price: 0, change: 0 },
-      { symbol: 'MSFT', type: 'stock', price: 0, change: 0 },
-      { symbol: 'NVDA', type: 'stock', price: 0, change: 0 },
-      { symbol: 'AAPL', type: 'stock', price: 0, change: 0 },
-      // Crypto - will be filled with real data
-      { symbol: 'BTC/USD', type: 'crypto', price: 0, change: 0 },
-      { symbol: 'ETH/USD', type: 'crypto', price: 0, change: 0 },
-      { symbol: 'SOL/USD', type: 'crypto', price: 0, change: 0 },
-      { symbol: 'XRP/USD', type: 'crypto', price: 0, change: 0 },
-      { symbol: 'ADA/USD', type: 'crypto', price: 0, change: 0 },
-      { symbol: 'DOGE/USD', type: 'crypto', price: 0, change: 0 },
-    ];
+    const STOCKS = ['COST', 'TSLA', 'META', 'GOOGL', 'AMZN', 'MSFT', 'NVDA', 'AAPL', 'NFLX'];
+    const CRYPTOS = ['BTC/USD', 'ETH/USD', 'SOL/USD', 'XRP/USD', 'ADA/USD', 'DOGE/USD'];
 
+    let assets = {};
+    let positions = {};
     let currentFilter = 'all';
-    let currentSort = 'price-desc';
-    let selectedAsset = null;
 
-    // Fetch real stock quotes from Alpaca
     async function fetchStockQuotes() {
-      const stocks = ASSETS.filter(a => a.type === 'stock').map(a => a.symbol);
       try {
         const response = await fetch(
-          `${ALP_URL}/v2/stocks/snapshots?symbols=${stocks.join(',')}&feed=iex`,
+          `${ALP_URL}/v2/stocks/snapshots?symbols=${STOCKS.join(',')}`,
           { headers: { 'APCA-API-KEY-ID': ALP_KEY, 'APCA-API-SECRET-KEY': ALP_SEC } }
         );
+        if (!response.ok) throw new Error('Stock API error');
         const data = await response.json();
 
-        Object.entries(data || {}).forEach(([sym, snapshot]) => {
-          const asset = ASSETS.find(a => a.symbol === sym);
-          if (asset && snapshot.latestQuote) {
-            asset.price = snapshot.latestQuote.ap || snapshot.latestTrade?.p || asset.price;
-            asset.change = snapshot.latestTrade?.p ? ((snapshot.latestTrade.p - (asset.price * 0.98)) / (asset.price * 0.98) * 100).toFixed(2) : 0;
+        STOCKS.forEach(sym => {
+          if (data[sym]?.latestTrade) {
+            assets[sym] = {
+              symbol: sym,
+              type: 'stock',
+              price: data[sym].latestTrade.p,
+              change: 0
+            };
           }
         });
       } catch (e) {
-        console.error('Stock quote error:', e);
+        console.log('Stock quote error:', e.message);
       }
     }
 
-    // Fetch real crypto quotes from Alpaca
     async function fetchCryptoQuotes() {
-      const cryptos = ASSETS.filter(a => a.type === 'crypto').map(a => a.symbol.replace('/USD', ''));
       try {
         const response = await fetch(
-          `${DATA_URL}/v1beta3/crypto/us/latest/quotes?symbols=${cryptos.join(',')}`,
+          `${DATA_URL}/v1beta3/crypto/us/latest/quotes?symbols=${CRYPTOS.map(s => s.split('/')[0]).join(',')}`,
           { headers: { 'APCA-API-KEY-ID': ALP_KEY, 'APCA-API-SECRET-KEY': ALP_SEC } }
         );
+        if (!response.ok) throw new Error('Crypto API error');
         const data = await response.json();
 
-        data.quotes?.forEach(quote => {
-          const sym = quote.symbol + '/USD';
-          const asset = ASSETS.find(a => a.symbol === sym);
-          if (asset) {
-            asset.price = quote.ap || quote.bp || asset.price;
-            asset.change = quote.ap ? ((quote.ap - (quote.bp || quote.ap)) / (quote.bp || quote.ap) * 100).toFixed(2) : 0;
-          }
-        });
+        if (data.quotes) {
+          data.quotes.forEach(quote => {
+            const sym = quote.symbol + '/USD';
+            if (CRYPTOS.includes(sym)) {
+              assets[sym] = {
+                symbol: sym,
+                type: 'crypto',
+                price: quote.ap || quote.bp,
+                change: 0
+              };
+            }
+          });
+        }
       } catch (e) {
-        console.error('Crypto quote error:', e);
+        console.log('Crypto quote error:', e.message);
       }
     }
 
-    // Load and merge all data
-    async function loadAllData() {
-      await Promise.all([fetchStockQuotes(), fetchCryptoQuotes()]);
-      renderAssets();
-    }
-
-    // Load positions from positions.json
     async function loadPositions() {
       try {
         const response = await fetch('positions.json');
-        if (!response.ok) return null;
-        return await response.json();
+        if (response.ok) {
+          positions = await response.json();
+        }
       } catch (e) {
-        console.log('No positions.json found');
-        return null;
+        console.log('Positions load error:', e.message);
       }
     }
 
-    // Populate assets
     function renderAssets() {
-      const filtered = ASSETS.filter(a => currentFilter === 'all' || a.type === currentFilter);
-      const sorted = [...filtered].sort((a, b) => {
-        if (currentSort === 'price-desc') return b.price - a.price;
-        if (currentSort === 'price-asc') return a.price - b.price;
-        if (currentSort === 'change-desc') return b.change - a.change;
-        if (currentSort === 'change-asc') return a.change - b.change;
-      });
+      const filtered = Object.values(assets).filter(a =>
+        currentFilter === 'all' || a.type === currentFilter
+      );
 
-      const grid = document.getElementById('assets-grid');
-      grid.innerHTML = sorted.map(asset => `
-        <div class="asset-card ${selectedAsset === asset.symbol ? 'active' : ''}" onclick="selectAsset('${asset.symbol}', this)">
-          <div class="asset-symbol">${asset.symbol}</div>
-          <div class="asset-type">${asset.type}</div>
-          <div class="asset-price">$${asset.price.toLocaleString()}</div>
-          <div class="asset-change">
-            <span>${asset.change > 0 ? '↑' : '↓'}</span>
-            <span class="${asset.change > 0 ? 'change-positive' : 'change-negative'}">${asset.change > 0 ? '+' : ''}${asset.change}%</span>
+      const html = filtered.map(asset => `
+        <div class="card">
+          <div class="symbol">${asset.symbol}</div>
+          <div class="type">${asset.type}</div>
+          <div class="price">$${asset.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+          <div class="change">
+            <span>${asset.change >= 0 ? '↑' : '↓'}</span>
+            <span class="${asset.change >= 0 ? 'positive' : 'negative'}">${asset.change > 0 ? '+' : ''}${asset.change.toFixed(2)}%</span>
           </div>
         </div>
       `).join('');
+
+      document.getElementById('assets-grid').innerHTML = html || '<div class="empty">Loading prices...</div>';
     }
 
-    // Render positions
-    async function renderPositions() {
-      const positions = await loadPositions();
-      const grid = document.getElementById('positions-grid');
+    function renderPositions() {
+      const html = Object.entries(positions).map(([sym, pos]) => {
+        const current = assets[sym + '/USD']?.price || assets[sym]?.price || pos.entry;
+        const pnl = current - pos.entry;
+        const pnlPct = ((pnl / pos.entry) * 100).toFixed(2);
 
-      if (!positions || Object.keys(positions).length === 0) {
-        grid.innerHTML = '<div class="empty">No open positions</div>';
-        document.getElementById('pos-count').textContent = '0';
-        return;
-      }
-
-      document.getElementById('pos-count').textContent = Object.keys(positions).length;
-
-      grid.innerHTML = Object.entries(positions).map(([sym, pos]) => {
-        const pnl = pos.current - pos.entry || 0;
-        const pnlPct = pos.entry ? ((pnl / pos.entry) * 100).toFixed(2) : 0;
         return `
           <div class="position-card">
             <div class="position-header">
-              <div class="position-symbol">${sym}</div>
-              <div class="position-pnl ${pnl >= 0 ? 'profit' : 'loss'}">
+              <div class="pos-sym">${sym}</div>
+              <div class="pos-pnl ${pnl >= 0 ? 'positive' : 'negative'}">
                 ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}
               </div>
             </div>
-            <div class="position-detail">
-              <span>Entry:</span>
-              <span class="position-detail-value">$${pos.entry.toLocaleString()}</span>
-            </div>
-            <div class="position-detail">
-              <span>Current:</span>
-              <span class="position-detail-value">$${(pos.current || pos.entry).toLocaleString()}</span>
-            </div>
-            <div class="position-detail">
-              <span>SL:</span>
-              <span class="position-detail-value">$${pos.sl.toLocaleString()}</span>
-            </div>
-            <div class="position-detail">
-              <span>TP:</span>
-              <span class="position-detail-value">$${pos.tp.toLocaleString()}</span>
-            </div>
-            <div class="position-detail">
-              <span>Return:</span>
-              <span class="position-detail-value" style="color: ${pnl >= 0 ? '#10b981' : '#ef4444'}">
-                ${pnl >= 0 ? '+' : ''}${pnlPct}%
-              </span>
-            </div>
+            <div class="pos-detail"><span>Entry:</span><span class="pos-value">$${pos.entry.toLocaleString()}</span></div>
+            <div class="pos-detail"><span>Current:</span><span class="pos-value">$${current.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
+            <div class="pos-detail"><span>SL:</span><span class="pos-value">$${pos.sl.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
+            <div class="pos-detail"><span>TP:</span><span class="pos-value">$${pos.tp.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
+            <div class="pos-detail"><span>Return:</span><span class="pos-value ${pnlPct >= 0 ? 'positive' : 'negative'}">${pnlPct >= 0 ? '+' : ''}${pnlPct}%</span></div>
           </div>
         `;
       }).join('');
+
+      const container = document.getElementById('positions-container');
+      container.innerHTML = html || '<div class="empty">No open positions</div>';
+      document.getElementById('pos-count').textContent = Object.keys(positions).length;
     }
 
     function filterAssets(type) {
@@ -575,34 +233,30 @@
       renderAssets();
     }
 
-    function sortAssets(sort) {
-      currentSort = sort;
+    async function init() {
+      await Promise.all([fetchStockQuotes(), fetchCryptoQuotes(), loadPositions()]);
       renderAssets();
+      renderPositions();
+
+      // Calculate portfolio value
+      const totalValue = Object.entries(positions).reduce((sum, [sym, pos]) => {
+        const current = assets[sym + '/USD']?.price || assets[sym]?.price || pos.entry;
+        return sum + (current * 1); // Assuming 1 unit per position
+      }, 100000);
+
+      const totalPnL = Object.entries(positions).reduce((sum, [sym, pos]) => {
+        const current = assets[sym + '/USD']?.price || assets[sym]?.price || pos.entry;
+        return sum + (current - pos.entry);
+      }, 0);
+
+      document.getElementById('portfolio').textContent = `$${totalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+      document.getElementById('pnl').classList.toggle('positive', totalPnL >= 0);
+      document.getElementById('pnl').classList.toggle('negative', totalPnL < 0);
+      document.getElementById('pnl').textContent = `${totalPnL >= 0 ? '+' : ''}$${totalPnL.toFixed(2)}`;
     }
 
-    function selectAsset(symbol, element) {
-      selectedAsset = symbol;
-      document.querySelectorAll('.asset-card').forEach(c => c.classList.remove('active'));
-      element.classList.add('active');
-      document.getElementById('chart-title').textContent = `${symbol} Chart`;
-      document.getElementById('chart-container').innerHTML = '📈 Chart would display here with real data';
-    }
-
-    function changeTF(btn, tf) {
-      document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    }
-
-    // Initialize
-    loadAllData();
-    renderPositions();
-
-    // Auto-refresh live data
-    setInterval(async () => {
-      await loadAllData();
-    }, 5000); // Update prices every 5 seconds
-
-    setInterval(renderPositions, 5000); // Update positions every 5 seconds
+    init();
+    setInterval(init, 5000); // Refresh every 5 seconds
   </script>
 </body>
 </html>
