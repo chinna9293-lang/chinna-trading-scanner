@@ -1848,7 +1848,7 @@ async function fallbackKrakenPoll() {
     } catch { bLive = false; updateBadge(); }
   };
   await poll();
-  _krakenPollTimer = setInterval(poll, 5000);
+  _krakenPollTimer = setInterval(poll, 30000); // 30s to avoid rate limits
 }
 
 function startAlpacaStream() {
