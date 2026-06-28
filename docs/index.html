@@ -2266,8 +2266,9 @@ async function getBars(sym, lim) {
     const s = sym.slice(0,-3) + '/USD';
     for (const tf of ['5m','15m','1h']) {
       try {
+        const cryptoTf = formatTimeframe(tf, true);
         // Get most recent bars (no start date - Alpaca returns latest by default)
-        const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=' + encodeURIComponent(s) + '&timeframe=' + tf + '&limit=' + lim, { headers: AH })).json();
+        const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=' + encodeURIComponent(s) + '&timeframe=' + cryptoTf + '&limit=' + lim, { headers: AH })).json();
         const bars = (d.bars && d.bars[s]) || [];
         if (bars.length >= 5) return bars;
       } catch (e) { console.warn(`Crypto fetch failed: ${e.message}`); }
@@ -2756,14 +2757,22 @@ const TF_OPTIONS = [
   { label:'1H', val:'1h' }, { label:'4H', val:'4h' }, { label:'1D', val:'1d' }
 ];
 
+// Convert timeframe format: 1m → 1Min (for crypto), 1m → 1m (for stocks)
+function formatTimeframe(tf, isCrypto) {
+  if (!isCrypto) return tf; // Stocks use: 1m, 5m, 15m, 1h, 4h, 1d
+  // Crypto uses: 1Min, 5Min, 15Min, 1Hour, 4Hour, 1Day
+  return tf.replace(/(\d+)m$/, '$1Min').replace(/(\d+)h$/, '$1Hour').replace(/d$/, 'Day');
+}
+
 async function getBarsForTf(sym, tf, lim) {
   lim = lim || 100;
   const isCrypto = sym.endsWith('USD') && sym.length > 3;
   if (isCrypto) {
     const s = sym.slice(0,-3) + '/USD';
+    const cryptoTf = formatTimeframe(tf, true);
     try {
       // Get most recent bars - no start date
-      const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=' + encodeURIComponent(s) + '&timeframe=' + tf + '&limit=' + lim, { headers: AH })).json();
+      const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=' + encodeURIComponent(s) + '&timeframe=' + cryptoTf + '&limit=' + lim, { headers: AH })).json();
       return (d.bars && d.bars[s]) || [];
     } catch { return []; }
   } else {
@@ -3292,7 +3301,8 @@ async function renderModal(sym) {
   try {
     if (isCrypto) {
       const s = sym.slice(0,-3)+'/USD';
-      const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols='+encodeURIComponent(s)+'&timeframe=1h&limit=50',{headers:AH})).json();
+      const cryptoTf = formatTimeframe('1h', true);
+      const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols='+encodeURIComponent(s)+'&timeframe='+cryptoTf+'&limit=50',{headers:AH})).json();
       htfBars = (d.bars && d.bars[s]) || [];
     } else {
       // Try SIP first, fall back to IEX
