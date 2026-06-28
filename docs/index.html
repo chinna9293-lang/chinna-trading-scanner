@@ -2779,15 +2779,8 @@ async function getBarsForTf(sym, tf, lim) {
       return (d.bars && d.bars[s]) || [];
     } catch { return []; }
   } else {
-    for (const feed of ['sip','iex']) {
-      try {
-        // Get most recent bars - no start date
-        const url = 'https://data.alpaca.markets/v2/stocks/' + sym + '/bars?timeframe=' + tf + '&limit=' + lim + '&feed=' + feed + '&adjustment=raw';
-        const d = await (await fetch(url, { headers: AH })).json();
-        if ((d.bars || []).length >= 5) return d.bars;
-      } catch {}
-    }
-    return [];
+    // ❌ STOCKS: Use demo chart (market data requires paid subscription)
+    return generateDemoChart(sym);
   }
 }
 
