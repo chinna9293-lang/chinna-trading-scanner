@@ -2264,7 +2264,7 @@ async function getBars(sym, lim) {
 
   if (isCrypto) {
     const s = sym.slice(0,-3) + '/USD';
-    for (const tf of ['5Min','15Min','1Hour']) {
+    for (const tf of ['5m','15m','1h']) {
       try {
         // Get most recent bars (no start date - Alpaca returns latest by default)
         const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols=' + encodeURIComponent(s) + '&timeframe=' + tf + '&limit=' + lim, { headers: AH })).json();
@@ -2274,12 +2274,12 @@ async function getBars(sym, lim) {
     }
   } else {
     const attempts = [
-      ['5Min','sip','&extended_hours=true'],
-      ['5Min','iex',''],
-      ['15Min','sip','&extended_hours=true'],
-      ['15Min','iex',''],
-      ['1Hour','sip','&extended_hours=true'],
-      ['1Hour','iex','']
+      ['5m','sip','&extended_hours=true'],
+      ['5m','iex',''],
+      ['15m','sip','&extended_hours=true'],
+      ['15m','iex',''],
+      ['1h','sip','&extended_hours=true'],
+      ['1h','iex','']
     ];
     for (const [tf, feed, ext] of attempts) {
       try {
@@ -2749,11 +2749,11 @@ function buildModal(sym, a, cfg, bars, htfA) {
 
 // ─── Lightweight Charts interactive chart ─────────────────────────────────────
 let lwChart = null, lwRsiChart = null;
-let currentTf = '5Min';
+let currentTf = '5m';
 
 const TF_OPTIONS = [
-  { label:'1M', val:'1Min' }, { label:'5M', val:'5Min' }, { label:'15M', val:'15Min' },
-  { label:'1H', val:'1Hour' }, { label:'4H', val:'4Hour' }, { label:'1D', val:'1Day' }
+  { label:'1M', val:'1m' }, { label:'5M', val:'5m' }, { label:'15M', val:'15m' },
+  { label:'1H', val:'1h' }, { label:'4H', val:'4h' }, { label:'1D', val:'1d' }
 ];
 
 async function getBarsForTf(sym, tf, lim) {
@@ -3151,7 +3151,7 @@ async function openChartPanel(sym) {
 }
 
 async function renderChartPanel(sym, tf) {
-  tf = tf || currentTf || '1Min'; // Default to 1-minute for scalping
+  tf = tf || currentTf || '1m'; // Default to 1-minute for scalping
   currentTf = tf;
 
   // Fetch real bid/ask for this symbol
@@ -3292,13 +3292,13 @@ async function renderModal(sym) {
   try {
     if (isCrypto) {
       const s = sym.slice(0,-3)+'/USD';
-      const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols='+encodeURIComponent(s)+'&timeframe=1Hour&limit=50',{headers:AH})).json();
+      const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols='+encodeURIComponent(s)+'&timeframe=1h&limit=50',{headers:AH})).json();
       htfBars = (d.bars && d.bars[s]) || [];
     } else {
       // Try SIP first, fall back to IEX
       for (const feed of ['sip','iex']) {
         try {
-          const d = await (await fetch('https://data.alpaca.markets/v2/stocks/'+sym+'/bars?timeframe=1Hour&limit=50&feed='+feed+'&adjustment=raw&extended_hours=true',{headers:AH})).json();
+          const d = await (await fetch('https://data.alpaca.markets/v2/stocks/'+sym+'/bars?timeframe=1h&limit=50&feed='+feed+'&adjustment=raw&extended_hours=true',{headers:AH})).json();
           if ((d.bars||[]).length >= 5) { htfBars = d.bars; break; }
         } catch {}
       }
