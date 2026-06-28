@@ -400,30 +400,86 @@
 
   <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
   <script>
-    // Assets data
-    const ASSETS = [
-      // Stocks
-      { symbol: 'COST', type: 'stock', price: 960.50, change: 2.3 },
-      { symbol: 'TSLA', type: 'stock', price: 250.20, change: -1.2 },
-      { symbol: 'META', type: 'stock', price: 480.10, change: 1.5 },
-      { symbol: 'GOOGL', type: 'stock', price: 140.30, change: 0.8 },
-      { symbol: 'AMZN', type: 'stock', price: 185.60, change: 2.1 },
-      { symbol: 'MSFT', type: 'stock', price: 420.15, change: 1.3 },
-      { symbol: 'NVDA', type: 'stock', price: 875.20, change: 3.2 },
-      { symbol: 'AAPL', type: 'stock', price: 228.40, change: 0.9 },
-      { symbol: 'NFLX', type: 'stock', price: 520.80, change: 1.7 },
-      // Crypto
-      { symbol: 'BTC/USD', type: 'crypto', price: 65200, change: 3.1 },
-      { symbol: 'ETH/USD', type: 'crypto', price: 3500, change: 2.8 },
-      { symbol: 'SOL/USD', type: 'crypto', price: 180.50, change: 1.9 },
-      { symbol: 'XRP/USD', type: 'crypto', price: 2.45, change: -0.8 },
-      { symbol: 'ADA/USD', type: 'crypto', price: 0.98, change: 1.2 },
-      { symbol: 'DOGE/USD', type: 'crypto', price: 0.38, change: 2.1 },
+    // API Credentials
+    const ALP_KEY = 'PK3VYJM2GDKUMCAICARZNBDBDX';
+    const ALP_SEC = '6tRAaKznU9XXKVpMNP1FrKBi228FeSbTdbLD8HGk9Zx2';
+    const ALP_URL = 'https://paper-api.alpaca.markets';
+    const POLYGON_KEY = 'TzNkvBJJSSe74HDhB_9vhlMPyUPO1wAC';
+    const DATA_URL = 'https://data.alpaca.markets';
+
+    let ASSETS = [
+      // Stocks - will be filled with real data
+      { symbol: 'COST', type: 'stock', price: 0, change: 0 },
+      { symbol: 'TSLA', type: 'stock', price: 0, change: 0 },
+      { symbol: 'META', type: 'stock', price: 0, change: 0 },
+      { symbol: 'GOOGL', type: 'stock', price: 0, change: 0 },
+      { symbol: 'AMZN', type: 'stock', price: 0, change: 0 },
+      { symbol: 'MSFT', type: 'stock', price: 0, change: 0 },
+      { symbol: 'NVDA', type: 'stock', price: 0, change: 0 },
+      { symbol: 'AAPL', type: 'stock', price: 0, change: 0 },
+      // Crypto - will be filled with real data
+      { symbol: 'BTC/USD', type: 'crypto', price: 0, change: 0 },
+      { symbol: 'ETH/USD', type: 'crypto', price: 0, change: 0 },
+      { symbol: 'SOL/USD', type: 'crypto', price: 0, change: 0 },
+      { symbol: 'XRP/USD', type: 'crypto', price: 0, change: 0 },
+      { symbol: 'ADA/USD', type: 'crypto', price: 0, change: 0 },
+      { symbol: 'DOGE/USD', type: 'crypto', price: 0, change: 0 },
     ];
 
     let currentFilter = 'all';
     let currentSort = 'price-desc';
     let selectedAsset = null;
+
+    // Fetch real stock quotes from Alpaca
+    async function fetchStockQuotes() {
+      const stocks = ASSETS.filter(a => a.type === 'stock').map(a => a.symbol);
+      try {
+        const response = await fetch(
+          `${ALP_URL}/v2/stocks/snapshots?symbols=${stocks.join(',')}&feed=iex`,
+          { headers: { 'APCA-API-KEY-ID': ALP_KEY, 'APCA-API-SECRET-KEY': ALP_SEC } }
+        );
+        const data = await response.json();
+
+        Object.entries(data || {}).forEach(([sym, snapshot]) => {
+          const asset = ASSETS.find(a => a.symbol === sym);
+          if (asset && snapshot.latestQuote) {
+            asset.price = snapshot.latestQuote.ap || snapshot.latestTrade?.p || asset.price;
+            asset.change = snapshot.latestTrade?.p ? ((snapshot.latestTrade.p - (asset.price * 0.98)) / (asset.price * 0.98) * 100).toFixed(2) : 0;
+          }
+        });
+      } catch (e) {
+        console.error('Stock quote error:', e);
+      }
+    }
+
+    // Fetch real crypto quotes from Alpaca
+    async function fetchCryptoQuotes() {
+      const cryptos = ASSETS.filter(a => a.type === 'crypto').map(a => a.symbol.replace('/USD', ''));
+      try {
+        const response = await fetch(
+          `${DATA_URL}/v1beta3/crypto/us/latest/quotes?symbols=${cryptos.join(',')}`,
+          { headers: { 'APCA-API-KEY-ID': ALP_KEY, 'APCA-API-SECRET-KEY': ALP_SEC } }
+        );
+        const data = await response.json();
+
+        data.quotes?.forEach(quote => {
+          const sym = quote.symbol + '/USD';
+          const asset = ASSETS.find(a => a.symbol === sym);
+          if (asset) {
+            asset.price = quote.ap || quote.bp || asset.price;
+            asset.change = quote.ap ? ((quote.ap - (quote.bp || quote.ap)) / (quote.bp || quote.ap) * 100).toFixed(2) : 0;
+          }
+        });
+      } catch (e) {
+        console.error('Crypto quote error:', e);
+      }
+    }
+
+    // Load and merge all data
+    async function loadAllData() {
+      await Promise.all([fetchStockQuotes(), fetchCryptoQuotes()]);
+      renderAssets();
+    }
 
     // Load positions from positions.json
     async function loadPositions() {
@@ -538,9 +594,15 @@
     }
 
     // Initialize
-    renderAssets();
+    loadAllData();
     renderPositions();
-    setInterval(renderPositions, 5000); // Refresh every 5 seconds
+
+    // Auto-refresh live data
+    setInterval(async () => {
+      await loadAllData();
+    }, 5000); // Update prices every 5 seconds
+
+    setInterval(renderPositions, 5000); // Update positions every 5 seconds
   </script>
 </body>
 </html>
