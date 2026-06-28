@@ -2779,8 +2779,42 @@ async function getBarsForTf(sym, tf, lim) {
       return (d.bars && d.bars[s]) || [];
     } catch { return []; }
   } else {
-    // ❌ STOCKS: Use demo chart (market data requires paid subscription)
-    return generateDemoChart(sym);
+    // ✅ STOCKS: Fetch from Yahoo Finance (free, no subscription needed)
+    try {
+      // Yahoo Finance API - fetch historical data
+      const now = Math.floor(Date.now() / 1000);
+      const period = tf === '1Day' ? 300 * 86400 : tf === '4Hour' ? 90 * 86400 : tf === '1Hour' ? 30 * 86400 : 15 * 86400;
+      const start = now - period;
+
+      const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${sym}?modules=financialData`;
+      const histUrl = `https://query1.finance.yahoo.com/v7/finance/download/${sym}?period1=${start}&period2=${now}&interval=1d&events=history&crumb=`;
+
+      // Try to fetch from Yahoo Finance
+      const response = await fetch(histUrl, { signal: AbortSignal.timeout(5000) });
+      if (!response.ok) throw new Error('Yahoo Finance unavailable');
+
+      const csv = await response.text();
+      const lines = csv.split('\n').slice(1).filter(l => l.trim());
+
+      // Parse CSV and convert to bar format
+      const bars = lines.slice(-lim).map(line => {
+        const [date, open, high, low, close, adjClose, volume] = line.split(',');
+        return {
+          time: Math.floor(new Date(date).getTime() / 1000),
+          o: parseFloat(open),
+          h: parseFloat(high),
+          l: parseFloat(low),
+          c: parseFloat(close),
+          v: parseInt(volume)
+        };
+      }).filter(b => !isNaN(b.c));
+
+      return bars.length >= 5 ? bars : generateDemoChart(sym);
+    } catch (e) {
+      // Fallback to demo chart if Yahoo Finance fails
+      console.log(`📊 Yahoo Finance failed for ${sym}, using demo chart`);
+      return generateDemoChart(sym);
+    }
   }
 }
 
