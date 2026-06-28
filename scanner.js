@@ -1,8 +1,8 @@
 // Chinna Trading Scanner — ATR-based exits + backtesting + ntfy fills
 // Strategy: EMA9/21 cross + RSI zone + swing breakout → ATR-sized bracket orders
 const NTFY    = process.env.NTFY_TOPIC      || 'chinna-trading-alerts';
-const ALP_KEY = process.env.ALPACA_KEY      || 'PK7T6WNU6ANNWQXMWFFFSYLKR7';
-const ALP_SEC = process.env.ALPACA_SECRET   || 'EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHGoMBtNKDoz6';
+const ALP_KEY = process.env.ALPACA_KEY      || 'PK3VYJM2GDKUMCAICARZNBDBDX';
+const ALP_SEC = process.env.ALPACA_SECRET   || '6tRAaKznU9XXKVpMNP1FrKBi228FeSbTdbLD8HGk9Zx2';
 const ALP_URL = process.env.ALPACA_BASE_URL || 'https://paper-api.alpaca.markets';
 const DATA    = 'https://data.alpaca.markets';
 
