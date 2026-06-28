@@ -80,13 +80,8 @@ async function getBars(symbol, limit, tf) {
     const d = await (await fetch(url, { headers: alpH })).json();
     return (d.bars && d.bars[symbol]) ? d.bars[symbol] : [];
   }
-  for (const feed of ['sip', 'iex']) {
-    try {
-      const url = `${DATA}/v2/stocks/${symbol}/bars?timeframe=${tf}&limit=${limit}&feed=${feed}&adjustment=raw&start=${start}&extended_hours=true`;
-      const d = await (await fetch(url, { headers: alpH })).json();
-      if ((d.bars || []).length >= 5) return d.bars;
-    } catch {}
-  }
+  // ❌ STOCKS DISABLED: Alpaca market data API requires PAID subscription
+  // Only crypto (free) is supported with current API credentials
   return [];
 }
 
