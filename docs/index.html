@@ -1249,6 +1249,9 @@ const AS = '6tRAaKznU9XXKVpMNP1FrKBi228FeSbTdbLD8HGk9Zx2';
 const AB = 'https://paper-api.alpaca.markets';
 const AH = { 'APCA-API-KEY-ID': AK, 'APCA-API-SECRET-KEY': AS };
 
+// ─── Polygon.io (Stock Charts) ────────────────────────────────────────────────
+const POLYGON_KEY = 'TzNkvBJJSSe74HDhB_9vhlMPyUPO1wAC';
+
 async function apGet(path) {
   const r = await fetch(AB + path, { headers: AH });
   return r.json();
@@ -2248,6 +2251,33 @@ async function takeProfitPartial(sym, qty, price = null) {
   }
 }
 
+// Fetch stock bars from Polygon.io
+async function getPolygonBars(symbol, multiplier = 5, timespan = 'minute', limit = 100) {
+  try {
+    const now = new Date();
+    const daysBack = timespan === 'day' ? 300 : timespan === 'hour' ? 30 : 5;
+    const from = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const to = now.toISOString().slice(0, 10);
+
+    const url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/${multiplier}/${timespan}/${from}/${to}?sort=asc&limit=50000&apiKey=${POLYGON_KEY}`;
+    const d = await (await fetch(url, { signal: AbortSignal.timeout(8000) })).json();
+
+    if (d.results && d.results.length >= 5) {
+      return d.results.map(bar => ({
+        time: Math.floor(bar.t / 1000),
+        o: bar.o,
+        h: bar.h,
+        l: bar.l,
+        c: bar.c,
+        v: bar.v
+      })).slice(-limit);
+    }
+  } catch (e) {
+    console.warn(`Polygon.io fetch failed: ${e.message}`);
+  }
+  return [];
+}
+
 async function getBars(sym, lim) {
   lim = lim || 50;
   // If market closed (weekend/afterhours), use demo data for interactive testing
@@ -2274,20 +2304,17 @@ async function getBars(sym, lim) {
       } catch (e) { console.warn(`Crypto fetch failed: ${e.message}`); }
     }
   } else {
+    // ✅ STOCKS: Use Polygon.io (reliable free tier)
     const attempts = [
-      ['5m','sip','&extended_hours=true'],
-      ['5m','iex',''],
-      ['15m','sip','&extended_hours=true'],
-      ['15m','iex',''],
-      ['1h','sip','&extended_hours=true'],
-      ['1h','iex','']
+      [5, 'minute'],   // 5-minute bars
+      [15, 'minute'],  // 15-minute bars
+      [1, 'hour'],     // 1-hour bars
+      [1, 'day']       // 1-day bars
     ];
-    for (const [tf, feed, ext] of attempts) {
+    for (const [multiplier, timespan] of attempts) {
       try {
-        // Get most recent bars (no start date - Alpaca returns latest by default)
-        const url = 'https://data.alpaca.markets/v2/stocks/' + sym + '/bars?timeframe=' + tf + '&limit=' + lim + '&feed=' + feed + '&adjustment=raw' + ext;
-        const d = await (await fetch(url, { headers: AH })).json();
-        if ((d.bars || []).length >= 5) return d.bars;
+        const bars = await getPolygonBars(sym, multiplier, timespan, lim);
+        if (bars.length >= 5) return bars;
       } catch (e) { console.warn(`Stock fetch failed for ${sym}: ${e.message}`); }
     }
   }
@@ -3305,13 +3332,10 @@ async function renderModal(sym) {
       const d = await (await fetch('https://data.alpaca.markets/v1beta3/crypto/us/bars?symbols='+encodeURIComponent(s)+'&timeframe='+cryptoTf+'&limit=50',{headers:AH})).json();
       htfBars = (d.bars && d.bars[s]) || [];
     } else {
-      // Try SIP first, fall back to IEX
-      for (const feed of ['sip','iex']) {
-        try {
-          const d = await (await fetch('https://data.alpaca.markets/v2/stocks/'+sym+'/bars?timeframe=1h&limit=50&feed='+feed+'&adjustment=raw&extended_hours=true',{headers:AH})).json();
-          if ((d.bars||[]).length >= 5) { htfBars = d.bars; break; }
-        } catch {}
-      }
+      // ✅ STOCKS: Use Polygon.io for HTF analysis
+      try {
+        htfBars = await getPolygonBars(sym, 1, 'hour', 50);
+      } catch {}
     }
   } catch {}
   const htfA = htfBars.length >= 5 ? analyse(htfBars) : null;
