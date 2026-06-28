@@ -3256,18 +3256,7 @@ async function renderChartPanel(sym, tf) {
     '<button onclick="renderChartPanel(\'' + sym + '\',currentTf)" style="background:#1e1e2e;border:1px solid #2d2d3d;color:#cbd5e1;padding:8px 12px;border-radius:6px;font-size:11px;cursor:pointer;min-width:44px;height:36px" title="Refresh chart">↻</button>' +
     '</div>' +
     '</div>' +
-    '<div class="chart-wrap"><div id="chart-container"></div></div>' +
-    '<div class="chart-legend">' +
-    '<div style="flex:1;display:flex;gap:12px;flex-wrap:wrap;align-items:center">' +
-    '<div title="Fast moving average - shows trend direction" style="display:flex;align-items:center;gap:4px;padding:4px 6px;background:rgba(34,197,94,.1);border-radius:4px;border:1px solid rgba(34,197,94,.2)"><span style="width:8px;height:2px;background:#22c55e;display:inline-block"></span><span style="color:#22c55e;font-size:10px;font-weight:600">EMA9</span></div>' +
-    '<div title="Slow moving average - confirms trend" style="display:flex;align-items:center;gap:4px;padding:4px 6px;background:rgba(251,146,60,.1);border-radius:4px;border:1px solid rgba(251,146,60,.2)"><span style="width:8px;height:2px;background:#fb923c;display:inline-block"></span><span style="color:#fb923c;font-size:10px;font-weight:600">EMA21</span></div>' +
-    '<div title="Support/Resistance levels" style="display:flex;align-items:center;gap:4px;padding:4px 6px;background:rgba(99,102,241,.1);border-radius:4px;border:1px solid rgba(99,102,241,.2)"><span style="width:8px;height:2px;background:rgba(99,102,241,.7);display:inline-block;border-top:1px dashed rgba(99,102,241,.5)"></span><span style="color:#a5b4fc;font-size:10px;font-weight:600">S/R</span></div>' +
-    '<div title="Take profit target" style="display:flex;align-items:center;gap:4px;padding:4px 6px;background:rgba(34,197,94,.1);border-radius:4px;border:1px solid rgba(34,197,94,.2)"><span style="width:8px;height:2px;background:#22c55e;display:inline-block;border-top:2px dashed #22c55e"></span><span style="color:#86efac;font-size:10px;font-weight:600">TP</span></div>' +
-    '<div title="Stop loss level" style="display:flex;align-items:center;gap:4px;padding:4px 6px;background:rgba(239,68,68,.1);border-radius:4px;border:1px solid rgba(239,68,68,.2)"><span style="width:8px;height:2px;background:#ef4444;display:inline-block;border-top:2px dashed #ef4444"></span><span style="color:#fca5a5;font-size:10px;font-weight:600">SL</span></div>' +
-    '</div>' +
-    '<div style="color:#8ba0c0;font-size:9px;white-space:nowrap">🔍 scroll=zoom · ✋ drag=pan</div>' +
-    '</div>' +
-    '<div class="rsi-wrap"><div id="rsi-container"></div></div>' +
+    '<div class="chart-wrap" style="height:500px;border-radius:12px"><div id="chart-container" style="height:100%"></div></div>' +
     buildModal(sym, a, cfg, bars, null);
 
   setTimeout(() => {
@@ -3277,7 +3266,6 @@ async function renderChartPanel(sym, tf) {
       return;
     }
     initLWChart('chart-container', bars, a);
-    initRsiChart('rsi-container', bars);
   }, 80);
 }
 
