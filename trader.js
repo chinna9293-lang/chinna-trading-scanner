@@ -8,6 +8,11 @@ const ALP_URL = process.env.ALPACA_BASE_URL || 'https://paper-api.alpaca.markets
 const DATA    = 'https://data.alpaca.markets';
 
 const UNIVERSE = {
+  SPY:  { type:'stock',  risk:'low'  },
+  QQQ:  { type:'stock',  risk:'low'  },
+  GLD:  { type:'stock',  risk:'low'  },
+  MSFT: { type:'stock',  risk:'low'  },
+  NVDA: { type:'stock',  risk:'low'  },
   LLY:  { type:'stock',  risk:'low'  },
   COST: { type:'stock',  risk:'low'  },
   TSLA: { type:'stock',  risk:'low'  },
