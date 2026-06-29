@@ -574,6 +574,10 @@ async function main() {
 
         // ✅ MONITOR THIS TRADE EVERY 30 SECONDS UNTIL IT CLOSES
         await monitorTrade(symbol, sig.side, sig.price, tpPx, slPx, cfg.type);
+
+        // 🛑 STOP SCANNING - EXIT LOOP AFTER TRADE CLOSES
+        console.log(`\n✅ Trade completed. Exiting scan loop.`);
+        break;
       } else {
         await notify(`ORDER FAILED ${symbol}`, order.message || JSON.stringify(order), 'urgent', 'x');
         console.error(symbol, 'order failed:', order.message);
