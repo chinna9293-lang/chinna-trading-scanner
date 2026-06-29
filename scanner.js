@@ -352,6 +352,76 @@ async function placeStockOrder(symbol, side, price, atrVal) {
   return { order, qty, tpPx, slPx, equity };
 }
 
+// ── MONITOR ACTIVE TRADE EVERY 30 SECONDS ────────────────────────────────────
+async function monitorTrade(symbol, side, entryPrice, tpPrice, slPrice, type) {
+  const alpSym = symbol.replace('/', '');
+  let lastPnL = 0;
+  let checkCount = 0;
+  const maxChecks = 720; // 6 hours max (30s × 720 = 6h)
+
+  console.log(`\n📊 MONITORING ${symbol} (${side.toUpperCase()}) every 30s...`);
+
+  while (checkCount < maxChecks) {
+    await new Promise(r => setTimeout(r, 30000)); // Wait 30 seconds
+    checkCount++;
+
+    try {
+      // Check if position still exists
+      const pos = await apGet(ALP_URL + '/v2/positions');
+      const position = Array.isArray(pos) && pos.find(p => p.symbol === alpSym);
+
+      if (!position) {
+        // Position closed! (TP or SL hit)
+        const finalPnL = parseFloat(position?.unrealized_pl || 0);
+        const finalPnLPct = parseFloat(position?.unrealized_plpc || 0) * 100;
+        await notify(
+          `✅ TRADE CLOSED ${symbol}`,
+          `Direction: ${side.toUpperCase()}\n` +
+          `Entry: $${entryPrice}\n` +
+          `Exit P&L: ${finalPnL >= 0 ? '+' : ''}$${finalPnL.toFixed(2)} (${finalPnLPct.toFixed(2)}%)\n` +
+          `Target: $${tpPrice} | Stop: $${slPrice}`,
+          'high',
+          finalPnL >= 0 ? 'chart_with_upwards_trend' : 'chart_with_downwards_trend'
+        );
+        console.log(`✅ ${symbol} closed: ${finalPnL >= 0 ? '+' : ''}$${finalPnL.toFixed(2)}`);
+        return; // Stop monitoring
+      }
+
+      // Still open - check if going right direction
+      const currentPrice = parseFloat(position.current_price);
+      const pnl = parseFloat(position.unrealized_pl);
+      const pnlPct = (parseFloat(position.unrealized_plpc) * 100).toFixed(2);
+
+      if (pnl !== lastPnL) {
+        const direction = pnl > lastPnL ? '📈 UP' : pnl < lastPnL ? '📉 DOWN' : '➡️ FLAT';
+        const status = pnl > 0 ? '✅ PROFIT' : pnl < 0 ? '❌ LOSS' : '⏸️ BREAKEVEN';
+
+        console.log(`[${checkCount*30}s] ${symbol} @ $${currentPrice} | ${status} ${direction} | P&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnlPct}%)`);
+
+        // Alert if significant move
+        if ((pnl > 0 && pnl > parseFloat(tpPrice) * 0.5) || (pnl < 0 && pnl < parseFloat(slPrice) * -0.5)) {
+          await notify(
+            `${status} ${symbol}`,
+            `P&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnlPct}%)\n` +
+            `Current: $${currentPrice}\n` +
+            `Entry: $${entryPrice}\n` +
+            `TP: $${tpPrice} | SL: $${slPrice}`,
+            pnl > 0 ? 'high' : 'urgent',
+            pnl > 0 ? 'chart_with_upwards_trend' : 'chart_with_downwards_trend'
+          );
+        }
+
+        lastPnL = pnl;
+      }
+
+    } catch(e) {
+      console.error(`Monitor error for ${symbol}:`, e.message);
+    }
+  }
+
+  console.log(`⏱️ ${symbol} monitoring timeout (6h reached)`);
+}
+
 // ── Place crypto order (ATR-sized) ────────────────────────────────────────────
 async function placeCryptoOrder(symbol, side, price, atrVal) {
   const acct   = await apGet(ALP_URL + '/v2/account');
@@ -501,6 +571,9 @@ async function main() {
           'high', 'package'
         );
         console.log(symbol, 'order placed:', order.id);
+
+        // ✅ MONITOR THIS TRADE EVERY 30 SECONDS UNTIL IT CLOSES
+        await monitorTrade(symbol, sig.side, sig.price, tpPx, slPx, cfg.type);
       } else {
         await notify(`ORDER FAILED ${symbol}`, order.message || JSON.stringify(order), 'urgent', 'x');
         console.error(symbol, 'order failed:', order.message);
