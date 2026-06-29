@@ -255,15 +255,15 @@ async function cycle() {
 
   // Send heartbeat notification (confirm bot is alive)
   try {
-    const mode = hasPosition ? '📊 MONITORING' : '🔍 SCANNING';
+    const mode = hasPosition ? 'MONITORING' : 'SCANNING';
     await fetch(`https://ntfy.sh/${NTFY}`, {
       method: 'POST',
       headers: {
-        'Title': `🤖 BOT ALIVE - ${mode}`,
+        'Title': `BOT ALIVE - ${mode}`,
         'Priority': 'min',
         'Tags': 'robot'
       },
-      body: `Cycle running at ${time}\nMode: ${hasPosition ? 'Monitoring open position' : 'Scanning for signals'}`
+      body: `🤖 Cycle: ${time}\n${hasPosition ? '📊' : '🔍'} ${mode}\n${hasPosition ? 'Monitoring position' : 'Scanning for signals'}`
     });
   } catch(e) {
     // Silent fail on notification
