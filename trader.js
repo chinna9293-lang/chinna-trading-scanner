@@ -252,6 +252,22 @@ async function cycle() {
   if (!hasPosition) {
     await scanForSignal();
   }
+
+  // Send heartbeat notification (confirm bot is alive)
+  try {
+    const mode = hasPosition ? '📊 MONITORING' : '🔍 SCANNING';
+    await fetch(`https://ntfy.sh/${NTFY}`, {
+      method: 'POST',
+      headers: {
+        'Title': `🤖 BOT ALIVE - ${mode}`,
+        'Priority': 'min',
+        'Tags': 'robot'
+      },
+      body: `Cycle running at ${time}\nMode: ${hasPosition ? 'Monitoring open position' : 'Scanning for signals'}`
+    });
+  } catch(e) {
+    // Silent fail on notification
+  }
 }
 
 async function main() {
