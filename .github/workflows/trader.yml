@@ -1,0 +1,23 @@
+name: Continuous Trader
+
+on:
+  schedule:
+    # Every minute, 24/7 - allows multiple 30-sec cycles per minute
+    - cron: '* * * * *'
+  workflow_dispatch:
+
+jobs:
+  trade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run Continuous Trader (30-sec cycles)
+        run: timeout 50s node trader.js || true
+        env:
+          NTFY_TOPIC:        ${{ secrets.NTFY_TOPIC }}
+          ALPACA_KEY:        ${{ secrets.ALPACA_KEY }}
+          ALPACA_SECRET:     ${{ secrets.ALPACA_SECRET }}
+          ALPACA_BASE_URL:   ${{ secrets.ALPACA_BASE_URL }}
