@@ -2263,7 +2263,7 @@ async function getPolygonBars(symbol, multiplier = 5, timespan = 'minute', limit
     const d = await (await fetch(url, { signal: AbortSignal.timeout(8000) })).json();
 
     if (d.results && d.results.length >= 5) {
-      return d.results.map(bar => ({
+      const bars = d.results.map(bar => ({
         t: bar.t,
         o: bar.o,
         h: bar.h,
@@ -2271,9 +2271,22 @@ async function getPolygonBars(symbol, multiplier = 5, timespan = 'minute', limit
         c: bar.c,
         v: bar.v
       })).slice(-limit);
+      // Cache successful response
+      try {
+        localStorage.setItem(`chart_${symbol}_${timespan}`, JSON.stringify(bars));
+      } catch {}
+      return bars;
     }
   } catch (e) {
     console.warn(`Polygon.io fetch failed: ${e.message}`);
+    // Fallback: use cached data if available
+    try {
+      const cached = localStorage.getItem(`chart_${symbol}_${timespan}`);
+      if (cached) {
+        console.log(`📦 Using cached data for ${symbol}`);
+        return JSON.parse(cached);
+      }
+    } catch {}
   }
   return [];
 }
