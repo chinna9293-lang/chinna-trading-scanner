@@ -34,11 +34,11 @@ tp_hit = in_pos and close >= tp
 sl_hit = in_pos and close <= sl
 time_hit = in_pos and bars_h >= max_bars
 
-// PLOTS
-plot(resist, "Resistance", color=color.red, linewidth=2, style=plot.style_dashed)
-plot(supp, "Support", color=color.blue, linewidth=2, style=plot.style_dashed)
-plot(in_pos ? tp : na, "TP", color=color.green, linewidth=2, style=plot.style_dashed)
-plot(in_pos ? sl : na, "SL", color=color.red, linewidth=2, style=plot.style_dashed)
+// PLOTS - Simple line styles
+plot(resist, "Resistance", color=color.red, linewidth=2)
+plot(supp, "Support", color=color.blue, linewidth=2)
+plot(in_pos ? tp : na, "TP", color=color.green, linewidth=2)
+plot(in_pos ? sl : na, "SL", color=color.red, linewidth=2)
 
 // SIGNALS
 plotshape(entry, title="BUY", style=shape.labelup, location=location.belowbar, color=color.green, size=size.large, text="BUY")
@@ -48,24 +48,24 @@ plotshape(time_hit and not tp_hit and not sl_hit, title="TIME", style=shape.labe
 
 // RSI
 plot(rsi, "RSI", color=color.blue, linewidth=1)
-hline(60, "60", color=color.orange, linestyle=hline.style_dashed)
-hline(50, "50", color=color.gray)
+hline(60, "RSI 60", color=color.orange)
+hline(50, "RSI 50", color=color.gray)
 
-// VOLUME
+// VOLUME - Color bars based on volume
 barcolor(volume > avg_vol * 1.5 ? color.new(color.green, 80) : color.new(color.gray, 80))
 
 // LABELS
 if entry
-    label.new(bar_index, low * 0.99, text="WHY ENTER:\n✓ Breakout $" + str.tostring(resist, "#.00") + "\n✓ RSI " + str.tostring(rsi, "0.0"), color=color.new(color.green, 80), textcolor=color.white, style=label.style_label_up, size=size.small)
+    label.new(bar_index, low * 0.99, text="BUY SIGNAL\nBreakout above $" + str.tostring(resist, "#.00") + "\nRSI: " + str.tostring(rsi, "0.0"), color=color.new(color.green, 80), textcolor=color.white, style=label.style_label_up, size=size.small)
 
 if tp_hit
-    label.new(bar_index, high * 1.01, text="TARGET HIT\n+2.5%", color=color.new(color.green, 80), textcolor=color.white, style=label.style_label_down, size=size.small)
+    label.new(bar_index, high * 1.01, text="TARGET HIT\n+2.5% Profit", color=color.new(color.lime, 80), textcolor=color.white, style=label.style_label_down, size=size.small)
 
 if sl_hit
-    label.new(bar_index, high * 1.01, text="STOP HIT\n-1.33%", color=color.new(color.red, 80), textcolor=color.white, style=label.style_label_down, size=size.small)
+    label.new(bar_index, high * 1.01, text="STOP HIT\n-1.33% Loss", color=color.new(color.red, 80), textcolor=color.white, style=label.style_label_down, size=size.small)
 
 if time_hit and not tp_hit and not sl_hit
-    label.new(bar_index, high * 1.01, text="TIME EXIT\n30min", color=color.new(color.orange, 80), textcolor=color.white, style=label.style_label_down, size=size.small)
+    label.new(bar_index, high * 1.01, text="TIME EXIT\n30 minutes", color=color.new(color.orange, 80), textcolor=color.white, style=label.style_label_down, size=size.small)
 
 // STRATEGY
 if entry and not in_pos
@@ -75,6 +75,6 @@ if tp_hit or sl_hit or time_hit
     strategy.close("LONG")
 
 // ALERTS
-alertcondition(entry, title="BUY", message="GOOGL BUY")
-alertcondition(tp_hit, title="TARGET", message="GOOGL TARGET")
-alertcondition(sl_hit, title="STOP", message="GOOGL STOP")
+alertcondition(entry, title="BUY SIGNAL", message="GOOGL BUY at {{close}}")
+alertcondition(tp_hit, title="TARGET HIT", message="GOOGL TARGET at {{close}}")
+alertcondition(sl_hit, title="STOP HIT", message="GOOGL STOP at {{close}}")
