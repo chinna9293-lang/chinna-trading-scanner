@@ -1,81 +1,162 @@
 //@version=6
-strategy("GOOGL Scalping", overlay=true, default_qty_type=strategy.fixed, default_qty_value=100)
+strategy("GOOGL Professional Scalping", overlay=true, default_qty_type=strategy.fixed, default_qty_value=100)
 
-// INPUT
-rsi_len = input(14, "RSI Length")
-rsi_thresh = input(60, "RSI Threshold")
-sr_len = input(20, "SR Lookback")
-vol_mult = input(1.5, "Volume Mult")
-tp_pct = input(2.5, "TP %")
-sl_pct = input(1.33, "SL %")
+// ═════════════════════════════════════════════════════════════════
+// PROFESSIONAL SCALPING: Support/Resistance Breakouts
+// No BS - Just Levels, Volume, and Momentum
+// ═════════════════════════════════════════════════════════════════
 
-// RSI
-rsi = ta.rsi(close, rsi_len)
+// INPUTS
+sr_period = input(20, "S/R Period (Lookback)")
+macd_fast = input(12, "MACD Fast")
+macd_slow = input(26, "MACD Slow")
+macd_signal = input(9, "MACD Signal")
+atr_period = input(14, "ATR Period")
+min_volume_mult = input(1.8, "Min Volume Multiple")
 
-// SUPPORT & RESISTANCE
-hi = ta.highest(high, sr_len)
-lo = ta.lowest(low, sr_len)
-res = hi[1]
-sup = lo[1]
+// SUPPORT & RESISTANCE - Exact Levels
+h = ta.highest(high, sr_period)
+l = ta.lowest(low, sr_period)
+resistance = h[1]
+support = l[1]
+mid_level = (resistance + support) / 2
 
-// SIGNALS
-breakout = close > res and close[1] <= res
-rsi_ok = rsi > rsi_thresh
+// TREND & MOMENTUM
+macd_line = ta.macd(close, macd_fast, macd_slow, macd_signal)[0]
+macd_signal_line = ta.macd(close, macd_fast, macd_slow, macd_signal)[1]
+macd_hist = macd_line - macd_signal_line
+atr = ta.atr(atr_period)
+
+// VOLUME
 avg_vol = ta.sma(volume, 20)
-vol_ok = volume > avg_vol * vol_mult
+vol_confirmed = volume > (avg_vol * min_volume_mult)
 
-buy_sig = breakout and rsi_ok and vol_ok
+// ═════════════════════════════════════════════════════════════════
+// ENTRY CONDITIONS
+// ═════════════════════════════════════════════════════════════════
 
-// POSITION
-in_trade = strategy.opentrades > 0
+// BULLISH: Break above resistance + volume + MACD positive
+bullish_breakout = (close > resistance and close[1] <= resistance)
+bullish_volume = vol_confirmed
+bullish_macd = macd_line > macd_signal_line and macd_hist > 0
+
+buy_signal = bullish_breakout and bullish_volume and bullish_macd
+
+// BEARISH: Break below support + volume + MACD negative
+bearish_breakdown = (close < support and close[1] >= support)
+bearish_volume = vol_confirmed
+bearish_macd = macd_line < macd_signal_line and macd_hist < 0
+
+sell_signal = bearish_breakdown and bearish_volume and bearish_macd
+
+// ═════════════════════════════════════════════════════════════════
+// EXIT CONDITIONS
+// ═════════════════════════════════════════════════════════════════
+
+in_pos = strategy.opentrades > 0
 ep = strategy.position_avg_price
-bars = bar_index - strategy.opentrades.entry_bar_index(0)
+pos_type = strategy.position_size > 0 ? "LONG" : "SHORT"
 
-// EXIT LEVELS
-tp_level = ep * (1 + tp_pct / 100)
-sl_level = ep * (1 - sl_pct / 100)
+// Fixed ATR-based exits
+tp_dist = atr * 1.5  // Profit target
+sl_dist = atr * 0.75 // Stop loss
 
-tp_ok = in_trade and close >= tp_level
-sl_ok = in_trade and close <= sl_level
-time_ok = in_trade and bars >= 180
+// LONG exits
+long_tp = ep + tp_dist
+long_sl = ep - sl_dist
 
-// EXECUTE
-if buy_sig and not in_trade
-    strategy.entry("BUY", strategy.long)
+// SHORT exits
+short_tp = ep - tp_dist
+short_sl = ep + sl_dist
 
-if tp_ok
-    strategy.close("BUY", comment="TP")
-if sl_ok
-    strategy.close("BUY", comment="SL")
-if time_ok
-    strategy.close("BUY", comment="TIME")
+long_target = in_pos and pos_type == "LONG" and close >= long_tp
+long_stop = in_pos and pos_type == "LONG" and close <= long_sl
 
-// PLOT PRICE LEVELS
-plot(res, "Resistance", color=color.red, linewidth=2)
-plot(sup, "Support", color=color.blue, linewidth=2)
-plot(in_trade ? tp_level : na, "TP", color=color.green, linewidth=2)
-plot(in_trade ? sl_level : na, "SL", color=color.red, linewidth=2)
+short_target = in_pos and pos_type == "SHORT" and close <= short_tp
+short_stop = in_pos and pos_type == "SHORT" and close >= short_sl
 
-// MARK SIGNALS
-plotshape(buy_sig, style=shape.labelup, location=location.belowbar, color=color.green, size=size.large, text="BUY")
-plotshape(tp_ok, style=shape.labeldown, location=location.abovebar, color=color.lime, size=size.large, text="TP")
-plotshape(sl_ok, style=shape.labeldown, location=location.abovebar, color=color.red, size=size.large, text="SL")
-plotshape(time_ok and not tp_ok and not sl_ok, style=shape.labeldown, location=location.abovebar, color=color.orange, size=size.large, text="TIME")
+// Time exit (30 min = 180 bars on 5m chart)
+time_exit_bars = 180
+bars_held = bar_index - strategy.opentrades.entry_bar_index(0)
+time_exit = in_pos and bars_held >= time_exit_bars
 
-// RSI
-plot(rsi, "RSI", color=color.blue, linewidth=1)
-hline(60, "RSI 60", color=color.orange, linestyle=hline.style_dashed)
-hline(50, "RSI 50", color=color.gray, linestyle=hline.style_dotted)
+// ═════════════════════════════════════════════════════════════════
+// EXECUTE TRADES
+// ═════════════════════════════════════════════════════════════════
 
-// LABELS
-if buy_sig
-    label.new(bar_index, low, text="BREAKOUT\n$" + str.tostring(res, "#.##"), color=color.new(color.green, 0), textcolor=color.white, style=label.style_label_up, size=size.small)
+if buy_signal and not in_pos
+    strategy.entry("LONG", strategy.long, comment="BUY: Breakout + Volume + MACD")
 
-if tp_ok
-    label.new(bar_index, high, text="TARGET\n+2.5%", color=color.new(color.green, 0), textcolor=color.white, style=label.style_label_down, size=size.small)
+if sell_signal and not in_pos
+    strategy.entry("SHORT", strategy.short, comment="SELL: Breakdown + Volume + MACD")
 
-if sl_ok
-    label.new(bar_index, high, text="STOP\n-1.33%", color=color.new(color.red, 0), textcolor=color.white, style=label.style_label_down, size=size.small)
+if long_target
+    strategy.close("LONG", comment="TARGET")
+if long_stop
+    strategy.close("LONG", comment="STOP")
 
-if time_ok and not tp_ok and not sl_ok
-    label.new(bar_index, high, text="TIME EXIT\n30min", color=color.new(color.orange, 0), textcolor=color.white, style=label.style_label_down, size=size.small)
+if short_target
+    strategy.close("SHORT", comment="TARGET")
+if short_stop
+    strategy.close("SHORT", comment="STOP")
+
+if time_exit
+    strategy.close_all(comment="TIME")
+
+// ═════════════════════════════════════════════════════════════════
+// VISUALIZATION
+// ═════════════════════════════════════════════════════════════════
+
+// Plot S/R levels
+plot(resistance, "RESISTANCE", color=color.red, linewidth=2)
+plot(support, "SUPPORT", color=color.blue, linewidth=2)
+plot(mid_level, "MID", color=color.gray, linewidth=1)
+
+// Plot exit levels
+plot(in_pos and pos_type == "LONG" ? long_tp : na, "LONG TP", color=color.green, linewidth=2)
+plot(in_pos and pos_type == "LONG" ? long_sl : na, "LONG SL", color=color.red, linewidth=2)
+plot(in_pos and pos_type == "SHORT" ? short_tp : na, "SHORT TP", color=color.green, linewidth=2)
+plot(in_pos and pos_type == "SHORT" ? short_sl : na, "SHORT SL", color=color.red, linewidth=2)
+
+// MACD
+plot(macd_line, "MACD", color=color.blue, linewidth=1)
+plot(macd_signal_line, "MACD Signal", color=color.red, linewidth=1)
+plot(macd_hist, "MACD Hist", color=macd_hist > 0 ? color.green : color.red)
+
+// Volume confirmation indicator
+barcolor(vol_confirmed ? color.new(color.green, 80) : color.new(color.gray, 80))
+
+// ═════════════════════════════════════════════════════════════════
+// SIGNALS ON CHART
+// ═════════════════════════════════════════════════════════════════
+
+// BUY signal
+plotshape(buy_signal, style=shape.labelup, location=location.belowbar, color=color.green, size=size.large, text="BUY")
+// SELL signal
+plotshape(sell_signal, style=shape.labeldown, location=location.abovebar, color=color.red, size=size.large, text="SELL")
+
+// TARGET hits
+plotshape(long_target or short_target, style=shape.diamond, location=location.top, color=color.lime, size=size.small, text="✓")
+// STOP hits
+plotshape(long_stop or short_stop, style=shape.diamond, location=location.top, color=color.orange, size=size.small, text="✗")
+
+// ═════════════════════════════════════════════════════════════════
+// LABELS - WHY WE ENTER
+// ═════════════════════════════════════════════════════════════════
+
+if buy_signal
+    label.new(bar_index, low * 0.99, text="BUY\nResistance: $" + str.tostring(resistance, "#.##") + "\nVol: " + str.tostring(volume/avg_vol, "0.0") + "x\nMACD: Positive",
+              color=color.new(color.green, 0), textcolor=color.white, style=label.style_label_up, size=size.small)
+
+if sell_signal
+    label.new(bar_index, high * 1.01, text="SELL\nSupport: $" + str.tostring(support, "#.##") + "\nVol: " + str.tostring(volume/avg_vol, "0.0") + "x\nMACD: Negative",
+              color=color.new(color.red, 0), textcolor=color.white, style=label.style_label_down, size=size.small)
+
+// ═════════════════════════════════════════════════════════════════
+// ALERTS
+// ═════════════════════════════════════════════════════════════════
+
+alertcondition(buy_signal, title="BUY SIGNAL", message="GOOGL BUY - Resistance Breakout at {{close}}")
+alertcondition(sell_signal, title="SELL SIGNAL", message="GOOGL SELL - Support Breakdown at {{close}}")
+alertcondition(long_target or short_target, title="TARGET HIT", message="GOOGL TARGET HIT at {{close}}")
+alertcondition(long_stop or short_stop, title="STOP HIT", message="GOOGL STOP HIT at {{close}}")
