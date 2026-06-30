@@ -1,101 +1,80 @@
 //@version=5
-strategy("GOOGL Scalping Strategy", overlay=true, default_qty_type=strategy.fixed, default_qty_value=1)
+strategy("GOOGL Scalping", overlay=true)
 
-// INPUT PARAMETERS
-rsi_length = input(14, "RSI Length")
-rsi_threshold = input(60, "RSI Threshold")
-sr_lookback = input(20, "SR Lookback")
-volume_mult = input(1.5, "Volume Mult")
-profit_target_pct = input(2.5, "Profit %")
-stop_loss_pct = input(1.33, "Stop %")
-max_hold_bars = input(180, "Max Bars")
+// INPUTS
+rsi_len = input(14, "RSI")
+rsi_thresh = input(60, "RSI Threshold")
+sr_look = input(20, "SR Lookback")
+vol_mult = input(1.5, "Volume Mult")
+tp_pct = input(2.5, "TP %")
+sl_pct = input(1.33, "SL %")
+max_bars = input(180, "Max Bars")
 
 // CALCULATIONS
-rsi = ta.rsi(close, rsi_length)
-swing_high = ta.highest(high, sr_lookback)
-swing_low = ta.lowest(low, sr_lookback)
-resistance = swing_high[1]
-support = swing_low[1]
+rsi = ta.rsi(close, rsi_len)
+swing_h = ta.highest(high, sr_look)
+swing_l = ta.lowest(low, sr_look)
+resist = swing_h[1]
+supp = swing_l[1]
 
-is_breakout = close > resistance and close[1] <= resistance
-avg_volume = ta.sma(volume, 20)
-is_volume_spike = volume > (avg_volume * volume_mult)
+breakout = close > resist and close[1] <= resist
+avg_vol = ta.sma(volume, 20)
+vol_spike = volume > (avg_vol * vol_mult)
 
-entry_signal = is_breakout and rsi > rsi_threshold and is_volume_spike
+entry = breakout and rsi > rsi_thresh and vol_spike
 
-in_position = strategy.opentrades > 0
-entry_price = strategy.position_avg_price
-bars_held = bar_index - strategy.opentrades.entry_bar_index(0)
+in_pos = strategy.opentrades > 0
+entry_px = strategy.position_avg_price
+bars_h = bar_index - strategy.opentrades.entry_bar_index(0)
 
-profit_target = entry_price * (1 + profit_target_pct / 100)
-stop_loss = entry_price * (1 - stop_loss_pct / 100)
+tp = entry_px * (1 + tp_pct / 100)
+sl = entry_px * (1 - sl_pct / 100)
 
-target_hit = in_position and close >= profit_target
-sl_hit = in_position and close <= stop_loss
-time_exit = in_position and bars_held >= max_hold_bars
+tp_hit = in_pos and close >= tp
+sl_hit = in_pos and close <= sl
+time_hit = in_pos and bars_h >= max_bars
 
-// ===== PLOTTING SECTION (TOP LEVEL - NO CONDITIONS) =====
+// PLOTS
+plot(resist, "Resistance", color=color.red, linewidth=2, style=plot.style_dashed)
+plot(supp, "Support", color=color.blue, linewidth=2, style=plot.style_dashed)
+plot(in_pos ? tp : na, "TP", color=color.green, linewidth=2, style=plot.style_dashed)
+plot(in_pos ? sl : na, "SL", color=color.red, linewidth=2, style=plot.style_dashed)
 
-// Plot resistance and support
-plot(resistance, "Resistance", color.red, 2, plot.style_dashed)
-plot(support, "Support", color.blue, 2, plot.style_dashed)
+// SIGNALS
+plotshape(entry, title="BUY", style=shape.labelup, location=location.belowbar, color=color.green, size=size.large, text="BUY")
+plotshape(tp_hit, title="TARGET", style=shape.labeldown, location=location.abovebar, color=color.lime, size=size.large, text="TARGET")
+plotshape(sl_hit, title="STOP", style=shape.labeldown, location=location.abovebar, color=color.red, size=size.large, text="STOP")
+plotshape(time_hit and not tp_hit and not sl_hit, title="TIME", style=shape.labeldown, location=location.abovebar, color=color.orange, size=size.large, text="TIME")
 
-// Plot profit target and stop loss when in position
-plot(in_position ? profit_target : na, "Target", color.green, 2, plot.style_dashed)
-plot(in_position ? stop_loss : na, "Stop", color.red, 2, plot.style_dashed)
+// RSI
+plot(rsi, "RSI", color=color.blue, linewidth=1)
+hline(60, "60", color=color.orange, linestyle=hline.style_dashed)
+hline(50, "50", color=color.gray)
 
-// Plot signals
-plotshape(entry_signal, "BUY", shape.labelup, location.belowbar, color.green, size=size.large, text="BUY")
-plotshape(target_hit, "TARGET", shape.labeldown, location.abovebar, color.lime, size=size.large, text="TARGET")
-plotshape(sl_hit, "STOP", shape.labeldown, location.abovebar, color.red, size=size.large, text="STOP")
-plotshape(time_exit and not target_hit and not sl_hit, "TIME", shape.labeldown, location.abovebar, color.orange, size=size.large, text="TIME")
+// VOLUME
+barcolor(volume > avg_vol * 1.5 ? color.new(color.green, 80) : color.new(color.gray, 80))
 
-// Plot RSI
-plot(rsi, "RSI", color.blue, 1)
-hline(60, "RSI 60", color.orange, hline.style_dashed)
-hline(50, "RSI 50", color.gray, hline.style_dotted)
+// LABELS
+if entry
+    label.new(bar_index, low * 0.99, text="WHY ENTER:\n✓ Breakout $" + str.tostring(resist, "#.00") + "\n✓ RSI " + str.tostring(rsi, "0.0"), color=color.new(color.green, 80), textcolor=color.white, style=label.style_label_up, size=size.small)
 
-// Plot volume
-plot(volume, "Volume", volume > avg_volume * 1.5 ? color.new(color.green, 70) : color.new(color.gray, 70), style=plot.style_columns)
-plot(avg_volume * 1.5, "Vol Threshold", color.orange, 1)
+if tp_hit
+    label.new(bar_index, high * 1.01, text="TARGET HIT\n+2.5%", color=color.new(color.green, 80), textcolor=color.white, style=label.style_label_down, size=size.small)
 
-// ===== LABELS SECTION =====
-
-// Entry label
-if entry_signal
-    entry_text = "WHY ENTER:\n✓ Breakout $" + str.tostring(resistance, "#.00") + "\n✓ RSI " + str.tostring(rsi, "0.0") + "\n✓ Vol " + str.tostring(volume/avg_volume, "0.0") + "x"
-    label.new(bar_index, low * 0.98, text=entry_text, color=color.new(color.green, 80), textcolor=color.white, style=label.style_label_up, size=size.small)
-
-// Target label
-if target_hit
-    target_text = "TARGET HIT\n+$" + str.tostring((close - entry_price) * 100, "0.00")+"/share"
-    label.new(bar_index, high * 1.02, text=target_text, color=color.new(color.lime, 80), textcolor=color.white, style=label.style_label_down, size=size.small)
-
-// Stop label
 if sl_hit
-    stop_text = "STOP HIT\n-$" + str.tostring((entry_price - close) * 100, "0.00")+"/share"
-    label.new(bar_index, high * 1.02, text=stop_text, color=color.new(color.red, 80), textcolor=color.white, style=label.style_label_down, size=size.small)
+    label.new(bar_index, high * 1.01, text="STOP HIT\n-1.33%", color=color.new(color.red, 80), textcolor=color.white, style=label.style_label_down, size=size.small)
 
-// Time exit label
-if time_exit and not target_hit and not sl_hit
-    pnl_pct = (close - entry_price) / entry_price * 100
-    time_text = "TIME EXIT\nP&L: " + str.tostring(pnl_pct, "0.00") + "%"
-    label.new(bar_index, high * 1.02, text=time_text, color=color.new(color.orange, 80), textcolor=color.white, style=label.style_label_down, size=size.small)
+if time_hit and not tp_hit and not sl_hit
+    label.new(bar_index, high * 1.01, text="TIME EXIT\n30min", color=color.new(color.orange, 80), textcolor=color.white, style=label.style_label_down, size=size.small)
 
-// ===== STRATEGY EXECUTION =====
-
-if entry_signal and not in_position
+// STRATEGY
+if entry and not in_pos
     strategy.entry("LONG", strategy.long)
 
-if target_hit
-    strategy.close("LONG")
-else if sl_hit
-    strategy.close("LONG")
-else if time_exit
+if tp_hit or sl_hit or time_hit
     strategy.close("LONG")
 
-// ===== ALERTS =====
-
-alertcondition(entry_signal, title="BUY SIGNAL", message="GOOGL BUY at {{close}}")
-alertcondition(target_hit, title="TARGET HIT", message="GOOGL TARGET at {{close}}")
-alertcondition(sl_hit, title="STOP HIT", message="GOOGL STOP at {{close}}")
+// ALERTS
+alertcondition(entry, title="BUY", message="GOOGL BUY")
+alertcondition(tp_hit, title="TARGET", message="GOOGL TARGET")
+alertcondition(sl_hit, title="STOP", message="GOOGL STOP")
