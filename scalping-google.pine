@@ -127,12 +127,12 @@ plotshape(long_stop or short_stop, style=shape.diamond, location=location.top, c
 // ═════════════════════════════════════════════════════════════════
 
 if buy_signal and not in_pos
-    label.new(bar_index, low * 0.99, text="BUY\n$" + str.tostring(resistance, "#.##") + "\nVol: " + str.tostring(volume/avg_vol, "0.0") + "x\nRSI: " + str.tostring(rsi, "0.0"),
-              color=color.new(color.green, 0), textcolor=color.white, style=label.style_label_up, size=size.small)
+    label.new(bar_index, low * 0.99, text="BUY @ $" + str.tostring(close, "#.##"),
+              color=color.new(color.green, 0), textcolor=color.white, style=label.style_label_up, size=size.large)
 
 if sell_signal and not in_pos
-    label.new(bar_index, high * 1.01, text="SELL\n$" + str.tostring(support, "#.##") + "\nVol: " + str.tostring(volume/avg_vol, "0.0") + "x\nRSI: " + str.tostring(rsi, "0.0"),
-              color=color.new(color.red, 0), textcolor=color.white, style=label.style_label_down, size=size.small)
+    label.new(bar_index, high * 1.01, text="SELL @ $" + str.tostring(close, "#.##"),
+              color=color.new(color.red, 0), textcolor=color.white, style=label.style_label_down, size=size.large)
 
 // ═════════════════════════════════════════════════════════════════
 // ALERTS
