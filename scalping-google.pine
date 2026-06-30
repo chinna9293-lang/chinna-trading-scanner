@@ -1,13 +1,13 @@
-//@version=5
+//@version=6
 strategy("GOOGL Scalping", overlay=true, default_qty_type=strategy.fixed, default_qty_value=100)
 
 // INPUT
-rsi_len = input(14)
-rsi_thresh = input(60)
-sr_len = input(20)
-vol_mult = input(1.5)
-tp = input(2.5)
-sl = input(1.33)
+rsi_len = input(14, "RSI Length")
+rsi_thresh = input(60, "RSI Threshold")
+sr_len = input(20, "SR Lookback")
+vol_mult = input(1.5, "Volume Mult")
+tp_pct = input(2.5, "TP %")
+sl_pct = input(1.33, "SL %")
 
 // RSI
 rsi = ta.rsi(close, rsi_len)
@@ -32,8 +32,8 @@ ep = strategy.position_avg_price
 bars = bar_index - strategy.opentrades.entry_bar_index(0)
 
 // EXIT LEVELS
-tp_level = ep * (1 + tp / 100)
-sl_level = ep * (1 - sl / 100)
+tp_level = ep * (1 + tp_pct / 100)
+sl_level = ep * (1 - sl_pct / 100)
 
 tp_ok = in_trade and close >= tp_level
 sl_ok = in_trade and close <= sl_level
@@ -51,10 +51,10 @@ if time_ok
     strategy.close("BUY", comment="TIME")
 
 // PLOT PRICE LEVELS
-plot(res, color=color.red, linewidth=2)
-plot(sup, color=color.blue, linewidth=2)
-plot(in_trade ? tp_level : na, color=color.green, linewidth=2)
-plot(in_trade ? sl_level : na, color=color.red, linewidth=2)
+plot(res, "Resistance", color=color.red, linewidth=2)
+plot(sup, "Support", color=color.blue, linewidth=2)
+plot(in_trade ? tp_level : na, "TP", color=color.green, linewidth=2)
+plot(in_trade ? sl_level : na, "SL", color=color.red, linewidth=2)
 
 // MARK SIGNALS
 plotshape(buy_sig, style=shape.labelup, location=location.belowbar, color=color.green, size=size.large, text="BUY")
@@ -63,16 +63,19 @@ plotshape(sl_ok, style=shape.labeldown, location=location.abovebar, color=color.
 plotshape(time_ok and not tp_ok and not sl_ok, style=shape.labeldown, location=location.abovebar, color=color.orange, size=size.large, text="TIME")
 
 // RSI
-plot(rsi, color=color.blue)
-hline(60, color=color.orange)
-hline(50, color=color.gray)
+plot(rsi, "RSI", color=color.blue, linewidth=1)
+hline(60, "RSI 60", color=color.orange, linestyle=hline.style_dashed)
+hline(50, "RSI 50", color=color.gray, linestyle=hline.style_dotted)
 
 // LABELS
 if buy_sig
-    label.new(bar_index, low, text="BREAKOUT\n$" + str.tostring(res, "#.##"), color=color.green, textcolor=color.white, style=label.style_label_up)
+    label.new(bar_index, low, text="BREAKOUT\n$" + str.tostring(res, "#.##"), color=color.new(color.green, 0), textcolor=color.white, style=label.style_label_up, size=size.small)
 
 if tp_ok
-    label.new(bar_index, high, text="TARGET\n+2.5%", color=color.green, textcolor=color.white, style=label.style_label_down)
+    label.new(bar_index, high, text="TARGET\n+2.5%", color=color.new(color.green, 0), textcolor=color.white, style=label.style_label_down, size=size.small)
 
 if sl_ok
-    label.new(bar_index, high, text="STOP\n-1.33%", color=color.red, textcolor=color.white, style=label.style_label_down)
+    label.new(bar_index, high, text="STOP\n-1.33%", color=color.new(color.red, 0), textcolor=color.white, style=label.style_label_down, size=size.small)
+
+if time_ok and not tp_ok and not sl_ok
+    label.new(bar_index, high, text="TIME EXIT\n30min", color=color.new(color.orange, 0), textcolor=color.white, style=label.style_label_down, size=size.small)
