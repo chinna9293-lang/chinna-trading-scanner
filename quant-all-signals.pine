@@ -99,21 +99,21 @@ medium_sell = sell_votes == 3
 
 // Strong BUY
 if strong_buy
-    label.new(bar_index, low * 0.98, text="STRONG BUY " + str.tostring(buy_votes) + "/6",
+    label.new(bar_index, low * 0.98, text="BUY",
               color=color.new(color.green, 0), textcolor=color.white, style=label.style_label_up, size=size.large)
 
 // Medium BUY
 if medium_buy and not strong_buy
-    label.new(bar_index, low * 0.99, text="BUY " + str.tostring(buy_votes) + "/6",
+    label.new(bar_index, low * 0.99, text="BUY",
               color=color.new(color.lime, 0), textcolor=color.white, style=label.style_label_up, size=size.large)
 
 // Strong SELL
 if strong_sell
-    label.new(bar_index, high * 1.02, text="STRONG SELL " + str.tostring(sell_votes) + "/6",
+    label.new(bar_index, high * 1.02, text="SELL",
               color=color.new(color.red, 0), textcolor=color.white, style=label.style_label_down, size=size.large)
 
 // Medium SELL
 if medium_sell and not strong_sell
-    label.new(bar_index, high * 1.01, text="SELL " + str.tostring(sell_votes) + "/6",
+    label.new(bar_index, high * 1.01, text="SELL",
               color=color.new(color.orange, 0), textcolor=color.white, style=label.style_label_down, size=size.large)
 
