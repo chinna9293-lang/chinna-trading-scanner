@@ -1,0 +1,172 @@
+//@version=5
+strategy("GOOGL Scalping: Entry & Exit Analysis", overlay=true, default_qty_type=strategy.fixed, default_qty_value=1, max_bars_back=100)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GOOGL SCALPING STRATEGY WITH DETAILED ENTRY/EXIT ANNOTATIONS
+// Risk: $10,000 | Reward Target: $3-4 per share
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INPUT PARAMETERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+rsi_length = input(14, "RSI Length", group="MOMENTUM")
+rsi_threshold = input(60, "RSI Buy Threshold", group="MOMENTUM")
+
+sr_lookback = input(20, "Support/Resistance Lookback", group="SUPPORT & RESISTANCE")
+
+volume_mult = input(1.5, "Volume Multiplier", group="VOLUME")
+
+profit_target_pct = input(2.5, "Profit Target %", group="EXIT")
+stop_loss_pct = input(1.33, "Stop Loss %", group="EXIT")
+max_hold_bars = input(180, "Max Hold Bars (30min on 5m tf)", group="EXIT")
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CORE INDICATORS & SIGNALS
+// ─────────────────────────────────────────────────────────────────────────────
+
+closes = close
+highs = high
+lows = low
+volumes = volume
+
+// RSI Momentum Indicator
+rsi = ta.rsi(closes, rsi_length)
+rsi_bullish = rsi > rsi_threshold
+
+// Support & Resistance Levels
+swing_high = ta.highest(highs, sr_lookback)
+swing_low = ta.lowest(lows, sr_lookback)
+resistance = swing_high[1]  // Previous swing high = resistance
+support = swing_low[1]      // Previous swing low = support
+
+// Breakout Detection
+is_breakout = close > resistance and close[1] <= resistance
+prev_resistance_hold = close[1] > resistance  // Price was above resistance yesterday
+
+// Volume Spike Confirmation
+avg_volume = ta.sma(volumes, 20)
+is_volume_spike = volume > (avg_volume * volume_mult)
+
+// ENTRY SIGNAL: All 3 conditions must be true
+entry_signal = is_breakout and rsi_bullish and is_volume_spike
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POSITION TRACKING & EXIT SIGNALS
+// ─────────────────────────────────────────────────────────────────────────────
+
+in_position = strategy.opentrades > 0
+entry_price = strategy.position_avg_price
+bars_held = bar_index - strategy.opentrades.entry_bar_index(0)
+
+// Exit conditions
+profit_target = entry_price * (1 + profit_target_pct / 100)
+stop_loss = entry_price * (1 - stop_loss_pct / 100)
+
+target_hit = in_position and close >= profit_target
+sl_hit = in_position and close <= stop_loss
+time_exit = in_position and bars_held >= max_hold_bars
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXECUTE STRATEGY
+// ─────────────────────────────────────────────────────────────────────────────
+
+if entry_signal and not in_position
+    strategy.entry("LONG", strategy.long, comment="SCALP ENTRY")
+
+if target_hit
+    strategy.close("LONG", comment="TARGET HIT: +2.5%")
+else if sl_hit
+    strategy.close("LONG", comment="STOP LOSS HIT: -1.33%")
+else if time_exit
+    strategy.close("LONG", comment="TIME EXIT: 30min")
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VISUAL ANNOTATIONS: WHY WE ENTER
+// ─────────────────────────────────────────────────────────────────────────────
+
+if entry_signal
+    // Plot entry point
+    plotshape(1, title="ENTRY SIGNAL", style=shape.labelup, location=location.belowbar,
+              color=color.new(color.green, 0), size=size.large, text="🟢 ENTRY")
+
+    // Add detailed entry reason label
+    label_entry = label.new(bar_index, low - (high - low) * 0.15,
+        text="WHY ENTER:\n" +
+             "✓ BREAKOUT: Price broke above $" + str.tostring(resistance, "#.00") + " resistance\n" +
+             "✓ MOMENTUM: RSI = " + str.tostring(rsi, "0.0") + " > 60 (strong)\n" +
+             "✓ VOLUME: Vol " + str.tostring(volume/avg_volume, "0.0") + "x avg (confirmed)",
+        color=color.new(color.green, 80), textcolor=color.white, style=label.style_label_up,
+        size=size.small)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VISUAL ANNOTATIONS: WHY WE EXIT
+// ─────────────────────────────────────────────────────────────────────────────
+
+if in_position
+    // Plot exit levels
+    plot(profit_target, title="Profit Target", color=color.new(color.green, 50), linewidth=2, style=plot.style_dashed)
+    plot(stop_loss, title="Stop Loss", color=color.new(color.red, 50), linewidth=2, style=plot.style_dashed)
+
+if target_hit
+    plotshape(1, title="TARGET HIT", style=shape.labeldown, location=location.abovebar,
+              color=color.new(color.lime, 0), size=size.large, text="🎯 TARGET +2.5%")
+
+    label_exit_target = label.new(bar_index, high + (high - low) * 0.10,
+        text="WHY EXIT:\n✓ Profit Target Hit: +$" + str.tostring((close - entry_price) * 100, "0.00") + "/share\n✓ Risk/Reward achieved (1:1.5)",
+        color=color.new(color.lime, 80), textcolor=color.white, style=label.style_label_down,
+        size=size.small)
+
+if sl_hit
+    plotshape(1, title="STOP HIT", style=shape.labeldown, location=location.abovebar,
+              color=color.new(color.red, 0), size=size.large, text="🛑 STOP LOSS -1.33%")
+
+    label_exit_sl = label.new(bar_index, high + (high - low) * 0.10,
+        text="WHY EXIT:\n✗ Stop Loss Hit: -$" + str.tostring((entry_price - close) * 100, "0.00") + "/share\n✗ Risk protection triggered",
+        color=color.new(color.red, 80), textcolor=color.white, style=label.style_label_down,
+        size=size.small)
+
+if time_exit and not target_hit and not sl_hit
+    plotshape(1, title="TIME EXIT", style=shape.labeldown, location=location.abovebar,
+              color=color.new(color.orange, 0), size=size.large, text="⏰ 30MIN EXIT")
+
+    label_exit_time = label.new(bar_index, high + (high - low) * 0.10,
+        text="WHY EXIT:\n⏱️ 30-minute hold time reached\n⏱️ Scalp timeframe complete\n📊 Current P&L: " + str.tostring((close - entry_price) / entry_price * 100, "0.00") + "%",
+        color=color.new(color.orange, 80), textcolor=color.white, style=label.style_label_down,
+        size=size.small)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUPPORT & RESISTANCE VISUALIZATION
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Plot key levels
+plot(resistance, title="Resistance (20-bar high)", color=color.new(color.red, 50), linewidth=2, style=plot.style_dashed)
+plot(support, title="Support (20-bar low)", color=color.new(color.blue, 50), linewidth=2, style=plot.style_dashed)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INDICATOR DASHBOARD
+// ─────────────────────────────────────────────────────────────────────────────
+
+// RSI indicator below chart
+rsi_plot = plot(rsi, title="RSI", color=color.blue, linewidth=1)
+hline(60, "RSI 60 Threshold", color=color.orange, linestyle=hline.style_dashed)
+hline(50, "RSI 50 Midline", color=color.gray, linestyle=hline.style_dotted)
+hline(40, "RSI 40", color=color.gray, linestyle=hline.style_dotted)
+
+// Volume indicator
+volume_color = volume > avg_volume * 1.5 ? color.new(color.green, 70) : color.new(color.gray, 70)
+plot(volume, title="Volume", color=volume_color, style=plot.style_columns)
+plot(avg_volume * 1.5, title="Volume Threshold (1.5x avg)", color=color.orange, linewidth=1)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ALERTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+alertcondition(entry_signal, title="GOOGL SCALP BUY SIGNAL",
+               message="🟢 GOOGL ENTRY: Breakout + Momentum + Volume confirmed at ${{close}}")
+
+alertcondition(target_hit, title="GOOGL PROFIT TARGET",
+               message="🎯 GOOGL TARGET HIT: +2.5% at ${{close}}")
+
+alertcondition(sl_hit, title="GOOGL STOP LOSS",
+               message="🛑 GOOGL STOP HIT: -1.33% at ${{close}}")
