@@ -54,49 +54,49 @@ else if sl_hit
 else if time_exit
     strategy.close("LONG", comment="TIME EXIT")
 
-// ENTRY SIGNALS - GREEN LABELS
-if entry_signal
-    plotshape(1, title="ENTRY SIGNAL", style=shape.labelup, location=location.belowbar, color=color.new(color.green, 0), size=size.large, text="🟢 BUY")
+// PLOT ENTRY SIGNALS (must be outside if statement)
+plotshape(entry_signal ? 1 : na, title="ENTRY SIGNAL", style=shape.labelup, location=location.belowbar, color=color.new(color.green, 0), size=size.large, text="🟢 BUY")
 
+// PLOT EXIT SIGNALS
+plotshape(target_hit ? 1 : na, title="TARGET HIT", style=shape.labeldown, location=location.abovebar, color=color.new(color.lime, 0), size=size.large, text="🎯 TARGET")
+plotshape(sl_hit ? 1 : na, title="STOP HIT", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), size=size.large, text="🛑 STOP")
+plotshape(time_exit and not target_hit and not sl_hit ? 1 : na, title="TIME EXIT", style=shape.labeldown, location=location.abovebar, color=color.new(color.orange, 0), size=size.large, text="⏰ TIME")
+
+// LABELS FOR ENTRY
+if entry_signal
     entry_text = "WHY ENTER:\n✓ BREAKOUT above $" + str.tostring(resistance, "#.00") + "\n✓ RSI = " + str.tostring(rsi, "0.0") + " > 60\n✓ Volume " + str.tostring(volume/avg_volume, "0.0") + "x avg"
     label.new(bar_index, low - (high - low) * 0.15, text=entry_text, color=color.new(color.green, 80), textcolor=color.white, style=label.style_label_up, size=size.small)
 
-// EXIT - TARGET HIT
+// LABELS FOR TARGET EXIT
 if target_hit
-    plotshape(1, title="TARGET HIT", style=shape.labeldown, location=location.abovebar, color=color.new(color.lime, 0), size=size.large, text="🎯 TARGET")
-
     exit_text = "WHY EXIT:\n✓ Target +2.5% Hit\n✓ Profit: $" + str.tostring((close - entry_price) * 100, "0.00")
     label.new(bar_index, high + (high - low) * 0.10, text=exit_text, color=color.new(color.lime, 80), textcolor=color.white, style=label.style_label_down, size=size.small)
 
-// EXIT - STOP LOSS
+// LABELS FOR STOP LOSS EXIT
 if sl_hit
-    plotshape(1, title="STOP HIT", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0), size=size.large, text="🛑 STOP")
-
     exit_text = "WHY EXIT:\n✗ Stop -1.33% Hit\n✗ Loss: $" + str.tostring((entry_price - close) * 100, "0.00")
     label.new(bar_index, high + (high - low) * 0.10, text=exit_text, color=color.new(color.red, 80), textcolor=color.white, style=label.style_label_down, size=size.small)
 
-// EXIT - TIME
+// LABELS FOR TIME EXIT
 if time_exit and not target_hit and not sl_hit
-    plotshape(1, title="TIME EXIT", style=shape.labeldown, location=location.abovebar, color=color.new(color.orange, 0), size=size.large, text="⏰ TIME")
-
     pnl_pct = (close - entry_price) / entry_price * 100
     exit_text = "WHY EXIT:\n⏰ 30min Timeout\n📊 P&L: " + str.tostring(pnl_pct, "0.00") + "%"
     label.new(bar_index, high + (high - low) * 0.10, text=exit_text, color=color.new(color.orange, 80), textcolor=color.white, style=label.style_label_down, size=size.small)
 
-// PLOT LEVELS
+// PLOT RESISTANCE & SUPPORT
 plot(resistance, title="Resistance", color=color.new(color.red, 50), linewidth=2, style=plot.style_dashed)
 plot(support, title="Support", color=color.new(color.blue, 50), linewidth=2, style=plot.style_dashed)
 
-if in_position
-    plot(profit_target, title="Profit Target", color=color.new(color.green, 50), linewidth=2, style=plot.style_dashed)
-    plot(stop_loss, title="Stop Loss", color=color.new(color.red, 50), linewidth=2, style=plot.style_dashed)
+// PLOT PROFIT TARGET & STOP LOSS (only when in position)
+plot(in_position ? profit_target : na, title="Profit Target", color=color.new(color.green, 50), linewidth=2, style=plot.style_dashed)
+plot(in_position ? stop_loss : na, title="Stop Loss", color=color.new(color.red, 50), linewidth=2, style=plot.style_dashed)
 
-// RSI PLOT
+// RSI INDICATOR
 plot(rsi, title="RSI", color=color.blue, linewidth=1)
 hline(60, "RSI 60", color=color.orange, linestyle=hline.style_dashed)
 hline(50, "RSI 50", color=color.gray, linestyle=hline.style_dotted)
 
-// VOLUME
+// VOLUME INDICATOR
 volume_color = volume > avg_volume * 1.5 ? color.new(color.green, 70) : color.new(color.gray, 70)
 plot(volume, title="Volume", color=volume_color, style=plot.style_columns)
 plot(avg_volume * 1.5, title="Volume Threshold", color=color.orange, linewidth=1)
