@@ -158,18 +158,49 @@ async function getBars(symbol, limit = 60) {
 }
 
 function checkSignal(bars) {
-  if (bars.length < 25) return null;
+  if (bars.length < 21) return null;
 
   const closes = bars.map(b => b.c);
-  const e9 = ema(closes, 9);
-  const e21 = ema(closes, 21);
-  const r = rsiCalc(closes);
-  const atr = atrCalc(bars);
-  const last = bars[bars.length - 1];
+  const highs = bars.map(b => b.h);
+  const lows = bars.map(b => b.l);
+  const volumes = bars.map(b => b.v);
 
-  // Simple: EMA9 > EMA21 + RSI in zone
-  if (e9 > e21 && r > 45 && r < 65) {
-    return { side: 'buy', price: last.c, atr, e9, e21, rsi: r };
+  const last = bars[bars.length - 1];
+  const prev = bars[bars.length - 2];
+
+  // ─ MOMENTUM: RSI > 60 (strong bullish momentum)
+  const rsi = rsiCalc(closes);
+  const momentum = rsi > 60;
+
+  // ─ SUPPORT & RESISTANCE (20-bar lookback)
+  const swingHigh = Math.max(...highs.slice(-20));
+  const swingLow = Math.min(...lows.slice(-20));
+  const resistance = swingHigh;
+  const support = swingLow;
+
+  // ─ BREAKOUT: Price breaks above resistance
+  const breakoutAbove = last.c > resistance && prev.c <= resistance;
+
+  // ─ VOLUME CONFIRMATION: Volume > 1.5x average
+  const avgVolume = volumes.slice(-20).reduce((a, b) => a + b, 0) / 20;
+  const volumeSpike = last.v > (avgVolume * 1.5);
+
+  // ─ ENTRY SIGNAL: Breakout + Momentum + Volume
+  if (breakoutAbove && momentum && volumeSpike) {
+    const entryPrice = last.c;
+    const stopLoss = entryPrice * (1 - 0.0133); // -1.33% = $2 on $150
+    const profitTarget = entryPrice * (1 + 0.025); // +2.5% = $3.75 on $150
+
+    return {
+      side: 'buy',
+      price: entryPrice,
+      stopLoss,
+      profitTarget,
+      rsi,
+      resistance,
+      support,
+      signalType: 'BREAKOUT + MOMENTUM + VOLUME'
+    };
   }
 
   return null;
@@ -220,10 +251,38 @@ async function scanForSignal() {
           stop_loss: { stop_price: slPx },
         });
 
-        if (order.id) {
+        if (sig) {
+          // Calculate position size for $10,000 risk
+          const riskPerTrade = 10000;
+          const stopLossPercent = 1.33;
+          const stopLossAmount = sig.price * (stopLossPercent / 100);
+          const positionSize = Math.floor(riskPerTrade / stopLossAmount);
+
+          const entryPrice = sig.price;
+          const stopPrice = sig.stopLoss;
+          const targetPrice = sig.profitTarget;
+
+          const riskDollars = (entryPrice - stopPrice) * positionSize;
+          const rewardDollars = (targetPrice - entryPrice) * positionSize;
+
           await notify(
-            `🟢 BUY SIGNAL ${symbol}`,
-            `Entry: $${sig.price}\nTP: $${tpPx}\nSL: $${slPx}\nQty: ${qty}`,
+            `🟢 SCALP SIGNAL: ${symbol} - ${sig.signalType}`,
+            `
+ENTRY: $${entryPrice.toFixed(2)}
+STOP:  $${stopPrice.toFixed(2)} (Loss: $${riskDollars.toFixed(0)})
+TARGET: $${targetPrice.toFixed(2)} (Profit: $${rewardDollars.toFixed(0)})
+
+POSITION SIZE: ${positionSize.toLocaleString()} shares
+CAPITAL AT RISK: $${riskDollars.toFixed(0)}
+POTENTIAL REWARD: $${rewardDollars.toFixed(0)}
+R:R = 1:${(rewardDollars / riskDollars).toFixed(2)}
+
+RESISTANCE: $${sig.resistance.toFixed(2)}
+SUPPORT: $${sig.support.toFixed(2)}
+RSI: ${sig.rsi.toFixed(0)}
+
+⏰ EXIT: 30 min timeout or $${rewardDollars.toFixed(0)} profit hit
+            `,
             'high',
             'rocket'
           );
