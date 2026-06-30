@@ -1,15 +1,14 @@
 //@version=6
-strategy("GOOGL Scalping - ONE Trade Per Signal", overlay=true, default_qty_type=strategy.fixed, default_qty_value=100)
+strategy("GOOGL Scalping - Simple S/R", overlay=true, default_qty_type=strategy.fixed, default_qty_value=100)
 
 // INPUTS
 sr_period = input(20, "S/R Period")
 rsi_period = input(14, "RSI Period")
 rsi_bull = input(55, "RSI Bullish")
 rsi_bear = input(45, "RSI Bearish")
-atr_period = input(14, "ATR Period")
 min_volume_mult = input(1.8, "Min Volume")
 
-// SUPPORT & RESISTANCE
+// SUPPORT & RESISTANCE ZONES
 h = ta.highest(high, sr_period)
 l = ta.lowest(low, sr_period)
 resistance = h[1]
@@ -17,128 +16,80 @@ support = l[1]
 
 // MOMENTUM
 rsi = ta.rsi(close, rsi_period)
-atr = ta.atr(atr_period)
 
 // VOLUME
 avg_vol = ta.sma(volume, 20)
 vol_confirmed = volume > (avg_vol * min_volume_mult)
 
 // ═════════════════════════════════════════════════════════════════
-// KEY: Only trigger on FIRST bar of breakout (not every bar after)
+// SIGNALS: Simple entry conditions
 // ═════════════════════════════════════════════════════════════════
 
-// BULLISH: First bar breaking above resistance
+// BUY: Break support + volume + RSI bullish
 bullish_breakout = (close > resistance and close[1] <= resistance)
-bullish_volume = vol_confirmed
-bullish_momentum = rsi > rsi_bull
-buy_signal = bullish_breakout and bullish_volume and bullish_momentum
+buy_signal = bullish_breakout and vol_confirmed and rsi > rsi_bull
 
-// BEARISH: First bar breaking below support
+// SELL: Break support + volume + RSI bearish
 bearish_breakdown = (close < support and close[1] >= support)
-bearish_volume = vol_confirmed
-bearish_momentum = rsi < rsi_bear
-sell_signal = bearish_breakdown and bearish_volume and bearish_momentum
+sell_signal = bearish_breakdown and vol_confirmed and rsi < rsi_bear
 
 // ═════════════════════════════════════════════════════════════════
-// POSITION MANAGEMENT
+// POSITION & EXIT: Sell at resistance level (not a target)
 // ═════════════════════════════════════════════════════════════════
 
 in_pos = strategy.opentrades > 0
-ep = strategy.position_avg_price
 pos_type = strategy.position_size > 0 ? "LONG" : "SHORT"
-bars = bar_index - strategy.opentrades.entry_bar_index(0)
 
-// Exit levels
-tp_dist = atr * 1.5
-sl_dist = atr * 0.75
-
-long_tp = ep + tp_dist
-long_sl = ep - sl_dist
-
-short_tp = ep - tp_dist
-short_sl = ep + sl_dist
-
-long_target = in_pos and pos_type == "LONG" and close >= long_tp
-long_stop = in_pos and pos_type == "LONG" and close <= long_sl
-
-short_target = in_pos and pos_type == "SHORT" and close <= short_tp
-short_stop = in_pos and pos_type == "SHORT" and close >= short_sl
-
-time_exit = in_pos and bars >= 180
+// EXIT when price reaches the opposite level
+long_exit = in_pos and pos_type == "LONG" and close >= resistance
+short_exit = in_pos and pos_type == "SHORT" and close <= support
 
 // ═════════════════════════════════════════════════════════════════
-// TRADE EXECUTION - CRITICAL: Only enter if NO position open
+// EXECUTE TRADES
 // ═════════════════════════════════════════════════════════════════
 
 if buy_signal and not in_pos
-    strategy.entry("LONG", strategy.long, comment="BUY BREAKOUT")
+    strategy.entry("LONG", strategy.long)
 
 if sell_signal and not in_pos
-    strategy.entry("SHORT", strategy.short, comment="SELL BREAKDOWN")
+    strategy.entry("SHORT", strategy.short)
 
-// EXIT - ONLY ONE EXIT AT A TIME
-if long_target
-    strategy.close("LONG", comment="TARGET")
-else if long_stop
-    strategy.close("LONG", comment="STOP")
-else if time_exit and pos_type == "LONG"
-    strategy.close("LONG", comment="TIME")
+if long_exit
+    strategy.close("LONG")
 
-if short_target
-    strategy.close("SHORT", comment="TARGET")
-else if short_stop
-    strategy.close("SHORT", comment="STOP")
-else if time_exit and pos_type == "SHORT"
-    strategy.close("SHORT", comment="TIME")
+if short_exit
+    strategy.close("SHORT")
 
 // ═════════════════════════════════════════════════════════════════
-// VISUALIZATION
+// CHART: ONLY Support & Resistance Lines
 // ═════════════════════════════════════════════════════════════════
 
-plot(resistance, "RESISTANCE", color=color.red, linewidth=2)
-plot(support, "SUPPORT", color=color.blue, linewidth=2)
-
-plot(in_pos and pos_type == "LONG" ? long_tp : na, "LONG TP", color=color.green, linewidth=2)
-plot(in_pos and pos_type == "LONG" ? long_sl : na, "LONG SL", color=color.red, linewidth=2)
-plot(in_pos and pos_type == "SHORT" ? short_tp : na, "SHORT TP", color=color.green, linewidth=2)
-plot(in_pos and pos_type == "SHORT" ? short_sl : na, "SHORT SL", color=color.red, linewidth=2)
-
-// RSI
-plot(rsi, "RSI", color=color.blue, linewidth=1)
-hline(rsi_bull, "RSI Bull", color=color.green, linestyle=hline.style_dashed)
-hline(rsi_bear, "RSI Bear", color=color.red, linestyle=hline.style_dashed)
-hline(50, "RSI Mid", color=color.gray, linestyle=hline.style_dotted)
-
-// Volume bars
-barcolor(vol_confirmed ? color.new(color.green, 80) : color.new(color.gray, 80))
+plot(resistance, "SELL ZONE", color=color.red, linewidth=3)
+plot(support, "BUY ZONE", color=color.green, linewidth=3)
 
 // ═════════════════════════════════════════════════════════════════
-// SIGNALS ON CHART - Only shows EXACT entry points
+// SIMPLE ENTRY SIGNALS
 // ═════════════════════════════════════════════════════════════════
 
 plotshape(buy_signal and not in_pos, style=shape.labelup, location=location.belowbar, color=color.green, size=size.large, text="BUY")
 plotshape(sell_signal and not in_pos, style=shape.labeldown, location=location.abovebar, color=color.red, size=size.large, text="SELL")
 
-plotshape(long_target or short_target, style=shape.diamond, location=location.top, color=color.lime, size=size.small, text="✓")
-plotshape(long_stop or short_stop, style=shape.diamond, location=location.top, color=color.orange, size=size.small, text="✗")
-
 // ═════════════════════════════════════════════════════════════════
-// LABELS - Show WHY we entered
+// SIMPLE LABELS
 // ═════════════════════════════════════════════════════════════════
 
 if buy_signal and not in_pos
-    label.new(bar_index, low * 0.99, text="BUY @ $" + str.tostring(close, "#.##"),
+    label.new(bar_index, low * 0.98, text="BUY @ $" + str.tostring(close, "#.##"),
               color=color.new(color.green, 0), textcolor=color.white, style=label.style_label_up, size=size.large)
 
 if sell_signal and not in_pos
-    label.new(bar_index, high * 1.01, text="SELL @ $" + str.tostring(close, "#.##"),
+    label.new(bar_index, high * 1.02, text="SELL @ $" + str.tostring(close, "#.##"),
               color=color.new(color.red, 0), textcolor=color.white, style=label.style_label_down, size=size.large)
 
-// ═════════════════════════════════════════════════════════════════
-// ALERTS
-// ═════════════════════════════════════════════════════════════════
+if long_exit
+    label.new(bar_index, high, text="EXIT @ $" + str.tostring(close, "#.##"),
+              color=color.new(color.orange, 0), textcolor=color.white, style=label.style_label_down, size=size.large)
 
-alertcondition(buy_signal and not in_pos, title="BUY", message="GOOGL BUY at {{close}}")
-alertcondition(sell_signal and not in_pos, title="SELL", message="GOOGL SELL at {{close}}")
-alertcondition(long_target or short_target, title="TARGET", message="GOOGL TARGET at {{close}}")
-alertcondition(long_stop or short_stop, title="STOP", message="GOOGL STOP at {{close}}")
+if short_exit
+    label.new(bar_index, low, text="EXIT @ $" + str.tostring(close, "#.##"),
+              color=color.new(color.orange, 0), textcolor=color.white, style=label.style_label_up, size=size.large)
