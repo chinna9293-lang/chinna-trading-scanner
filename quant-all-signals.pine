@@ -1,5 +1,5 @@
 //@version=6
-indicator("Quant Trading Signals", overlay=true)
+strategy("Quant Trading - Interactive", overlay=true, default_qty_type=strategy.fixed, default_qty_value=100)
 
 // INPUTS
 rsi_len = input(14, "RSI")
@@ -15,43 +15,118 @@ mean_rev_sell = rsi > 70
 // 2. MOMENTUM
 ema9 = ta.ema(close, ema_fast)
 ema21 = ta.ema(close, ema_slow)
-momentum_buy = ema9 > ema21
-momentum_sell = ema9 < ema21
+momentum_buy = ema9 > ema21 and ema9[1] <= ema21[1]
+momentum_sell = ema9 < ema21 and ema9[1] >= ema21[1]
 
 // 3. BREAKOUT
 h = ta.highest(high, lookback)
 l = ta.lowest(low, lookback)
-breakout_buy = close > h[1]
-breakout_sell = close < l[1]
+breakout_buy = close > h[1] and close[1] <= h[1]
+breakout_sell = close < l[1] and close[1] >= l[1]
 
 // 4. STAT ARB
 sma = ta.sma(close, lookback)
 dev = ta.stdev(close, lookback)
 zs = (close - sma) / dev
-arb_buy = zs < -1.5
-arb_sell = zs > 1.5
+arb_buy = zs < -1.5 and zs[1] >= -1.5
+arb_sell = zs > 1.5 and zs[1] <= 1.5
 
 // 5. VOLATILITY
 atr = ta.atr(14)
 vol_pct = atr / close * 100
-vol_buy = vol_pct < 2
-vol_sell = vol_pct > 3
+vol_buy = vol_pct < 2 and close > ema21
+vol_sell = vol_pct > 3 or (vol_pct < 2 and close < ema21)
 
 // 6. KELLY
 win_rate = rsi / 100
 kelly_buy = win_rate > 0.55
 kelly_sell = win_rate < 0.45
 
-// COMBINE
-buy_count = (mean_rev_buy ? 1 : 0) + (momentum_buy ? 1 : 0) + (breakout_buy ? 1 : 0) + (arb_buy ? 1 : 0) + (vol_buy ? 1 : 0) + (kelly_buy ? 1 : 0)
-sell_count = (mean_rev_sell ? 1 : 0) + (momentum_sell ? 1 : 0) + (breakout_sell ? 1 : 0) + (arb_sell ? 1 : 0) + (vol_sell ? 1 : 0) + (kelly_sell ? 1 : 0)
+// STRATEGY VOTE COUNTING
+buy_votes = (mean_rev_buy ? 1 : 0) + (momentum_buy ? 1 : 0) + (breakout_buy ? 1 : 0) + (arb_buy ? 1 : 0) + (vol_buy ? 1 : 0) + (kelly_buy ? 1 : 0)
+sell_votes = (mean_rev_sell ? 1 : 0) + (momentum_sell ? 1 : 0) + (breakout_sell ? 1 : 0) + (arb_sell ? 1 : 0) + (vol_sell ? 1 : 0) + (kelly_sell ? 1 : 0)
 
-strong_buy = buy_count >= 4
-strong_sell = sell_count >= 4
+strong_buy = buy_votes >= 4
+strong_sell = sell_votes >= 4
 
-// SIGNALS
+// ═════════════════════════════════════════════════════════════════
+// POSITION TRACKING - ONLY ONE TRADE AT A TIME
+// ═════════════════════════════════════════════════════════════════
+
+in_position = strategy.opentrades > 0
+
+if strong_buy and not in_position
+    strategy.entry("LONG", strategy.long, comment="BUY")
+
+if strong_sell and in_position
+    strategy.close("LONG", comment="SELL")
+
+// ═════════════════════════════════════════════════════════════════
+// BUILD STRATEGY REASON TEXT
+// ═════════════════════════════════════════════════════════════════
+
+reason = ""
 if strong_buy
-    label.new(bar_index, low, text="BUY", color=color.green, textcolor=color.white, style=label.style_label_up)
+    reason := "MeanRev " + (mean_rev_buy ? "Y" : "N") +
+              " Momentum " + (momentum_buy ? "Y" : "N") +
+              " Breakout " + (breakout_buy ? "Y" : "N") +
+              " StatArb " + (arb_buy ? "Y" : "N") +
+              " Vol " + (vol_buy ? "Y" : "N") +
+              " Kelly " + (kelly_buy ? "Y" : "N")
 
 if strong_sell
-    label.new(bar_index, high, text="SELL", color=color.red, textcolor=color.white, style=label.style_label_down)
+    reason := "MeanRev " + (mean_rev_sell ? "Y" : "N") +
+              " Momentum " + (momentum_sell ? "Y" : "N") +
+              " Breakout " + (breakout_sell ? "Y" : "N") +
+              " StatArb " + (arb_sell ? "Y" : "N") +
+              " Vol " + (vol_sell ? "Y" : "N") +
+              " Kelly " + (kelly_sell ? "Y" : "N")
+
+// ═════════════════════════════════════════════════════════════════
+// INTERACTIVE SIGNALS WITH STRATEGY BREAKDOWN
+// ═════════════════════════════════════════════════════════════════
+
+// BUY SIGNAL - Shows which strategies triggered it
+if strong_buy and not in_position
+    label.new(bar_index, low, text="BUY " + str.tostring(buy_votes) + "/6",
+              color=color.new(color.green, 0), textcolor=color.white,
+              style=label.style_label_up, size=size.large, tooltip=reason)
+
+// SELL SIGNAL - Shows which strategies triggered it
+if strong_sell and in_position
+    label.new(bar_index, high, text="SELL " + str.tostring(sell_votes) + "/6",
+              color=color.new(color.red, 0), textcolor=color.white,
+              style=label.style_label_down, size=size.large, tooltip=reason)
+
+// ═════════════════════════════════════════════════════════════════
+// VISUAL POSITION TRACKER - Shows if we're in a trade
+// ═════════════════════════════════════════════════════════════════
+
+bgcolor(in_position ? color.new(color.green, 90) : na, title="Position Active")
+
+// ═════════════════════════════════════════════════════════════════
+// INFO TABLE - Current Status
+// ═════════════════════════════════════════════════════════════════
+
+info = table.new(position.top_right, 2, 7, border_color=color.gray, border_width=1)
+
+table.cell(info, 0, 0, text="QUANT STATUS", text_size=size.small, bgcolor=color.navy, text_color=color.white)
+table.cell(info, 1, 0, text=in_position ? "LONG" : "FLAT", text_size=size.small, bgcolor=in_position ? color.green : color.gray, text_color=color.white)
+
+table.cell(info, 0, 1, text="Mean Rev", text_size=size.small)
+table.cell(info, 1, 1, text=mean_rev_buy ? "BUY" : mean_rev_sell ? "SELL" : "-", text_size=size.small)
+
+table.cell(info, 0, 2, text="Momentum", text_size=size.small)
+table.cell(info, 1, 2, text=momentum_buy ? "BUY" : momentum_sell ? "SELL" : "-", text_size=size.small)
+
+table.cell(info, 0, 3, text="Breakout", text_size=size.small)
+table.cell(info, 1, 3, text=breakout_buy ? "BUY" : breakout_sell ? "SELL" : "-", text_size=size.small)
+
+table.cell(info, 0, 4, text="StatArb", text_size=size.small)
+table.cell(info, 1, 4, text=arb_buy ? "BUY" : arb_sell ? "SELL" : "-", text_size=size.small)
+
+table.cell(info, 0, 5, text="Volatility", text_size=size.small)
+table.cell(info, 1, 5, text=vol_buy ? "BUY" : vol_sell ? "SELL" : "-", text_size=size.small)
+
+table.cell(info, 0, 6, text="Kelly", text_size=size.small)
+table.cell(info, 1, 6, text=kelly_buy ? "BUY" : kelly_sell ? "SELL" : "-", text_size=size.small)
