@@ -117,17 +117,3 @@ if medium_sell and not strong_sell
     label.new(bar_index, high * 1.01, text="SELL " + str.tostring(sell_votes) + "/6",
               color=color.new(color.orange, 0), textcolor=color.white, style=label.style_label_down, size=size.large)
 
-// ═════════════════════════════════════════════════════════════════
-// STRATEGY BREAKDOWN (Info Panel)
-// ═════════════════════════════════════════════════════════════════
-
-info_text = "QUANT SIGNALS:\n" +
-            "Mean Rev: " + (mean_rev_buy ? "BUY" : mean_rev_sell ? "SELL" : "-") + "\n" +
-            "Momentum: " + (momentum_buy ? "BUY" : momentum_sell ? "SELL" : "-") + "\n" +
-            "Breakout: " + (breakout_buy ? "BUY" : breakdown_sell ? "SELL" : "-") + "\n" +
-            "StatArb: " + (stat_arb_buy ? "BUY" : stat_arb_sell ? "SELL" : "-") + "\n" +
-            "Volatility: " + (vol_buy ? "BUY" : vol_sell ? "SELL" : "-") + "\n" +
-            "Kelly: " + (kelly_buy ? "BUY" : kelly_sell ? "SELL" : "-")
-
-plot_position = (buy_votes + sell_votes) > 0 ? high + (atr * 2) : na
-plotchar(plot_position, char="", text=info_text, location=location.absolute, size=size.small, color=color.new(color.gray, 0))
