@@ -22,9 +22,7 @@ support = l[1]
 mid_level = (resistance + support) / 2
 
 // TREND & MOMENTUM
-macd_line = ta.macd(close, macd_fast, macd_slow, macd_signal)[0]
-macd_signal_line = ta.macd(close, macd_fast, macd_slow, macd_signal)[1]
-macd_hist = macd_line - macd_signal_line
+[macd_line, macd_signal_line, macd_hist] = ta.macd(close, macd_fast, macd_slow, macd_signal)
 atr = ta.atr(atr_period)
 
 // VOLUME
