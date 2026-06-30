@@ -51,16 +51,16 @@ kelly_sell = win_rate < 0.45
 // TREND: Price must be above EMA21
 trend_ok = close > ema21
 
-// ADX: Strong trend confirmation (ADX > 25)
+// ADX: Trend confirmation (ADX > 20)
 di_plus = ta.rma(math.max(high - high[1], 0), adx_len)
 di_minus = ta.rma(math.max(low[1] - low, 0), adx_len)
 di_sum = di_plus + di_minus
 adx = di_sum == 0 ? 0 : 100 * ta.rma(math.abs(di_plus - di_minus) / di_sum, adx_len)
-trend_strength = adx > adx_threshold
+trend_strength = adx > 20
 
-// VOLUME: Very strong spike (> 2.5x average)
+// VOLUME: Strong spike (> 1.8x average)
 avg_vol = ta.sma(volume, 20)
-strong_vol = volume > (avg_vol * 2.5)
+strong_vol = volume > (avg_vol * 1.8)
 
 // RSI ZONE: Optimal range (50-65 for buy, 35-50 for sell)
 rsi_buy_zone = rsi >= 50 and rsi <= 65
@@ -78,9 +78,12 @@ strong_candle = candle_body > (candle_range * 0.70)
 buy_votes = (mean_rev_buy ? 1 : 0) + (momentum_buy ? 1 : 0) + (breakout_buy ? 1 : 0) + (arb_buy ? 1 : 0) + (vol_buy ? 1 : 0) + (kelly_buy ? 1 : 0)
 sell_votes = (mean_rev_sell ? 1 : 0) + (momentum_sell ? 1 : 0) + (breakout_sell ? 1 : 0) + (arb_sell ? 1 : 0) + (vol_sell ? 1 : 0) + (kelly_sell ? 1 : 0)
 
-// STRICT: Require 5+ votes AND all quality filters
-best_buy = buy_votes >= 5 and trend_ok and trend_strength and strong_vol and rsi_buy_zone and strong_candle
-best_sell = sell_votes >= 5 and trend_ok and trend_strength and strong_vol and rsi_sell_zone and strong_candle
+// QUALITY: Require 5+ votes OR 4/5 filters passed
+filters_buy = (trend_ok ? 1 : 0) + (trend_strength ? 1 : 0) + (strong_vol ? 1 : 0) + (rsi_buy_zone ? 1 : 0) + (strong_candle ? 1 : 0)
+filters_sell = (trend_ok ? 1 : 0) + (trend_strength ? 1 : 0) + (strong_vol ? 1 : 0) + (rsi_sell_zone ? 1 : 0) + (strong_candle ? 1 : 0)
+
+best_buy = buy_votes >= 5 and (filters_buy >= 4)
+best_sell = sell_votes >= 5 and (filters_sell >= 4)
 
 // ═════════════════════════════════════════════════════════════════
 // POSITION TRACKING
@@ -119,9 +122,9 @@ info = table.new(position.top_right, 2, 3, border_color=color.gray, border_width
 table.cell(info, 0, 0, text="BEST TRADES ONLY", text_size=size.small, bgcolor=color.navy, text_color=color.white)
 table.cell(info, 1, 0, text=in_position ? "LONG" : "FLAT", text_size=size.small, bgcolor=in_position ? color.green : color.gray, text_color=color.white)
 
-table.cell(info, 0, 1, text="Criteria Met", text_size=size.small)
-met = (trend_ok ? 1 : 0) + (trend_strength ? 1 : 0) + (strong_vol ? 1 : 0) + (rsi_buy_zone or rsi_sell_zone ? 1 : 0) + (strong_candle ? 1 : 0)
-table.cell(info, 1, 1, text=str.tostring(met) + "/5 Filters", text_size=size.small, bgcolor=met == 5 ? color.new(color.green, 80) : color.new(color.orange, 80))
+table.cell(info, 0, 1, text="Filters Met", text_size=size.small)
+filters_now = buy_votes > 0 ? filters_buy : filters_sell
+table.cell(info, 1, 1, text=str.tostring(filters_now) + "/5 (need 4+)", text_size=size.small, bgcolor=filters_now >= 4 ? color.new(color.green, 80) : color.new(color.orange, 80))
 
 table.cell(info, 0, 2, text="Strategy Votes", text_size=size.small)
 votes = buy_votes > 0 ? buy_votes : sell_votes
