@@ -1,0 +1,133 @@
+//@version=6
+indicator("Quant Trading - All Strategies", overlay=true)
+
+// INPUTS
+lookback = input(20, "Lookback Period")
+rsi_len = input(14, "RSI Length")
+ema_fast = input(9, "EMA Fast")
+ema_slow = input(21, "EMA Slow")
+atr_len = input(14, "ATR Length")
+
+// ═════════════════════════════════════════════════════════════════
+// 1. MEAN REVERSION (RSI Extremes)
+// ═════════════════════════════════════════════════════════════════
+rsi = ta.rsi(close, rsi_len)
+mean_rev_buy = rsi < 30
+mean_rev_sell = rsi > 70
+
+// ═════════════════════════════════════════════════════════════════
+// 2. MOMENTUM (EMA Crossover)
+// ═════════════════════════════════════════════════════════════════
+ema9 = ta.ema(close, ema_fast)
+ema21 = ta.ema(close, ema_slow)
+momentum_buy = ema9 > ema21 and ema9[1] <= ema21[1]
+momentum_sell = ema9 < ema21 and ema9[1] >= ema21[1]
+
+// ═════════════════════════════════════════════════════════════════
+// 3. BREAKOUT + VOLUME (Support/Resistance)
+// ═════════════════════════════════════════════════════════════════
+h = ta.highest(high, lookback)
+l = ta.lowest(low, lookback)
+resistance = h[1]
+support = l[1]
+avg_vol = ta.sma(volume, 20)
+
+breakout_buy = close > resistance and close[1] <= resistance and volume > (avg_vol * 1.5)
+breakdown_sell = close < support and close[1] >= support and volume > (avg_vol * 1.5)
+
+// ═════════════════════════════════════════════════════════════════
+// 4. STATISTICAL ARBITRAGE (Price deviation from Mean)
+// ═════════════════════════════════════════════════════════════════
+sma_price = ta.sma(close, lookback)
+std_dev = ta.stdev(close, lookback)
+z_score = (close - sma_price) / std_dev
+
+stat_arb_buy = z_score < -1.5
+stat_arb_sell = z_score > 1.5
+
+// ═════════════════════════════════════════════════════════════════
+// 5. VOLATILITY-BASED (Adjust by ATR)
+// ═════════════════════════════════════════════════════════════════
+atr = ta.atr(atr_len)
+atr_pct = (atr / close) * 100
+
+vol_buy = atr_pct < 2 and close > ema21
+vol_sell = atr_pct > 3.5 or (atr_pct < 2 and close < ema21)
+
+// ═════════════════════════════════════════════════════════════════
+// 6. KELLY CRITERION (Position Sizing Signal)
+// ═════════════════════════════════════════════════════════════════
+win_count = 0
+loss_count = 0
+
+// Simplified: Use RSI as proxy for win rate
+win_rate = rsi / 100
+kelly_buy = win_rate > 0.55
+kelly_sell = win_rate < 0.45
+
+// ═════════════════════════════════════════════════════════════════
+// COMBINE ALL SIGNALS
+// ═════════════════════════════════════════════════════════════════
+
+// Count buy signals
+buy_votes = (mean_rev_buy ? 1 : 0) +
+            (momentum_buy ? 1 : 0) +
+            (breakout_buy ? 1 : 0) +
+            (stat_arb_buy ? 1 : 0) +
+            (vol_buy ? 1 : 0) +
+            (kelly_buy ? 1 : 0)
+
+// Count sell signals
+sell_votes = (mean_rev_sell ? 1 : 0) +
+             (momentum_sell ? 1 : 0) +
+             (breakdown_sell ? 1 : 0) +
+             (stat_arb_sell ? 1 : 0) +
+             (vol_sell ? 1 : 0) +
+             (kelly_sell ? 1 : 0)
+
+// Strong signal = 4+ strategies agree
+strong_buy = buy_votes >= 4
+strong_sell = sell_votes >= 4
+
+// Medium signal = 3 strategies agree
+medium_buy = buy_votes == 3
+medium_sell = sell_votes == 3
+
+// ═════════════════════════════════════════════════════════════════
+// DISPLAY SIGNALS
+// ═════════════════════════════════════════════════════════════════
+
+// Strong BUY
+if strong_buy
+    label.new(bar_index, low * 0.98, text="STRONG BUY " + str.tostring(buy_votes) + "/6",
+              color=color.new(color.green, 0), textcolor=color.white, style=label.style_label_up, size=size.large)
+
+// Medium BUY
+if medium_buy and not strong_buy
+    label.new(bar_index, low * 0.99, text="BUY " + str.tostring(buy_votes) + "/6",
+              color=color.new(color.lime, 0), textcolor=color.white, style=label.style_label_up, size=size.large)
+
+// Strong SELL
+if strong_sell
+    label.new(bar_index, high * 1.02, text="STRONG SELL " + str.tostring(sell_votes) + "/6",
+              color=color.new(color.red, 0), textcolor=color.white, style=label.style_label_down, size=size.large)
+
+// Medium SELL
+if medium_sell and not strong_sell
+    label.new(bar_index, high * 1.01, text="SELL " + str.tostring(sell_votes) + "/6",
+              color=color.new(color.orange, 0), textcolor=color.white, style=label.style_label_down, size=size.large)
+
+// ═════════════════════════════════════════════════════════════════
+// STRATEGY BREAKDOWN (Info Panel)
+// ═════════════════════════════════════════════════════════════════
+
+info_text = "QUANT SIGNALS:\n" +
+            "Mean Rev: " + (mean_rev_buy ? "BUY" : mean_rev_sell ? "SELL" : "-") + "\n" +
+            "Momentum: " + (momentum_buy ? "BUY" : momentum_sell ? "SELL" : "-") + "\n" +
+            "Breakout: " + (breakout_buy ? "BUY" : breakdown_sell ? "SELL" : "-") + "\n" +
+            "StatArb: " + (stat_arb_buy ? "BUY" : stat_arb_sell ? "SELL" : "-") + "\n" +
+            "Volatility: " + (vol_buy ? "BUY" : vol_sell ? "SELL" : "-") + "\n" +
+            "Kelly: " + (kelly_buy ? "BUY" : kelly_sell ? "SELL" : "-")
+
+plot_position = (buy_votes + sell_votes) > 0 ? high + (atr * 2) : na
+plotchar(plot_position, char="", text=info_text, location=location.absolute, size=size.small, color=color.new(color.gray, 0))
