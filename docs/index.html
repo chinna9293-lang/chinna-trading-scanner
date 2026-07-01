@@ -734,6 +734,13 @@ button, input[type="button"], .scalper-btn, .chip, .sbtn {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<!-- Quick fixes for early function calls -->
+<script>
+function doLogin() { console.log('Loading...'); }
+function doSignup() { console.log('Loading...'); }
+function grant() { console.log('Loading...'); }
+function showAuthTab(t) { console.log('Loading...'); }
+</script>
 </head>
 <body>
 
