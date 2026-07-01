@@ -3990,15 +3990,39 @@ async function loadScreener() {
 
   for (const sym of STOCKS) {
     try {
-      if (LP[sym]) {
-        const price = LP[sym];
-        const analysis = analyzeScreener(sym);
-        results.push({
-          symbol: sym,
-          price: price,
-          ...analysis
-        });
+      // Fetch fresh bars from Alpaca
+      const res = await fetch(`https://paper-api.alpaca.markets/v2/stocks/${sym}/bars?timeframe=5m&limit=200`, {
+        headers: {
+          'APCA-API-KEY-ID': ALPACA_KEY,
+          'APCA-API-SECRET-KEY': ALPACA_SECRET
+        }
+      });
+
+      if (!res.ok) {
+        results.push({ symbol: sym, error: true });
+        continue;
       }
+
+      const data = await res.json();
+      const bars = data.bars || [];
+
+      if (bars.length < 50) {
+        results.push({ symbol: sym, error: true });
+        continue;
+      }
+
+      // Get latest price
+      const latestBar = bars[bars.length - 1];
+      const price = latestBar.c;
+
+      // Analyze
+      const analysis = analyzeScreenerFresh(bars);
+
+      results.push({
+        symbol: sym,
+        price: price,
+        ...analysis
+      });
     } catch (e) {
       console.error(`Screener error for ${sym}:`, e);
       results.push({ symbol: sym, error: true });
@@ -4007,6 +4031,39 @@ async function loadScreener() {
 
   renderScreener(results);
   setTimeout(loadScreener, 30000); // Refresh every 30 seconds
+}
+
+function analyzeScreenerFresh(bars) {
+  if (!bars || bars.length < 50) return { error: true };
+
+  const closes = bars.map(b => b.c);
+  const ema8 = calculateScreenerEMA(closes, 8);
+  const ema21 = calculateScreenerEMA(closes, 21);
+  const sma50 = closes.slice(-50).reduce((a, b) => a + b) / 50;
+  const sma200 = closes.slice(-200).reduce((a, b) => a + b) / Math.min(closes.length, 200);
+
+  const rsi = calculateScreenerRSI(closes, 14);
+  const macd = calculateScreenerMACD(closes);
+
+  const emaBull = ema8 > ema21;
+  const macdBull = macd.hist > 0;
+  const rsiBull = rsi >= 10 && rsi <= 65;
+  const smaBull = sma50 > sma200;
+  const priceBull = closes[closes.length - 1] > sma200;
+
+  const signals = [emaBull, macdBull, rsiBull, smaBull, priceBull].filter(x => x).length;
+  const bullish = signals >= 4;
+
+  return {
+    ema: emaBull,
+    macd: macdBull,
+    rsi: rsiBull,
+    sma: smaBull && priceBull,
+    overall: bullish,
+    signals: signals,
+    rsiValue: rsi.toFixed(1)
+  };
+
 }
 
 function analyzeScreener(sym) {
