@@ -314,37 +314,58 @@ let allResults = [];
 
 async function loadScreener() {
   const container = document.getElementById('screener-container');
-  container.innerHTML = '<div class="loading">Fetching data from Alpaca...</div>';
+  container.innerHTML = '<div class="loading">🔄 Fetching real-time data from Alpaca...<br><small>This may take 15-30 seconds for all stocks</small></div>';
 
   const results = [];
+  let loaded = 0;
+  let errors = 0;
+
+  console.log('🔄 Starting screener load for', STOCKS.length, 'stocks');
 
   for (const sym of STOCKS) {
     try {
-      const res = await fetch(`https://paper-api.alpaca.markets/v2/stocks/${sym}/bars?timeframe=5m&limit=200`, {
+      console.log(`Fetching ${sym}...`);
+      const url = `https://paper-api.alpaca.markets/v2/stocks/${sym}/bars?timeframe=5m&limit=200`;
+
+      const res = await fetch(url, {
         headers: AH,
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(8000)
       });
 
-      if (!res.ok) continue;
+      console.log(`${sym} response:`, res.status, res.ok);
+
+      if (!res.ok) {
+        console.warn(`${sym}: HTTP ${res.status}`);
+        errors++;
+        continue;
+      }
 
       const data = await res.json();
+      console.log(`${sym} data received:`, data);
+
       const bars = data.bars || [];
 
-      if (bars.length < 50) continue;
+      if (bars.length < 50) {
+        console.warn(`${sym}: Only ${bars.length} bars (need 50+)`);
+        continue;
+      }
 
       const closes = bars.map(b => b.c);
       const ema8 = calculateEMA(closes, 8);
       const ema21 = calculateEMA(closes, 21);
       const rsi = calculateRSI(closes, 14);
       const price = closes[closes.length - 1];
-      const prevPrice = closes[closes.length - 50] || price;
+      const prevPrice = closes[Math.max(0, closes.length - 50)] || price;
       const change = ((price - prevPrice) / prevPrice * 100);
+
+      const avgVol = bars.slice(-20).reduce((a,b) => a + b.v, 0) / 20;
+      const currentVol = bars[bars.length - 1].v;
 
       const signals = [
         ema8 > ema21,
         rsi >= 10 && rsi <= 65,
         Math.abs(change) > 2,
-        bars[bars.length - 1].v > bars.slice(-20).reduce((a,b) => a + b.v, 0) / 20 * 1.5
+        currentVol > avgVol * 1.5
       ].filter(x => x).length;
 
       results.push({
@@ -353,18 +374,30 @@ async function loadScreener() {
         change: change,
         rsi: rsi,
         ema: ema8 > ema21,
-        volume: bars[bars.length - 1].v,
-        avgVolume: bars.slice(-20).reduce((a,b) => a + b.v, 0) / 20,
+        volume: currentVol,
+        avgVolume: avgVol,
         bullish: signals >= 3,
         signals: signals
       });
+
+      loaded++;
+      console.log(`✅ ${sym} loaded successfully`);
     } catch (e) {
-      console.error(`Error for ${sym}:`, e);
+      console.error(`❌ Error for ${sym}:`, e.message);
+      errors++;
     }
   }
 
+  console.log(`✅ Screener complete: ${loaded} loaded, ${errors} errors`);
+
   allResults = results;
-  renderScreener(results);
+  if (results.length === 0) {
+    container.innerHTML = `<div class="error">⚠️ No data loaded. Loaded: ${loaded}, Errors: ${errors}<br><small>Check console for details. API may be rate limited.</small></div>`;
+  } else {
+    renderScreener(results);
+  }
+
+  document.getElementById('result-count').textContent = `Loaded: ${loaded} | Errors: ${errors}`;
   document.getElementById('result-time').textContent = new Date().toLocaleTimeString();
 }
 
