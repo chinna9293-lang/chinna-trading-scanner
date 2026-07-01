@@ -3990,15 +3990,14 @@ async function loadScreener() {
 
   for (const sym of STOCKS) {
     try {
-      // Fetch fresh bars from Alpaca
+      // Fetch fresh bars from Alpaca using AH headers
       const res = await fetch(`https://paper-api.alpaca.markets/v2/stocks/${sym}/bars?timeframe=5m&limit=200`, {
-        headers: {
-          'APCA-API-KEY-ID': ALPACA_KEY,
-          'APCA-API-SECRET-KEY': ALPACA_SECRET
-        }
+        headers: AH,
+        signal: AbortSignal.timeout(5000)
       });
 
       if (!res.ok) {
+        console.warn(`Screener: Failed to fetch ${sym}`, res.status);
         results.push({ symbol: sym, error: true });
         continue;
       }
@@ -4007,6 +4006,7 @@ async function loadScreener() {
       const bars = data.bars || [];
 
       if (bars.length < 50) {
+        console.warn(`Screener: Not enough bars for ${sym}`, bars.length);
         results.push({ symbol: sym, error: true });
         continue;
       }
@@ -4030,7 +4030,9 @@ async function loadScreener() {
   }
 
   renderScreener(results);
-  setTimeout(loadScreener, 30000); // Refresh every 30 seconds
+  if (screenerVisible) {
+    setTimeout(loadScreener, 30000); // Refresh every 30 seconds only if screener is open
+  }
 }
 
 function analyzeScreenerFresh(bars) {
@@ -4129,17 +4131,25 @@ function calculateScreenerMACD(closes) {
 }
 
 function renderScreener(results) {
-  const html = results.map(r => `
-    <tr style="border-bottom:1px solid rgba(99,102,241,.1);hover{background:rgba(99,102,241,.1)}">
-      <td style="padding:10px;font-weight:600;color:#fff">${r.symbol}</td>
-      <td style="padding:10px;text-align:center;color:#60a5fa">$${r.error ? 'N/A' : r.price.toFixed(2)}</td>
-      <td style="padding:10px;text-align:center"><span style="padding:4px 8px;border-radius:4px;background:${r.error ? 'rgba(107,114,128,.2)' : r.ema ? 'rgba(34,197,94,.2);color:#22c55e' : 'rgba(239,68,68,.2);color:#ef4444'}">${r.error ? '-' : r.ema ? '✓' : '✗'}</span></td>
-      <td style="padding:10px;text-align:center"><span style="padding:4px 8px;border-radius:4px;background:${r.error ? 'rgba(107,114,128,.2)' : r.macd ? 'rgba(34,197,94,.2);color:#22c55e' : 'rgba(239,68,68,.2);color:#ef4444'}">${r.error ? '-' : r.macd ? '✓' : '✗'}</span></td>
-      <td style="padding:10px;text-align:center"><span style="padding:4px 8px;border-radius:4px;background:${r.error ? 'rgba(107,114,128,.2)' : r.rsi ? 'rgba(34,197,94,.2);color:#22c55e' : 'rgba(239,68,68,.2);color:#ef4444'}">${r.error ? '-' : r.rsi ? '✓' : '✗'}</span></td>
-      <td style="padding:10px;text-align:center"><span style="padding:4px 8px;border-radius:4px;background:${r.error ? 'rgba(107,114,128,.2)' : r.sma ? 'rgba(34,197,94,.2);color:#22c55e' : 'rgba(239,68,68,.2);color:#ef4444'}">${r.error ? '-' : r.sma ? '✓' : '✗'}</span></td>
-      <td style="padding:10px;text-align:center;font-weight:600"><span style="padding:6px 12px;border-radius:6px;border:2px solid;background:${r.error ? 'rgba(107,114,128,.2);color:#cbd5e1;border-color:rgba(107,114,128,.3)' : r.overall ? 'rgba(34,197,94,.2);color:#22c55e;border-color:rgba(34,197,94,.4)' : 'rgba(239,68,68,.2);color:#ef4444;border-color:rgba(239,68,68,.4)'}">${r.error ? 'ERR' : r.overall ? '🟢' : '🔴'} ${r.signals}/5</span></td>
-    </tr>
-  `).join('');
+  const html = results.map(r => {
+    const emaStyle = r.error ? 'rgba(107,114,128,.2);color:#cbd5e1' : r.ema ? 'rgba(34,197,94,.2);color:#22c55e' : 'rgba(239,68,68,.2);color:#ef4444';
+    const macdStyle = r.error ? 'rgba(107,114,128,.2);color:#cbd5e1' : r.macd ? 'rgba(34,197,94,.2);color:#22c55e' : 'rgba(239,68,68,.2);color:#ef4444';
+    const rsiStyle = r.error ? 'rgba(107,114,128,.2);color:#cbd5e1' : r.rsi ? 'rgba(34,197,94,.2);color:#22c55e' : 'rgba(239,68,68,.2);color:#ef4444';
+    const smaStyle = r.error ? 'rgba(107,114,128,.2);color:#cbd5e1' : r.sma ? 'rgba(34,197,94,.2);color:#22c55e' : 'rgba(239,68,68,.2);color:#ef4444';
+    const signalStyle = r.error ? 'rgba(107,114,128,.2);color:#cbd5e1;border-color:rgba(107,114,128,.3)' : r.overall ? 'rgba(34,197,94,.2);color:#22c55e;border-color:rgba(34,197,94,.4)' : 'rgba(239,68,68,.2);color:#ef4444;border-color:rgba(239,68,68,.4)';
+
+    return `
+      <tr style="border-bottom:1px solid rgba(99,102,241,.1)">
+        <td style="padding:10px;font-weight:600;color:#fff">${r.symbol}</td>
+        <td style="padding:10px;text-align:center;color:#60a5fa;font-weight:600">$${r.error ? '—' : r.price.toFixed(2)}</td>
+        <td style="padding:10px;text-align:center"><span style="padding:4px 8px;border-radius:4px;background:${emaStyle}">${r.error ? '—' : r.ema ? '✓' : '✗'}</span></td>
+        <td style="padding:10px;text-align:center"><span style="padding:4px 8px;border-radius:4px;background:${macdStyle}">${r.error ? '—' : r.macd ? '✓' : '✗'}</span></td>
+        <td style="padding:10px;text-align:center"><span style="padding:4px 8px;border-radius:4px;background:${rsiStyle}">${r.error ? '—' : r.rsi ? '✓' : '✗'}</span></td>
+        <td style="padding:10px;text-align:center"><span style="padding:4px 8px;border-radius:4px;background:${smaStyle}">${r.error ? '—' : r.sma ? '✓' : '✗'}</span></td>
+        <td style="padding:10px;text-align:center;font-weight:600"><span style="padding:6px 12px;border-radius:6px;border:2px solid;background:${signalStyle}">${r.error ? '⏳' : r.overall ? '🟢 BULLISH' : '🔴 BEARISH'} ${r.error ? '—' : r.signals + '/5'}</span></td>
+      </tr>
+    `;
+  }).join('');
   g('screener-body').innerHTML = html;
 }
 
