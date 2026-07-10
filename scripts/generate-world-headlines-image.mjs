@@ -1,11 +1,14 @@
 // One-off/standalone: renders a list of world headlines (title only, no source
-// attribution or links) into a 1080x1080 Instagram-ready image.
+// attribution or links) into an Instagram-ready image. Headlines wrap in full —
+// never truncated with an ellipsis — and the headline count is auto-trimmed to
+// whatever fits cleanly within Instagram's max portrait height (1080x1350).
 
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 
-const SIZE = 1080;
+const WIDTH = 1080;
+const MAX_HEIGHT = 1350; // Instagram's tallest supported ratio (4:5)
 const FONT = 'DejaVu Sans, Arial, sans-serif';
 
 function escapeXml(str) {
@@ -16,7 +19,8 @@ function escapeXml(str) {
     .replace(/"/g, '&quot;');
 }
 
-function wrapText(text, fontSize, maxWidth, maxLines) {
+// Wraps to as many lines as needed — no line cap, no ellipsis truncation.
+function wrapText(text, fontSize, maxWidth) {
   const maxChars = Math.floor(maxWidth / (fontSize * 0.55));
   const words = text.split(' ');
   const lines = [];
@@ -30,68 +34,86 @@ function wrapText(text, fontSize, maxWidth, maxLines) {
     } else {
       current = candidate;
     }
-    if (lines.length === maxLines - 1) break;
   }
   if (current) lines.push(current);
 
-  if (lines.length === maxLines && words.join(' ').length > lines.join(' ').length) {
-    let last = lines[maxLines - 1];
-    if (last.length > maxChars - 1) last = last.slice(0, maxChars - 1).trimEnd() + '…';
-    else last += '…';
-    lines[maxLines - 1] = last;
-  }
-
-  return lines.slice(0, maxLines);
+  return lines;
 }
 
-function buildSvg(headlines, dateLabel) {
-  const margin = 64;
-  const contentWidth = SIZE - margin * 2;
-  const fontSize = 28;
-  const lineHeight = 34;
-  const gapBetween = 20;
-  let y = 168;
+const MARGIN = 64;
+const HEADER_HEIGHT = 168;
+const FOOTER_HEIGHT = 88;
+const FONT_SIZE = 30;
+const LINE_HEIGHT = 40;
+const GAP_BETWEEN = 34;
+const TEXT_INDENT = 66;
 
-  const blocks = headlines
-    .map((title, i) => {
-      const lines = wrapText(title, fontSize, contentWidth - 66, 2);
-      const badgeY = y;
-      const textStartY = y + 10;
+function layoutHeadlines(headlines) {
+  const contentWidth = WIDTH - MARGIN * 2 - TEXT_INDENT;
+  let y = HEADER_HEIGHT;
+  const items = [];
+
+  for (const title of headlines) {
+    const lines = wrapText(title, FONT_SIZE, contentWidth);
+    const blockHeight = lines.length * LINE_HEIGHT + GAP_BETWEEN;
+    items.push({ title, lines, y });
+    y += blockHeight;
+  }
+
+  return { items, totalHeight: y + FOOTER_HEIGHT };
+}
+
+// Trims from the end until the block fits inside MAX_HEIGHT, so every
+// remaining headline gets to wrap in full instead of being cut off.
+function fitHeadlines(headlines) {
+  let pool = headlines.slice();
+  let layout = layoutHeadlines(pool);
+
+  while (layout.totalHeight > MAX_HEIGHT && pool.length > 1) {
+    pool = pool.slice(0, -1);
+    layout = layoutHeadlines(pool);
+  }
+
+  return { pool, layout };
+}
+
+function buildSvg(items, dateLabel, height) {
+  const blocks = items
+    .map(({ lines }, i) => {
+      const badgeY = items[i].y;
+      const textStartY = badgeY + 12;
 
       const lineEls = lines
-        .map((line, li) => `<text x="${margin + 66}" y="${textStartY + li * lineHeight}" font-family="${FONT}" font-size="${fontSize}" font-weight="600" fill="#f8fafc">${escapeXml(line)}</text>`)
+        .map((line, li) => `<text x="${MARGIN + TEXT_INDENT}" y="${textStartY + li * LINE_HEIGHT}" font-family="${FONT}" font-size="${FONT_SIZE}" font-weight="600" fill="#f8fafc">${escapeXml(line)}</text>`)
         .join('\n        ');
 
-      const blockHeight = lines.length * lineHeight + gapBetween;
-      y += blockHeight;
-
       return `
-        <circle cx="${margin + 24}" cy="${badgeY + 14}" r="20" fill="#dc2626" />
-        <text x="${margin + 24}" y="${badgeY + 21}" font-family="${FONT}" font-size="20" font-weight="700" fill="#ffffff" text-anchor="middle">${i + 1}</text>
+        <circle cx="${MARGIN + 24}" cy="${badgeY + 16}" r="20" fill="#dc2626" />
+        <text x="${MARGIN + 24}" y="${badgeY + 23}" font-family="${FONT}" font-size="20" font-weight="700" fill="#ffffff" text-anchor="middle">${i + 1}</text>
         ${lineEls}
       `;
     })
     .join('\n');
 
   return `
-<svg width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}" xmlns="http://www.w3.org/2000/svg">
+<svg width="${WIDTH}" height="${height}" viewBox="0 0 ${WIDTH} ${height}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0f0f10" />
       <stop offset="100%" stop-color="#1a1a1c" />
     </linearGradient>
   </defs>
-  <rect width="${SIZE}" height="${SIZE}" fill="url(#bg)" />
+  <rect width="${WIDTH}" height="${height}" fill="url(#bg)" />
 
-  <polyline points="${margin},96 ${margin + 18},78 ${margin + 34},90 ${margin + 54},58 ${margin + 70},70" fill="none" stroke="#dc2626" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
-  <text x="${margin + 92}" y="98" font-family="${FONT}" font-size="46" font-weight="800" fill="#ffffff">WORLD NEWS</text>
-  <text x="${margin}" y="138" font-family="${FONT}" font-size="24" fill="#94a3b8">${escapeXml(dateLabel)} · Top ${headlines.length} Headlines</text>
-  <line x1="${margin}" y1="152" x2="${SIZE - margin}" y2="152" stroke="#27272a" stroke-width="2" />
+  <polyline points="${MARGIN},96 ${MARGIN + 18},78 ${MARGIN + 34},90 ${MARGIN + 54},58 ${MARGIN + 70},70" fill="none" stroke="#dc2626" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+  <text x="${MARGIN + 92}" y="98" font-family="${FONT}" font-size="46" font-weight="800" fill="#ffffff">WORLD NEWS</text>
+  <text x="${MARGIN}" y="138" font-family="${FONT}" font-size="24" fill="#94a3b8">${escapeXml(dateLabel)} · Top ${items.length} Headlines</text>
+  <line x1="${MARGIN}" y1="152" x2="${WIDTH - MARGIN}" y2="152" stroke="#27272a" stroke-width="2" />
 
   ${blocks}
 
-  <line x1="${margin}" y1="${SIZE - 60}" x2="${SIZE - margin}" y2="${SIZE - 60}" stroke="#27272a" stroke-width="2" />
-  <text x="${margin}" y="${SIZE - 26}" font-family="${FONT}" font-size="20" fill="#52525b">chinna-trading-scanner</text>
+  <line x1="${MARGIN}" y1="${height - 60}" x2="${WIDTH - MARGIN}" y2="${height - 60}" stroke="#27272a" stroke-width="2" />
+  <text x="${MARGIN}" y="${height - 26}" font-family="${FONT}" font-size="20" fill="#52525b">chinna-trading-scanner</text>
 </svg>`;
 }
 
@@ -101,12 +123,19 @@ export async function generateWorldHeadlinesImage(headlines, outPath) {
   const now = new Date();
   const dateLabel = now.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'long', day: 'numeric', year: 'numeric' });
 
-  const svg = buildSvg(headlines, dateLabel);
+  const { pool, layout } = fitHeadlines(headlines);
+  const height = Math.min(MAX_HEIGHT, Math.max(WIDTH, layout.totalHeight));
+
+  if (pool.length < headlines.length) {
+    console.log(`Trimmed ${headlines.length - pool.length} headline(s) to keep full, untruncated wrapping within ${MAX_HEIGHT}px`);
+  }
+
+  const svg = buildSvg(layout.items, dateLabel, height);
   const png = await sharp(Buffer.from(svg)).png().toBuffer();
 
   await mkdir(path.dirname(outPath), { recursive: true });
   await writeFile(outPath, png);
-  console.log(`Generated -> ${outPath}`);
+  console.log(`Generated -> ${outPath} (${pool.length} headlines, ${WIDTH}x${height})`);
   return outPath;
 }
 
