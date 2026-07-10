@@ -40,27 +40,30 @@ function wrapText(text, fontSize, maxWidth) {
   return lines;
 }
 
-const MARGIN = 64;
-const HEADER_HEIGHT = 168;
-const FOOTER_HEIGHT = 88;
-const FONT_SIZE = 30;
-const LINE_HEIGHT = 40;
-const GAP_BETWEEN = 34;
-const TEXT_INDENT = 66;
+const MARGIN = 48;
+const TOP_BAR = 10;
+const HEADER_HEIGHT = 140;
+const FOOTER_HEIGHT = 64;
+const FONT_SIZE = 28;
+const LINE_HEIGHT = 36;
+const CARD_PAD_Y = 18;
+const CARD_GAP = 14;
+const TEXT_INDENT = 74;
+const CARD_LEFT_PAD = 26;
 
 function layoutHeadlines(headlines) {
-  const contentWidth = WIDTH - MARGIN * 2 - TEXT_INDENT;
-  let y = HEADER_HEIGHT;
+  const contentWidth = WIDTH - MARGIN * 2 - TEXT_INDENT - CARD_LEFT_PAD;
+  let y = TOP_BAR + HEADER_HEIGHT;
   const items = [];
 
   for (const title of headlines) {
     const lines = wrapText(title, FONT_SIZE, contentWidth);
-    const blockHeight = lines.length * LINE_HEIGHT + GAP_BETWEEN;
-    items.push({ title, lines, y });
-    y += blockHeight;
+    const cardHeight = lines.length * LINE_HEIGHT + CARD_PAD_Y * 2 - 8;
+    items.push({ title, lines, y, cardHeight });
+    y += cardHeight + CARD_GAP;
   }
 
-  return { items, totalHeight: y + FOOTER_HEIGHT };
+  return { items, totalHeight: y - CARD_GAP + FOOTER_HEIGHT };
 }
 
 // Trims from the end until the block fits inside MAX_HEIGHT, so every
@@ -77,20 +80,44 @@ function fitHeadlines(headlines) {
   return { pool, layout };
 }
 
+function headerMark() {
+  // A small ascending bar-chart mark instead of a plain squiggle.
+  const bars = [
+    { x: MARGIN, h: 20 },
+    { x: MARGIN + 14, h: 32 },
+    { x: MARGIN + 28, h: 26 },
+    { x: MARGIN + 42, h: 44 },
+  ];
+  const base = TOP_BAR + 84;
+  return bars
+    .map(
+      (b) =>
+        `<rect x="${b.x}" y="${base - b.h}" width="9" height="${b.h}" rx="2.5" fill="url(#markGrad)" />`
+    )
+    .join('\n    ');
+}
+
 function buildSvg(items, dateLabel, height) {
-  const blocks = items
-    .map(({ lines }, i) => {
-      const badgeY = items[i].y;
-      const textStartY = badgeY + 12;
+  const cards = items
+    .map(({ lines, y, cardHeight }, i) => {
+      const textStartY = y + CARD_PAD_Y + FONT_SIZE - 6;
+      const badgeCy = y + cardHeight / 2;
 
       const lineEls = lines
-        .map((line, li) => `<text x="${MARGIN + TEXT_INDENT}" y="${textStartY + li * LINE_HEIGHT}" font-family="${FONT}" font-size="${FONT_SIZE}" font-weight="600" fill="#f8fafc">${escapeXml(line)}</text>`)
+        .map(
+          (line, li) =>
+            `<text x="${MARGIN + TEXT_INDENT}" y="${textStartY + li * LINE_HEIGHT}" font-family="${FONT}" font-size="${FONT_SIZE}" font-weight="600" fill="#f4f4f5">${escapeXml(line)}</text>`
+        )
         .join('\n        ');
 
       return `
-        <circle cx="${MARGIN + 24}" cy="${badgeY + 16}" r="20" fill="#dc2626" />
-        <text x="${MARGIN + 24}" y="${badgeY + 23}" font-family="${FONT}" font-size="20" font-weight="700" fill="#ffffff" text-anchor="middle">${i + 1}</text>
-        ${lineEls}
+      <g filter="url(#cardShadow)">
+        <rect x="${MARGIN}" y="${y}" width="${WIDTH - MARGIN * 2}" height="${cardHeight}" rx="16" fill="url(#cardGrad)" stroke="#2c2c31" stroke-width="1" />
+      </g>
+      <rect x="${MARGIN}" y="${y}" width="4" height="${cardHeight}" rx="2" fill="url(#markGrad)" />
+      <rect x="${MARGIN + CARD_LEFT_PAD}" y="${badgeCy - 18}" width="36" height="36" rx="10" fill="url(#badgeGrad)" filter="url(#badgeShadow)" />
+      <text x="${MARGIN + CARD_LEFT_PAD + 18}" y="${badgeCy + 7}" font-family="${FONT}" font-size="19" font-weight="700" fill="#ffffff" text-anchor="middle">${i + 1}</text>
+      ${lineEls}
       `;
     })
     .join('\n');
@@ -98,22 +125,55 @@ function buildSvg(items, dateLabel, height) {
   return `
 <svg width="${WIDTH}" height="${height}" viewBox="0 0 ${WIDTH} ${height}" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0f0f10" />
-      <stop offset="100%" stop-color="#1a1a1c" />
+    <linearGradient id="bg" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#131316" />
+      <stop offset="100%" stop-color="#0a0a0c" />
     </linearGradient>
+    <linearGradient id="topBar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#dc2626" />
+      <stop offset="55%" stop-color="#f97316" />
+      <stop offset="100%" stop-color="#dc2626" />
+    </linearGradient>
+    <linearGradient id="markGrad" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#b91c1c" />
+      <stop offset="100%" stop-color="#f97316" />
+    </linearGradient>
+    <linearGradient id="badgeGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#b91c1c" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1d1d21" />
+      <stop offset="100%" stop-color="#17171a" />
+    </linearGradient>
+    <radialGradient id="glow" cx="85%" cy="0%" r="60%">
+      <stop offset="0%" stop-color="#dc2626" stop-opacity="0.16" />
+      <stop offset="100%" stop-color="#dc2626" stop-opacity="0" />
+    </radialGradient>
+    <filter id="cardShadow" x="-20%" y="-40%" width="140%" height="200%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.4" />
+    </filter>
+    <filter id="badgeShadow" x="-60%" y="-60%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#dc2626" flood-opacity="0.45" />
+    </filter>
   </defs>
+
   <rect width="${WIDTH}" height="${height}" fill="url(#bg)" />
+  <rect width="${WIDTH}" height="${height}" fill="url(#glow)" />
+  <rect x="0" y="0" width="${WIDTH}" height="${TOP_BAR}" fill="url(#topBar)" />
 
-  <polyline points="${MARGIN},96 ${MARGIN + 18},78 ${MARGIN + 34},90 ${MARGIN + 54},58 ${MARGIN + 70},70" fill="none" stroke="#dc2626" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
-  <text x="${MARGIN + 92}" y="98" font-family="${FONT}" font-size="46" font-weight="800" fill="#ffffff">WORLD NEWS</text>
-  <text x="${MARGIN}" y="138" font-family="${FONT}" font-size="24" fill="#94a3b8">${escapeXml(dateLabel)} · Top ${items.length} Headlines</text>
-  <line x1="${MARGIN}" y1="152" x2="${WIDTH - MARGIN}" y2="152" stroke="#27272a" stroke-width="2" />
+  ${headerMark()}
+  <text x="${MARGIN + 66}" y="${TOP_BAR + 66}" font-family="${FONT}" font-size="44" font-weight="800" fill="#ffffff" letter-spacing="0.5">WORLD NEWS</text>
+  <text x="${MARGIN + 66}" y="${TOP_BAR + 100}" font-family="${FONT}" font-size="21" fill="#9ca3af">${escapeXml(dateLabel)}</text>
 
-  ${blocks}
+  <rect x="${WIDTH - MARGIN - 118}" y="${TOP_BAR + 34}" width="118" height="34" rx="17" fill="none" stroke="#3f3f46" stroke-width="1.5" />
+  <circle cx="${WIDTH - MARGIN - 96}" cy="${TOP_BAR + 51}" r="5" fill="#f97316" />
+  <text x="${WIDTH - MARGIN - 82}" y="${TOP_BAR + 56}" font-family="${FONT}" font-size="16" font-weight="700" fill="#e4e4e7" letter-spacing="1">TOP ${items.length}</text>
 
-  <line x1="${MARGIN}" y1="${height - 60}" x2="${WIDTH - MARGIN}" y2="${height - 60}" stroke="#27272a" stroke-width="2" />
-  <text x="${MARGIN}" y="${height - 26}" font-family="${FONT}" font-size="20" fill="#52525b">chinna-trading-scanner</text>
+  ${cards}
+
+  <text x="${MARGIN}" y="${height - 24}" font-family="${FONT}" font-size="18" fill="#52525b">chinna-trading-scanner</text>
+  <text x="${WIDTH - MARGIN}" y="${height - 24}" font-family="${FONT}" font-size="18" fill="#52525b" text-anchor="end">Headlines only · no third-party media</text>
 </svg>`;
 }
 
