@@ -20,8 +20,9 @@ function escapeXml(str) {
 }
 
 // Wraps to as many lines as needed — no line cap, no ellipsis truncation.
+// 0.6 is a conservative per-char width estimate for bold text at this size.
 function wrapText(text, fontSize, maxWidth) {
-  const maxChars = Math.floor(maxWidth / (fontSize * 0.55));
+  const maxChars = Math.floor(maxWidth / (fontSize * 0.6));
   const words = text.split(' ');
   const lines = [];
   let current = '';
@@ -44,22 +45,37 @@ const MARGIN = 48;
 const TOP_BAR = 10;
 const HEADER_HEIGHT = 140;
 const FOOTER_HEIGHT = 64;
-const FONT_SIZE = 28;
-const LINE_HEIGHT = 36;
-const CARD_PAD_Y = 18;
-const CARD_GAP = 14;
+const FONT_SIZE = 27;
+const LINE_HEIGHT = 35;
+const TAG_ROW_HEIGHT = 26;
+const CARD_PAD_Y = 14;
+const CARD_GAP = 10;
 const TEXT_INDENT = 74;
 const CARD_LEFT_PAD = 26;
+const CHEVRON_SPACE = 58;
+
+const CATEGORIES = [
+  { key: 'CONFLICT', color: '#ef4444', match: /iran|ukrain|russia|nato|missile|drone|strike|cease-?fire|jammer|starlink|zelensky/i },
+  { key: 'POLITICS', color: '#f59e0b', match: /election|farage|parliament|vote|summit|trump/i },
+  { key: 'ROYALS', color: '#f472b6', match: /prince|royal|palace|queen|king/i },
+  { key: 'DISASTER', color: '#eab308', match: /boeing|crash|wreckage|crew|flight/i },
+  { key: 'CRIME', color: '#a855f7', match: /jailed|murder|court|police|convicted/i },
+];
+const DEFAULT_CATEGORY = { key: 'WORLD', color: '#38bdf8' };
+
+function categorize(title) {
+  return CATEGORIES.find((c) => c.match.test(title)) || DEFAULT_CATEGORY;
+}
 
 function layoutHeadlines(headlines) {
-  const contentWidth = WIDTH - MARGIN * 2 - TEXT_INDENT - CARD_LEFT_PAD;
+  const contentWidth = WIDTH - MARGIN * 2 - TEXT_INDENT - CARD_LEFT_PAD - CHEVRON_SPACE;
   let y = TOP_BAR + HEADER_HEIGHT;
   const items = [];
 
   for (const title of headlines) {
     const lines = wrapText(title, FONT_SIZE, contentWidth);
-    const cardHeight = lines.length * LINE_HEIGHT + CARD_PAD_Y * 2 - 8;
-    items.push({ title, lines, y, cardHeight });
+    const cardHeight = TAG_ROW_HEIGHT + lines.length * LINE_HEIGHT + CARD_PAD_Y * 2 - 10;
+    items.push({ title, lines, y, cardHeight, category: categorize(title) });
     y += cardHeight + CARD_GAP;
   }
 
@@ -99,25 +115,35 @@ function headerMark() {
 
 function buildSvg(items, dateLabel, height) {
   const cards = items
-    .map(({ lines, y, cardHeight }, i) => {
-      const textStartY = y + CARD_PAD_Y + FONT_SIZE - 6;
+    .map(({ lines, y, cardHeight, category }, i) => {
+      const tagY = y + CARD_PAD_Y + 2;
+      const textStartY = tagY + TAG_ROW_HEIGHT + FONT_SIZE - 10;
       const badgeCy = y + cardHeight / 2;
+      const tagWidth = category.key.length * 10 + 26;
 
       const lineEls = lines
         .map(
           (line, li) =>
-            `<text x="${MARGIN + TEXT_INDENT}" y="${textStartY + li * LINE_HEIGHT}" font-family="${FONT}" font-size="${FONT_SIZE}" font-weight="600" fill="#f4f4f5">${escapeXml(line)}</text>`
+            `<text x="${MARGIN + TEXT_INDENT}" y="${textStartY + li * LINE_HEIGHT}" font-family="${FONT}" font-size="${FONT_SIZE}" font-weight="700" fill="#ffffff">${escapeXml(line)}</text>`
         )
         .join('\n        ');
 
       return `
       <g filter="url(#cardShadow)">
-        <rect x="${MARGIN}" y="${y}" width="${WIDTH - MARGIN * 2}" height="${cardHeight}" rx="16" fill="url(#cardGrad)" stroke="#2c2c31" stroke-width="1" />
+        <rect x="${MARGIN}" y="${y}" width="${WIDTH - MARGIN * 2}" height="${cardHeight}" rx="18" fill="url(#cardGrad)" stroke="#37373d" stroke-width="1.25" />
       </g>
       <rect x="${MARGIN}" y="${y}" width="4" height="${cardHeight}" rx="2" fill="url(#markGrad)" />
       <rect x="${MARGIN + CARD_LEFT_PAD}" y="${badgeCy - 18}" width="36" height="36" rx="10" fill="url(#badgeGrad)" filter="url(#badgeShadow)" />
       <text x="${MARGIN + CARD_LEFT_PAD + 18}" y="${badgeCy + 7}" font-family="${FONT}" font-size="19" font-weight="700" fill="#ffffff" text-anchor="middle">${i + 1}</text>
+
+      <rect x="${MARGIN + TEXT_INDENT}" y="${tagY}" width="${tagWidth}" height="22" rx="11" fill="${category.color}" opacity="0.16" />
+      <circle cx="${MARGIN + TEXT_INDENT + 12}" cy="${tagY + 11}" r="4" fill="${category.color}" />
+      <text x="${MARGIN + TEXT_INDENT + 22}" y="${tagY + 16}" font-family="${FONT}" font-size="13" font-weight="700" fill="${category.color}" letter-spacing="1">${category.key}</text>
+
       ${lineEls}
+
+      <circle cx="${WIDTH - MARGIN - 30}" cy="${badgeCy}" r="16" fill="#ffffff" opacity="0.06" />
+      <path d="M ${WIDTH - MARGIN - 34} ${badgeCy - 7} L ${WIDTH - MARGIN - 26} ${badgeCy} L ${WIDTH - MARGIN - 34} ${badgeCy + 7}" fill="none" stroke="#d4d4d8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
       `;
     })
     .join('\n');
@@ -163,7 +189,7 @@ function buildSvg(items, dateLabel, height) {
   <rect x="0" y="0" width="${WIDTH}" height="${TOP_BAR}" fill="url(#topBar)" />
 
   ${headerMark()}
-  <text x="${MARGIN + 66}" y="${TOP_BAR + 66}" font-family="${FONT}" font-size="44" font-weight="800" fill="#ffffff" letter-spacing="0.5">WORLD NEWS</text>
+  <text x="${MARGIN + 66}" y="${TOP_BAR + 66}" font-family="${FONT}" font-size="44" font-weight="800" fill="#ffffff" letter-spacing="0.5">HEADLINES</text>
   <text x="${MARGIN + 66}" y="${TOP_BAR + 100}" font-family="${FONT}" font-size="21" fill="#9ca3af">${escapeXml(dateLabel)}</text>
 
   <rect x="${WIDTH - MARGIN - 118}" y="${TOP_BAR + 34}" width="118" height="34" rx="17" fill="none" stroke="#3f3f46" stroke-width="1.5" />
