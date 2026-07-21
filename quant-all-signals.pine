@@ -1,88 +1,132 @@
-//@version=6
-strategy("Quant Trading - High Win Rate", overlay=true, default_qty_type=strategy.fixed, default_qty_value=100)
+//@version=5
+// Chinna Trading Scanner — Intraday Strategy
+// Conditions: EMA200 macro + EMA9/21 micro + daily-anchored VWAP + RSI<55 pullback + EMA9 candle test
+// Timeframe: 5-min intraday | SL=1.5×ATR | TP=2.0×ATR | RR≥1:1.3
+strategy(
+     title       = "Chinna Trading — 5-Condition Intraday",
+     overlay     = true,
+     default_qty_type  = strategy.percent_of_equity,
+     default_qty_value = 10,
+     commission_type   = strategy.commission.percent,
+     commission_value  = 0.05,
+     slippage    = 2
+ )
 
-// INPUTS
-rsi_len = input(14, "RSI")
-ema_fast = input(9, "EMA Fast")
-ema_slow = input(21, "EMA Slow")
-lookback = input(20, "Lookback")
+// ── Inputs ───────────────────────────────────────────────────────────────────
+ema9Len   = input.int(9,   "EMA Fast",   minval=1)
+ema21Len  = input.int(21,  "EMA Slow",   minval=1)
+ema200Len = input.int(200, "EMA Macro",  minval=1)
+rsiLen    = input.int(14,  "RSI Length", minval=1)
+rsiThresh = input.float(55,"RSI Threshold", minval=20, maxval=80)
+atrLen    = input.int(14,  "ATR Length", minval=1)
+slMult    = input.float(1.5,"SL Multiplier", minval=0.5, step=0.1)
+tpMult    = input.float(2.0,"TP Multiplier", minval=0.5, step=0.1)
 
-// 1. MEAN REVERSION
-rsi = ta.rsi(close, rsi_len)
-mean_rev_buy = rsi < 30
-mean_rev_sell = rsi > 70
+// ── Indicators ───────────────────────────────────────────────────────────────
+ema9   = ta.ema(close, ema9Len)
+ema21  = ta.ema(close, ema21Len)
+ema200 = ta.ema(close, ema200Len)
+rsi    = ta.rsi(close, rsiLen)
+atr    = ta.atr(atrLen)
 
-// 2. MOMENTUM
-ema9 = ta.ema(close, ema_fast)
-ema21 = ta.ema(close, ema_slow)
-momentum_buy = ema9 > ema21 and ema9[1] <= ema21[1]
-momentum_sell = ema9 < ema21 and ema9[1] >= ema21[1]
+// Daily-anchored VWAP: reset at the start of each session
+isNewDay  = ta.change(time("D")) != 0
+var float cumTPV = 0.0
+var float cumVol = 0.0
+if isNewDay
+    cumTPV := 0.0
+    cumVol := 0.0
+typical   = (high + low + close) / 3
+cumTPV   += typical * volume
+cumVol   += volume
+avwap     = cumVol > 0 ? cumTPV / cumVol : close
 
-// 3. BREAKOUT
-h = ta.highest(high, lookback)
-l = ta.lowest(low, lookback)
-breakout_buy = close > h[1] and close[1] <= h[1]
-breakout_sell = close < l[1] and close[1] >= l[1]
+// ── 5 Conditions ─────────────────────────────────────────────────────────────
+c1 = close > ema200                      // macro uptrend
+c2 = ema9  > ema21                       // micro momentum
+c3 = close > avwap                       // above anchored VWAP
+c4 = rsi   < rsiThresh                   // pullback zone (not overbought)
+c5 = math.abs(low - ema9) <= atr * 0.5  // candle tests / touches EMA9
 
-// 4. STAT ARB
-sma = ta.sma(close, lookback)
-dev = ta.stdev(close, lookback)
-zs = (close - sma) / dev
-arb_buy = zs < -1.5
-arb_sell = zs > 1.5
+passed = (c1 ? 1 : 0) + (c2 ? 1 : 0) + (c3 ? 1 : 0) + (c4 ? 1 : 0) + (c5 ? 1 : 0)
 
-// 5. VOLATILITY
-atr = ta.atr(14)
-vol_pct = atr / close * 100
-vol_buy = vol_pct < 2.5
-vol_sell = vol_pct > 2.5
+buySignal   = passed == 5
+watchSignal = passed >= 3 and passed < 5
 
-// 6. KELLY
-win_rate = rsi / 100
-kelly_buy = win_rate > 0.55
-kelly_sell = win_rate < 0.45
+// ── Entries & Exits ──────────────────────────────────────────────────────────
+inLong = strategy.opentrades > 0
 
-// STRATEGY VOTES
-buy_votes = (mean_rev_buy ? 1 : 0) + (momentum_buy ? 1 : 0) + (breakout_buy ? 1 : 0) + (arb_buy ? 1 : 0) + (vol_buy ? 1 : 0) + (kelly_buy ? 1 : 0)
-sell_votes = (mean_rev_sell ? 1 : 0) + (momentum_sell ? 1 : 0) + (breakout_sell ? 1 : 0) + (arb_sell ? 1 : 0) + (vol_sell ? 1 : 0) + (kelly_sell ? 1 : 0)
+if buySignal and not inLong
+    sl = close - slMult * atr
+    tp = close + tpMult * atr
+    strategy.entry("LONG", strategy.long, comment="BUY " + str.tostring(passed) + "/5")
+    strategy.exit("EXIT", "LONG", stop=sl, limit=tp, comment="SL/TP")
 
-// SIGNALS: Require 4+ strategies (balanced)
-buy_signal = buy_votes >= 4
-sell_signal = sell_votes >= 4
+// ── Plots ─────────────────────────────────────────────────────────────────────
+plot(ema9,   "EMA 9",   color=color.new(color.aqua,  0), linewidth=1)
+plot(ema21,  "EMA 21",  color=color.new(color.orange, 0), linewidth=1)
+plot(ema200, "EMA 200", color=color.new(color.gray,   20), linewidth=2)
+plot(avwap,  "AVWAP",   color=color.new(color.yellow, 0), linewidth=2, style=plot.style_line)
 
-// POSITION TRACKING
-in_position = strategy.opentrades > 0
+// ── Signal Labels ─────────────────────────────────────────────────────────────
+if buySignal and not inLong[1]
+    label.new(
+         bar_index, low - atr * 0.3,
+         text  = "▲ BUY\nSL " + str.tostring(math.round(close - slMult * atr, 2)) +
+                 "\nTP " + str.tostring(math.round(close + tpMult * atr, 2)),
+         color = color.new(color.green, 0),
+         textcolor = color.white,
+         style = label.style_label_up,
+         size  = size.small
+     )
 
-if buy_signal and not in_position
-    strategy.entry("LONG", strategy.long, comment="BUY")
+if watchSignal and barstate.isconfirmed
+    label.new(
+         bar_index, low - atr * 0.6,
+         text  = "● WATCH " + str.tostring(passed) + "/5",
+         color = color.new(color.orange, 30),
+         textcolor = color.white,
+         style = label.style_label_up,
+         size  = size.tiny
+     )
 
-if sell_signal and in_position
-    strategy.close("LONG", comment="SELL")
+// Background — in position
+bgcolor(inLong ? color.new(color.green, 92) : na)
 
-// DISPLAY
-if buy_signal and not in_position
-    label.new(bar_index, low, text="BUY " + str.tostring(buy_votes) + "/6",
-              color=color.new(color.green, 0), textcolor=color.white,
-              style=label.style_label_up, size=size.large)
+// ── Dashboard Table ───────────────────────────────────────────────────────────
+var table dash = table.new(position.top_right, 2, 7,
+     border_color = color.new(color.gray, 50),
+     border_width = 1,
+     bgcolor      = color.new(color.black, 70)
+ )
 
-if sell_signal and in_position
-    label.new(bar_index, high, text="SELL " + str.tostring(sell_votes) + "/6",
-              color=color.new(color.red, 0), textcolor=color.white,
-              style=label.style_label_down, size=size.large)
+f_cell(col, row, txt, ok) =>
+    table.cell(dash, col, row,
+         text      = txt,
+         text_size = size.small,
+         text_color = ok ? color.lime : color.gray,
+         bgcolor   = color.new(color.black, 80)
+     )
 
-bgcolor(in_position ? color.new(color.green, 90) : na)
+table.cell(dash, 0, 0, "CONDITION", text_size=size.small, text_color=color.white, bgcolor=color.new(color.navy,50))
+table.cell(dash, 1, 0, "STATUS",    text_size=size.small, text_color=color.white, bgcolor=color.new(color.navy,50))
 
-// Status
-info = table.new(position.top_right, 2, 4, border_color=color.gray, border_width=1)
+f_cell(0, 1, "C1 Price > EMA200",   c1)
+f_cell(1, 1, c1 ? "✓" : "✗",       c1)
+f_cell(0, 2, "C2 EMA9 > EMA21",     c2)
+f_cell(1, 2, c2 ? "✓" : "✗",       c2)
+f_cell(0, 3, "C3 Price > AVWAP",    c3)
+f_cell(1, 3, c3 ? "✓" : "✗",       c3)
+f_cell(0, 4, "C4 RSI < " + str.tostring(rsiThresh), c4)
+f_cell(1, 4, c4 ? "✓" : "✗",       c4)
+f_cell(0, 5, "C5 Low ≈ EMA9",       c5)
+f_cell(1, 5, c5 ? "✓" : "✗",       c5)
 
-table.cell(info, 0, 0, text="HIGH WIN RATE", text_size=size.small, bgcolor=color.navy, text_color=color.white)
-table.cell(info, 1, 0, text=in_position ? "LONG" : "FLAT", text_size=size.small, bgcolor=in_position ? color.green : color.gray, text_color=color.white)
-
-table.cell(info, 0, 1, text="Mean Rev", text_size=size.small)
-table.cell(info, 1, 1, text=mean_rev_buy ? "BUY" : mean_rev_sell ? "SELL" : "-", text_size=size.small)
-
-table.cell(info, 0, 2, text="Momentum", text_size=size.small)
-table.cell(info, 1, 2, text=momentum_buy ? "BUY" : momentum_sell ? "SELL" : "-", text_size=size.small)
-
-table.cell(info, 0, 3, text="Buy Votes", text_size=size.small)
-table.cell(info, 1, 3, text=str.tostring(buy_votes) + "/6", text_size=size.small, bgcolor=buy_votes >= 4 ? color.new(color.green, 80) : color.new(color.gray, 80))
+sigColor = passed == 5 ? color.new(color.green, 0) : passed >= 3 ? color.new(color.orange, 0) : color.new(color.gray, 0)
+table.cell(dash, 0, 6, "SIGNAL", text_size=size.small, text_color=color.white, bgcolor=color.new(color.black, 80))
+table.cell(dash, 1, 6,
+     passed == 5 ? "BUY" : passed >= 3 ? "WATCH " + str.tostring(passed) + "/5" : "NONE",
+     text_size  = size.small,
+     text_color = sigColor,
+     bgcolor    = color.new(color.black, 80)
+ )
