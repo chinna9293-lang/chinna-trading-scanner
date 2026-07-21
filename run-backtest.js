@@ -1,239 +1,232 @@
-// Backtest: ORIGINAL vs IMPROVED logic
-// ROOT CAUSE of failures:
-//   RSI 45-65 too wide, no EMA21 slope check, no ATR min, RSI direction ignored
-// FIXES (targeted — keeps what works, removes specific failure patterns):
-//   [1] RSI 50-62 bull / 38-50 bear  (was 45-65 / 35-55)
-//   [2] EMA21 slope must match direction (5-bar comparison)
-//   [3] RSI must be rising for bull, falling for bear
-//   [4] ATR ≥ 0.3% of price — skip ultra-low-vol
-//   [5] Stock time stop 20 bars (was 12) — slow movers need more runway
+﻿#!/usr/bin/env node
+/**
+ * 🎯 BACKTEST RUNNER - Compare Original vs Enhanced Scanner
+ */
 
-const NTFY    = process.env.NTFY_TOPIC    || 'chinna-trading-alerts';
-const ALP_KEY = process.env.ALPACA_KEY    || 'PK7T6WNU6ANNWQXMWFFFSYLKR7';
-const ALP_SEC = process.env.ALPACA_SECRET || 'EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHGoMBtNKDoz6';
-const DATA    = 'https://data.alpaca.markets';
+import https from "https";
 
-// ITER 22: Back to 5-stock (iter16 best performers).
-// Surgical RSI adjustment: 50-63 / 37-50 (1pt wider) to target 16-18T at 70%+ WR.
-const UNIVERSE = {
-  CRM:'stock', META:'stock', GOOGL:'stock', ORCL:'stock', COST:'stock',
+const ALPACA_KEY = process.env.ALPACA_KEY;
+const ALPACA_SECRET = process.env.ALPACA_SECRET;
+const STOCKS = ["GOOGL", "CRM", "META", "ORCL", "COST"];
+const BASE_URL = "https://data.alpaca.markets";
+const headers = {
+  "APCA-API-KEY-ID": ALPACA_KEY,
+  "APCA-API-SECRET-KEY": ALPACA_SECRET,
 };
 
-async function getBars(symbol, limit) {
-  try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1h&range=6mo`;
-    const d   = await (await fetch(url,{headers:{'User-Agent':'Mozilla/5.0'}})).json();
-    const res = d?.chart?.result?.[0]; if (!res) return [];
-    const ts  = res.timestamp||[];
-    const q   = res.indicators?.quote?.[0]||{};
-    const bars=[];
-    for (let i=0;i<ts.length;i++){
-      if (!q.close?.[i]) continue;
-      bars.push({t:new Date(ts[i]*1000).toISOString(),o:q.open?.[i]||q.close[i],
-        h:q.high?.[i]||q.close[i],l:q.low?.[i]||q.close[i],c:q.close[i],v:q.volume?.[i]||0});
-    }
-    return bars.length>=5?bars.slice(-limit):[];
-  } catch { return []; }
+async function fetch5DayBars(symbol, limit = 1440) {
+  return new Promise((resolve, reject) => {
+    const url = `${BASE_URL}/v2/stocks/${symbol}/bars?timeframe=5Min&limit=${limit}&feed=iex&adjustment=raw`;
+    https.get(url, { headers }, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        try {
+          const json = JSON.parse(data);
+          resolve(json.bars || []);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }).on("error", reject);
+  });
 }
 
-function buildEma(cls, n) {
-  const k=2/(n+1); let e=cls[0]; const arr=[e];
-  for (let i=1;i<cls.length;i++){e=cls[i]*k+e*(1-k);arr.push(e);}
-  return arr;
-}
-function rsiOf(cls, w=15) {
-  const s=cls.slice(-w); let g=0,l=0;
-  for (let i=1;i<s.length;i++){const d=s[i]-s[i-1];d>0?g+=d:l-=d;}
-  return 100-100/(1+(g/(l||0.001)));
-}
-function atrOf(bars, n=14) {
-  const sl=bars.slice(-(n+1)); let sum=0;
-  for (let i=1;i<sl.length;i++){const b=sl[i],p=sl[i-1];sum+=Math.max(b.h-b.l,Math.abs(b.h-p.c),Math.abs(b.l-p.c));}
-  return sum/Math.min(n,sl.length-1);
-}
-// ADX: measures trend STRENGTH regardless of direction.
-// ADX > 20 = trending market (breakouts are real).
-// ADX < 15 = ranging/choppy (breakouts are fake). This is the root cause of MSFT/AAPL/JPM/XOM failing.
-function adxOf(bars, n=14) {
-  const sl = bars.slice(-(n*2+1));
-  const smoothK = 2/(n+1);
-  let atr=0, pdm=0, ndm=0;
-  // seed from first bar pair
-  const b1=sl[1],p1=sl[0];
-  atr = Math.max(b1.h-b1.l,Math.abs(b1.h-p1.c),Math.abs(b1.l-p1.c));
-  pdm = Math.max(b1.h-p1.h,0) > Math.max(p1.l-b1.l,0) ? Math.max(b1.h-p1.h,0) : 0;
-  ndm = Math.max(p1.l-b1.l,0) > Math.max(b1.h-p1.h,0) ? Math.max(p1.l-b1.l,0) : 0;
-  let dx=0, adx=0, adxSeeded=false;
-  for (let i=2;i<sl.length;i++){
-    const b=sl[i],p=sl[i-1];
-    const tr=Math.max(b.h-b.l,Math.abs(b.h-p.c),Math.abs(b.l-p.c));
-    const pm=Math.max(b.h-p.h,0)>Math.max(p.l-b.l,0)?Math.max(b.h-p.h,0):0;
-    const nm=Math.max(p.l-b.l,0)>Math.max(b.h-p.h,0)?Math.max(p.l-b.l,0):0;
-    atr=atr-atr/n+tr; pdm=pdm-pdm/n+pm; ndm=ndm-ndm/n+nm;
-    const pdi=atr>0?100*pdm/atr:0, ndi=atr>0?100*ndm/atr:0;
-    const sum=pdi+ndi;
-    dx=sum>0?100*Math.abs(pdi-ndi)/sum:0;
-    if (!adxSeeded){adx=dx;adxSeeded=true;}else{adx=adx*(n-1)/n+dx/n;}
+function calculateATR(bars, period = 14) {
+  if (!bars || bars.length < period) return 1;
+  let sumTR = 0;
+  for (let i = Math.max(0, bars.length - period); i < bars.length; i++) {
+    const h = parseFloat(bars[i].h);
+    const l = parseFloat(bars[i].l);
+    const c = i > 0 ? parseFloat(bars[i - 1].c) : h;
+    const tr = Math.max(h - l, Math.abs(h - c), Math.abs(l - c));
+    sumTR += tr;
   }
-  return +adx.toFixed(1);
+  return sumTR / Math.min(period, bars.length);
 }
 
-// ── ORIGINAL 3-condition logic ────────────────────────────────────────────────
-function checkOLD(bars) {
-  if (bars.length<25) return null;
-  const n=bars.length,cls=bars.map(b=>b.c),hs=bars.map(b=>b.h),ls=bars.map(b=>b.l);
-  const e9=buildEma(cls,9).at(-1),e21=buildEma(cls,21).at(-1),r=rsiOf(cls),atr=atrOf(bars);
-  const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
-  const last=bars[n-1],prev=bars[n-2];
-  if (e9>e21&&r>45&&r<65&&last.c>sH&&prev.c<=sH) return {side:'buy',  atr};
-  if (e9<e21&&r>35&&r<55&&last.c<sL&&prev.c>=sL) return {side:'sell', atr};
-  return null;
-}
-
-// ── IMPROVED: ADX trend-strength filter ──────────────────────────────────────
-// ROOT CAUSE (proven after 4 iterations):
-//   MSFT/AAPL/JPM/XOM were in RANGING/CHOPPY conditions (low ADX).
-//   Their swing-high breakouts are fake — price immediately reverses (80-100% SL hits).
-//   EMA50 direction filter didn't help because prices were ABOVE EMA50 but still ranging.
-//   The true fix: only trade when the market is TRENDING (ADX ≥ 20).
-//
-// ADX (Average Directional Index) > 20 = real trend, breakouts have follow-through.
-// ADX < 15 = ranging/sideways, breakouts are noise.
-// Classic rule: don't use breakout strategies in low-ADX markets.
-// ITER 22: Surgical tweak on iter16 (71.4% on 14T).
-// Keep: ADX>21, vol>1.25x, body>35%, 6-month data, 5 stocks.
-// Tweak: RSI 50-63 / 37-50 (was 51-62 / 38-49) — just 1pt wider to capture marginal signals.
-function checkIMPROVED(bars) {
-  if (bars.length<60) return null;
-  const n=bars.length,cls=bars.map(b=>b.c),hs=bars.map(b=>b.h),ls=bars.map(b=>b.l);
-  const vs=bars.map(b=>b.v||0);
-  const e9=buildEma(cls,9).at(-1), e21=buildEma(cls,21).at(-1);
-  const r=rsiOf(cls), atr=atrOf(bars);
-
-  if (atr/cls[n-1]*100 < 0.3) return null;
-  const adx = adxOf(bars);
-  if (adx < 21) return null;
-
-  const last=bars[n-1], prev=bars[n-2];
-
-  // Tight: vol>1.25x + body>35%
-  const vArr = vs.slice(-11,-1).filter(v=>v>0);
-  const vAvg = vArr.length ? vArr.reduce((a,b)=>a+b,0)/vArr.length : 1;
-  const vRatio = vAvg>0 ? vs[n-1]/vAvg : 1;
-  if (vRatio < 1.25) return null;
-  const range = (last.h-last.l)||0.001;
-  const body  = Math.abs(last.c-last.o)/range;
-  if (body < 0.35) return null;
-
-  const sH=Math.max(...hs.slice(n-12,n-1)),sL=Math.min(...ls.slice(n-12,n-1));
-
-  // Slightly wider RSI: 50-63 / 37-50 (was 51-62 / 38-49 in iter11)
-  if (e9>e21 && r>50 && r<63 && last.c>sH && prev.c<=sH && last.c>last.o)
-    return {side:'buy',  atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
-  if (e9<e21 && r>37 && r<50 && last.c<sL && prev.c>=sL && last.c<last.o)
-    return {side:'sell', atr, rsi:+r.toFixed(1), adx, vR:+vRatio.toFixed(2)};
-  return null;
-}
-
-// ── Walk-forward ─────────────────────────────────────────────────────────────
-function backtest(bars, checkFn, isCrypto) {
-  const TS=20, TP=2, SL=1;  // Stocks only — 20 bar time stop
-  const res=[],n=bars.length; let i=30;
-  while (i<n-2) {
-    const sig=checkFn(bars.slice(0,i+1)); if (!sig){i++;continue;}
-    const entry=bars[i+1]?.o||bars[i].c;
-    const tp=sig.side==='buy'?entry+TP*sig.atr:entry-TP*sig.atr;
-    const sl=sig.side==='buy'?entry-SL*sig.atr:entry+SL*sig.atr;
-    const tpP=+(TP*sig.atr/entry*100).toFixed(2), slP=+(SL*sig.atr/entry*100).toFixed(2);
-    let out=null;
-    for (let j=i+1;j<Math.min(i+1+TS,n);j++) {
-      const b=bars[j];
-      if (sig.side==='buy') {if(b.h>=tp){out={win:true,pct:tpP,how:'TP'};break;}if(b.l<=sl){out={win:false,pct:-slP,how:'SL'};break;}}
-      else                  {if(b.l<=tp){out={win:true,pct:tpP,how:'TP'};break;}if(b.h>=sl){out={win:false,pct:-slP,how:'SL'};break;}}
-    }
-    if (!out){const ex=bars[Math.min(i+1+TS,n-1)];const raw=sig.side==='buy'?(ex.c-entry)/entry*100:(entry-ex.c)/entry*100;out={win:raw>0,pct:+raw.toFixed(2),how:'TIME'};}
-    res.push({date:bars[i].t.slice(0,10),side:sig.side,entry:+entry.toFixed(4),...sig,...out});
-    i+=Math.max(4,TS);
+function calculateEMA(bars, period) {
+  if (!bars || bars.length < period) return parseFloat(bars[bars.length - 1].c);
+  const k = 2 / (period + 1);
+  let ema = parseFloat(bars[0].c);
+  for (let i = 1; i < bars.length; i++) {
+    ema = parseFloat(bars[i].c) * k + ema * (1 - k);
   }
-  return res;
+  return ema;
 }
 
-function st(res) {
-  if (!res.length) return null;
-  const w=res.filter(r=>r.win),pnl=+res.reduce((s,r)=>s+r.pct,0).toFixed(2);
-  return {n:res.length,wr:+(w.length/res.length*100).toFixed(1),pnl,
-    avg:+(pnl/res.length).toFixed(2),
-    tp:res.filter(r=>r.how==='TP').length,
-    sl:res.filter(r=>r.how==='SL').length,
-    tm:res.filter(r=>r.how==='TIME').length};
+function calculateRegimeScore(bars) {
+  if (!bars || bars.length < 20) return 0;
+  const atr = calculateATR(bars);
+  const atrMa = calculateATR(bars.slice(-20), 20);
+  const ema5 = calculateEMA(bars, 5);
+  const ema60 = calculateEMA(bars, 60);
+  const separation = Math.abs(ema5 - ema60);
+  let score = 0;
+  if (atr > atrMa * 1.3) score += 25;
+  else if (atr > atrMa * 1.1) score += 15;
+  if (separation > atr * 1.0) score += 25;
+  else if (separation > atr * 0.5) score += 15;
+  let bullFlow = 0;
+  const slice = bars.slice(-5);
+  for (let i = 0; i < slice.length; i++) {
+    if (parseFloat(slice[i].c) > parseFloat(slice[i].o)) bullFlow++;
+  }
+  if (bullFlow >= 3) score += 25;
+  return score;
 }
 
-function fmt(s) {
-  if (!s) return '— (no signals)'.padEnd(35);
-  return `${s.n}T  ${s.wr}%WR  ${s.pnl>=0?'+':''}${s.pnl}%  [TP:${s.tp} SL:${s.sl} T:${s.tm}]`.padEnd(35);
+function originalDetectSignals(bars) {
+  if (!bars || bars.length < 5) return [];
+  const signals = [];
+  const closes = bars.map((b) => parseFloat(b.c));
+  const currentPrice = closes[closes.length - 1];
+  const recentHigh = Math.max(...closes.slice(-5));
+  const recentLow = Math.min(...closes.slice(-5));
+  const priceRange = recentHigh - recentLow;
+  const pricePosition = (currentPrice - recentLow) / (priceRange || 1);
+  const profitTarget = Math.max(5, currentPrice * 0.02);
+  if (pricePosition < 0.4) {
+    signals.push({ type: "BUY", target: currentPrice + profitTarget });
+  }
+  if (pricePosition > 0.6) {
+    signals.push({ type: "SELL", target: Math.max(currentPrice - profitTarget, 0) });
+  }
+  return signals;
 }
 
-async function notify(title, body) {
-  try { await fetch('https://ntfy.sh/'+NTFY,{method:'POST',headers:{'Title':title.replace(/[^\x00-\x7F]/g,''),'Priority':'high','Tags':'bar_chart'},body}); }
-  catch {}
+function enhancedDetectSignals(bars) {
+  if (!bars || bars.length < 5) return [];
+  const signals = [];
+  const closes = bars.map((b) => parseFloat(b.c));
+  const currentPrice = closes[closes.length - 1];
+  const recentHigh = Math.max(...closes.slice(-5));
+  const recentLow = Math.min(...closes.slice(-5));
+  const priceRange = recentHigh - recentLow;
+  const pricePosition = (currentPrice - recentLow) / (priceRange || 1);
+  const profitTarget = Math.max(5, currentPrice * 0.02);
+  const regimeScore = calculateRegimeScore(bars);
+  const ema5 = calculateEMA(bars, 5);
+  const ema60 = calculateEMA(bars, 60);
+  const htfBullish = ema5 > ema60;
+  if (regimeScore >= 50) {
+    if (pricePosition < 0.4 && htfBullish) {
+      signals.push({ type: "BUY", target: currentPrice + profitTarget, regimeScore });
+    }
+    if (pricePosition > 0.6 && !htfBullish) {
+      signals.push({ type: "SELL", target: Math.max(currentPrice - profitTarget, 0), regimeScore });
+    }
+  }
+  return signals;
+}
+
+function runBacktest(symbol, bars, isEnhanced = false) {
+  const detector = isEnhanced ? enhancedDetectSignals : originalDetectSignals;
+  let wins = 0;
+  let losses = 0;
+  let trades = [];
+  for (let i = 50; i < bars.length; i++) {
+    const window = bars.slice(i - 50, i);
+    const signals = detector(window);
+    if (signals.length > 0) {
+      for (const signal of signals) {
+        const currentPrice = parseFloat(window[window.length - 1].c);
+        let targetHit = false;
+        for (let j = i; j < Math.min(i + 20, bars.length); j++) {
+          if (signal.type === "BUY") {
+            const futurePrice = parseFloat(bars[j].h);
+            if (futurePrice >= signal.target) {
+              targetHit = true;
+              wins++;
+              break;
+            }
+            const futureLow = parseFloat(bars[j].l);
+            if (futureLow <= currentPrice * 0.985) {
+              losses++;
+              break;
+            }
+          } else if (signal.type === "SELL") {
+            const futureLow = parseFloat(bars[j].l);
+            if (futureLow <= signal.target) {
+              targetHit = true;
+              wins++;
+              break;
+            }
+            const futureHigh = parseFloat(bars[j].h);
+            if (futureHigh >= currentPrice * 1.015) {
+              losses++;
+              break;
+            }
+          }
+        }
+        trades.push({ signal: signal.type, result: targetHit ? "WIN" : "LOSS" });
+      }
+    }
+  }
+  const total = wins + losses;
+  const winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : 0;
+  return { symbol, wins, losses, total, winRate, trades };
 }
 
 async function main() {
-  console.log('=== ORIGINAL vs IMPROVED  '+new Date().toISOString()+' ===\n');
-  console.log('[ITER 22] Hourly 180d, 5-stock, iter16 + RSI 50-63/37-50');
-  console.log('[1] Surgical RSI widening (1pt each side) on proven filters');
-  console.log('[2] RSI 50-63 bull / 37-50 bear');
-  console.log('[3] EMA9>21 breakup / EMA9<21 breakdown\n');
-  console.log(`${'Symbol'.padEnd(10)} ${'ORIGINAL'.padEnd(35)} IMPROVED         DELTA`);
-  console.log('─'.repeat(90));
+  console.log(`\n${"=".repeat(80)}`);
+  console.log(`🎯 SCALP SCANNER BACKTEST - 5-Day Historical Analysis`);
+  console.log(`${"=".repeat(80)}`);
+  console.log(`Date: ${new Date().toISOString().split("T")[0]}`);
+  console.log(`Stocks: ${STOCKS.join(", ")}\n`);
 
-  const rows=[];
-  let oT={n:0,w:0,pnl:0},iT={n:0,w:0,pnl:0};
+  const originalResults = [];
+  const enhancedResults = [];
 
-  for (const [sym,type] of Object.entries(UNIVERSE)) {
-    const ic=type==='crypto';
-    const bars=await getBars(sym,500);
-    if (bars.length<35){console.log(`${sym.padEnd(10)} not enough data`);continue;}
-    const oR=backtest(bars,checkOLD,ic), iR=backtest(bars,checkIMPROVED,ic);
-    const oS=st(oR), iS=st(iR);
-    const d=iS&&oS?+(iS.wr-oS.wr).toFixed(0):null;
-    const flag=d===null?'  ': d>10?'⬆️ ':d<-5?'⬇️ ':'≈  ';
-    console.log(`${sym.padEnd(10)} ${fmt(oS)}${fmt(iS)}${flag}${d!==null?(d>=0?'+':'')+d+'%WR':''}`);
-    rows.push({sym,ic,oS,iS});
-    if (oS){oT.n+=oS.n;oT.w+=Math.round(oS.n*oS.wr/100);oT.pnl+=oS.pnl;}
-    if (iS){iT.n+=iS.n;iT.w+=Math.round(iS.n*iS.wr/100);iT.pnl+=iS.pnl;}
+  for (const symbol of STOCKS) {
+    try {
+      console.log(`📊 Fetching ${symbol}...`);
+      const bars = await fetch5DayBars(symbol);
+      if (bars.length < 50) {
+        console.log(`  ⚠️  Not enough data`);
+        continue;
+      }
+      console.log(`  ✓ ${bars.length} bars`);
+      const orig = runBacktest(symbol, bars, false);
+      const enh = runBacktest(symbol, bars, true);
+      originalResults.push(orig);
+      enhancedResults.push(enh);
+    } catch (e) {
+      console.error(`  ❌ ${symbol}: ${e.message}`);
+    }
   }
 
-  const oWR=oT.n?+(oT.w/oT.n*100).toFixed(1):0;
-  const iWR=iT.n?+(iT.w/iT.n*100).toFixed(1):0;
-  const d=+(iWR-oWR).toFixed(1);
-  console.log('─'.repeat(90));
-  console.log(`${'TOTAL'.padEnd(10)} ${fmt({n:oT.n,wr:oWR,pnl:+oT.pnl.toFixed(1),tp:0,sl:0,tm:0})}${fmt({n:iT.n,wr:iWR,pnl:+iT.pnl.toFixed(1),tp:0,sl:0,tm:0})}${d>=0?'+':''}${d}%WR`);
+  const origWins = originalResults.reduce((a, r) => a + r.wins, 0);
+  const origLosses = originalResults.reduce((a, r) => a + r.losses, 0);
+  const origTotal = origWins + origLosses;
 
-  console.log('\n── WHY ORIGINALS FAILED (WR<35%) ──');
-  for (const r of rows.filter(r=>r.oS&&r.oS.wr<35).sort((a,b)=>a.oS.wr-b.oS.wr)) {
-    const s=r.oS, reasons=[];
-    if (s.sl/s.n>0.5)  reasons.push(`${(s.sl/s.n*100).toFixed(0)}% hit SL = fake breakouts, no trend`);
-    if (s.tm/s.n>0.4)  reasons.push(`${(s.tm/s.n*100).toFixed(0)}% time-stop = momentum stalled`);
-    if (s.n>7)         reasons.push('too many signals = choppy/ranging market');
-    if (s.wr<20)       reasons.push('RSI zone too wide, caught counter-trend entries');
-    console.log(`  ${r.sym.padEnd(8)} ${s.wr}%WR  →  ${reasons.join(' | ')}`);
+  const enhWins = enhancedResults.reduce((a, r) => a + r.wins, 0);
+  const enhLosses = enhancedResults.reduce((a, r) => a + r.losses, 0);
+  const enhTotal = enhWins + enhLosses;
+
+  console.log(`\n${"=".repeat(80)}`);
+  console.log(`📊 RESULTS - ORIGINAL vs ENHANCED`);
+  console.log(`${"=".repeat(80)}\n`);
+
+  const origWR = origTotal > 0 ? ((origWins / origTotal) * 100).toFixed(1) : 0;
+  const enhWR = enhTotal > 0 ? ((enhWins / enhTotal) * 100).toFixed(1) : 0;
+
+  console.log(`ORIGINAL: ${origTotal} trades | ${origWins} wins | ${origLosses} losses | ${origWR}% WR`);
+  console.log(`ENHANCED: ${enhTotal} trades | ${enhWins} wins | ${enhLosses} losses | ${enhWR}% WR`);
+  console.log(`\n✅ IMPROVEMENT: ${(enhWR - origWR).toFixed(1)}%\n`);
+
+  for (let i = 0; i < originalResults.length; i++) {
+    const o = originalResults[i];
+    const e = enhancedResults[i];
+    console.log(`${o.symbol}: ${o.winRate}% → ${e.winRate}% (${o.total} → ${e.total} trades)`);
   }
 
-  console.log('\n── BEST WITH IMPROVED LOGIC ──');
-  for (const r of rows.filter(r=>r.iS&&r.iS.n>0).sort((a,b)=>b.iS.wr-a.iS.wr||b.iS.pnl-a.iS.pnl).slice(0,8)) {
-    console.log(`  ${r.sym.padEnd(8)} ${r.iS.wr}%WR  ${r.iS.pnl>=0?'+':''}${r.iS.pnl}%  (${r.iS.n} trades)`);
-  }
-
-  const top=rows.filter(r=>r.iS&&r.iS.n>0).sort((a,b)=>b.iS.wr-a.iS.wr).slice(0,6)
-    .map(r=>`${r.sym}(${r.iS.wr}%WR ${r.iS.pnl>=0?'+':''}${r.iS.pnl}%)`).join('\n');
-  const fail=rows.filter(r=>r.oS&&r.oS.wr<35).sort((a,b)=>a.oS.wr-b.oS.wr).slice(0,4)
-    .map(r=>{const s=r.oS,rs=[];if(s.sl/s.n>0.5)rs.push('fake BOs');if(s.tm/s.n>0.4)rs.push('no momentum');if(s.n>7)rs.push('choppy');return `${r.sym}(${s.wr}%WR): ${rs.join('+')}`;}).join('\n');
-
-  await notify(
-    `BT: ${oWR}%WR ORIG → ${iWR}%WR IMPROVED (${d>=0?'+':''}${d}%)`,
-    `ORIGINAL vs IMPROVED\n1H bars 90d ATR 2:1\n\nORIGINAL: ${oT.n}T ${oWR}%WR +${oT.pnl.toFixed(1)}%\nIMPROVED: ${iT.n}T ${iWR}%WR +${iT.pnl.toFixed(1)}%\nSignals: ${oT.n}→${iT.n}\n\nBEST:\n${top}\n\nFAILURE REASONS:\n${fail}\n\nFIXES:\n[1] RSI 50-62 bull (was 45-65)\n[2] EMA21 slope match\n[3] RSI direction match\n[4] ATR≥0.3%\n[5] 20-bar time stop`
-  );
-  console.log('\nDone — check ntfy: chinna-trading-alerts');
+  console.log(`\n${"=".repeat(80)}`);
+  console.log(`✅ BACKTEST COMPLETE`);
+  console.log(`${"=".repeat(80)}\n`);
 }
-main().catch(console.error);
+
+main().catch((e) => {
+  console.error(`❌ Error: ${e.message}`);
+  process.exit(1);
+});

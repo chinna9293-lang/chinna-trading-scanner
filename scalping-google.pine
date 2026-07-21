@@ -1,0 +1,95 @@
+//@version=6
+strategy("GOOGL Scalping - Simple S/R", overlay=true, default_qty_type=strategy.fixed, default_qty_value=100)
+
+// INPUTS
+sr_period = input(20, "S/R Period")
+rsi_period = input(14, "RSI Period")
+rsi_bull = input(55, "RSI Bullish")
+rsi_bear = input(45, "RSI Bearish")
+min_volume_mult = input(1.8, "Min Volume")
+
+// SUPPORT & RESISTANCE ZONES
+h = ta.highest(high, sr_period)
+l = ta.lowest(low, sr_period)
+resistance = h[1]
+support = l[1]
+
+// MOMENTUM
+rsi = ta.rsi(close, rsi_period)
+
+// VOLUME
+avg_vol = ta.sma(volume, 20)
+vol_confirmed = volume > (avg_vol * min_volume_mult)
+
+// ═════════════════════════════════════════════════════════════════
+// SIGNALS: Simple entry conditions
+// ═════════════════════════════════════════════════════════════════
+
+// BUY: Break support + volume + RSI bullish
+bullish_breakout = (close > resistance and close[1] <= resistance)
+buy_signal = bullish_breakout and vol_confirmed and rsi > rsi_bull
+
+// SELL: Break support + volume + RSI bearish
+bearish_breakdown = (close < support and close[1] >= support)
+sell_signal = bearish_breakdown and vol_confirmed and rsi < rsi_bear
+
+// ═════════════════════════════════════════════════════════════════
+// POSITION & EXIT: Sell at resistance level (not a target)
+// ═════════════════════════════════════════════════════════════════
+
+in_pos = strategy.opentrades > 0
+pos_type = strategy.position_size > 0 ? "LONG" : "SHORT"
+
+// EXIT when price reaches the opposite level
+long_exit = in_pos and pos_type == "LONG" and close >= resistance
+short_exit = in_pos and pos_type == "SHORT" and close <= support
+
+// ═════════════════════════════════════════════════════════════════
+// EXECUTE TRADES
+// ═════════════════════════════════════════════════════════════════
+
+if buy_signal and not in_pos
+    strategy.entry("LONG", strategy.long)
+
+if sell_signal and not in_pos
+    strategy.entry("SHORT", strategy.short)
+
+if long_exit
+    strategy.close("LONG")
+
+if short_exit
+    strategy.close("SHORT")
+
+// ═════════════════════════════════════════════════════════════════
+// CHART: ONLY Support & Resistance Lines
+// ═════════════════════════════════════════════════════════════════
+
+plot(resistance, "SELL ZONE", color=color.red, linewidth=3)
+plot(support, "BUY ZONE", color=color.green, linewidth=3)
+
+// ═════════════════════════════════════════════════════════════════
+// SIMPLE ENTRY SIGNALS
+// ═════════════════════════════════════════════════════════════════
+
+plotshape(buy_signal and not in_pos, style=shape.labelup, location=location.belowbar, color=color.green, size=size.large, text="BUY")
+plotshape(sell_signal and not in_pos, style=shape.labeldown, location=location.abovebar, color=color.red, size=size.large, text="SELL")
+
+// ═════════════════════════════════════════════════════════════════
+// SIMPLE LABELS
+// ═════════════════════════════════════════════════════════════════
+
+if buy_signal and not in_pos
+    label.new(bar_index, low * 0.98, text="BUY @ $" + str.tostring(close, "#.##"),
+              color=color.new(color.green, 0), textcolor=color.white, style=label.style_label_up, size=size.large)
+
+if sell_signal and not in_pos
+    label.new(bar_index, high * 1.02, text="SELL @ $" + str.tostring(close, "#.##"),
+              color=color.new(color.red, 0), textcolor=color.white, style=label.style_label_down, size=size.large)
+
+if long_exit
+    label.new(bar_index, high, text="EXIT @ $" + str.tostring(close, "#.##"),
+              color=color.new(color.orange, 0), textcolor=color.white, style=label.style_label_down, size=size.large)
+
+if short_exit
+    label.new(bar_index, low, text="EXIT @ $" + str.tostring(close, "#.##"),
+              color=color.new(color.orange, 0), textcolor=color.white, style=label.style_label_up, size=size.large)

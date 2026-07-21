@@ -7,8 +7,8 @@
 
 import https from 'https';
 
-const ALPACA_KEY = process.env.ALPACA_KEY || 'PK7T6WNU6ANNWQXMWFFFSYLKR7';
-const ALPACA_SECRET = process.env.ALPACA_SECRET || 'EDBn6MnYgP1eVkwnkSGpCByUTSLi9t4qHGoMBtNKDoz6';
+const ALPACA_KEY = process.env.ALPACA_KEY || '';
+const ALPACA_SECRET = process.env.ALPACA_SECRET || '';
 const BASE_URL = 'https://data.alpaca.markets';
 
 const STOCKS = ['GOOGL', 'CRM', 'META', 'ORCL', 'COST'];

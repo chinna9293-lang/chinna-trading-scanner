@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trading Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+      color: #e0e6ed;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: rgba(15, 20, 31, 0.8);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: #6366f1;
+      letter-spacing: -0.02em;
+    }
+
+    .header-stats {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .stat {
+      text-align: right;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #8b92a9;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .stat-value.positive { color: #10b981; }
+    .stat-value.negative { color: #ef4444; }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .section-header {
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid rgba(99, 102, 241, 0.2);
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::before {
+      content: '';
+      width: 4px;
+      height: 20px;
+      background: #6366f1;
+      border-radius: 2px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .asset-card {
+      background: rgba(26, 31, 44, 0.6);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .asset-card:hover {
+      background: rgba(26, 31, 44, 0.9);
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
+    }
+
+    .asset-card.active {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: #6366f1;
+    }
+
+    .asset-symbol {
+      font-size: 14px;
+      font-weight: 700;
+      color: #6366f1;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .asset-price {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .asset-change {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .change-positive { color: #10b981; }
+    .change-negative { color: #ef4444; }
+
+    .chart-panel {
+      background: rgba(26, 31, 44, 0.6);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 32px;
+      min-height: 450px;
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+    }
+
+    .chart-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .timeframe-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tf-btn {
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .tf-btn:hover {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: #6366f1;
+    }
+
+    .tf-btn.active {
+      background: #6366f1;
+      border-color: #6366f1;
+      color: #fff;
+    }
+
+    #chart-container {
+      height: 380px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #8b92a9;
+    }
+
+    .positions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .position-card {
+      background: rgba(26, 31, 44, 0.6);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .position-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+    }
+
+    .position-symbol {
+      font-size: 14px;
+      font-weight: 700;
+      color: #6366f1;
+      text-transform: uppercase;
+    }
+
+    .position-pnl {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .position-pnl.profit { color: #10b981; }
+    .position-pnl.loss { color: #ef4444; }
+
+    .position-detail {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #8b92a9;
+      margin-bottom: 4px;
+    }
+
+    .position-detail-value {
+      color: #e0e6ed;
+      font-weight: 600;
+    }
+
+    .signals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .signal-card {
+      background: rgba(26, 31, 44, 0.6);
+      border: 2px solid rgba(99, 102, 241, 0.15);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .signal-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .signal-symbol {
+      font-size: 14px;
+      font-weight: 700;
+      color: #6366f1;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .signal-type {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 8px;
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+
+    .signal-type.sell {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    @media (max-width: 768px) {
+      .container { padding: 16px; }
+      .header-stats { gap: 16px; font-size: 14px; }
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">⬡ Trading Bot</div>
+    <div class="header-stats">
+      <div class="stat">
+        <div class="stat-label">Portfolio Value</div>
+        <div class="stat-value">$100,000.89</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Today P&L</div>
+        <div class="stat-value positive">+$2,450.32</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Open Positions</div>
+        <div class="stat-value">4</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="section-header">
+      <div class="section-title">📊 All Assets</div>
+    </div>
+    <div class="grid" id="assets-grid"></div>
+
+    <div class="section-header">
+      <div class="section-title">📈 Chart Analysis</div>
+    </div>
+    <div class="chart-panel">
+      <div class="chart-header">
+        <div class="chart-title" id="chart-title">Select an asset to view chart</div>
+        <div class="timeframe-buttons">
+          <button class="tf-btn active">5m</button>
+          <button class="tf-btn">15m</button>
+          <button class="tf-btn">1h</button>
+          <button class="tf-btn">1d</button>
+        </div>
+      </div>
+      <div id="chart-container">Select an asset card above to view the chart</div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">💼 Open Positions</div>
+    </div>
+    <div class="positions-grid" id="positions-grid"></div>
+
+    <div class="section-header">
+      <div class="section-title">🎯 Trading Signals</div>
+    </div>
+    <div class="signals-grid" id="signals-grid"></div>
+  </div>
+
+  <script>
+    const ASSETS = [
+      { symbol: 'COST', price: 960.50, change: 2.3 },
+      { symbol: 'TSLA', price: 250.20, change: -1.2 },
+      { symbol: 'META', price: 480.10, change: 1.5 },
+      { symbol: 'BTC/USD', price: 65200, change: 3.1 },
+      { symbol: 'ETH/USD', price: 3500, change: 2.8 },
+      { symbol: 'SOL/USD', price: 180.50, change: 1.9 },
+    ];
+
+    const POSITIONS = [
+      { symbol: 'BTC', entry: 64000, current: 65200, pnl: 1200 },
+      { symbol: 'ETH', entry: 3450, current: 3500, pnl: 50 },
+    ];
+
+    const SIGNALS = [
+      { symbol: 'COST', type: 'buy', confidence: 85 },
+      { symbol: 'BTC', type: 'buy', confidence: 92 },
+    ];
+
+    const assetsGrid = document.getElementById('assets-grid');
+    ASSETS.forEach(asset => {
+      const card = document.createElement('div');
+      card.className = 'asset-card';
+      card.innerHTML = `
+        <div class="asset-symbol">${asset.symbol}</div>
+        <div class="asset-price">$${asset.price.toLocaleString()}</div>
+        <div class="asset-change">
+          <span>${asset.change > 0 ? '↑' : '↓'} ${Math.abs(asset.change)}%</span>
+          <span class="${asset.change > 0 ? 'change-positive' : 'change-negative'}">${asset.change > 0 ? '+' : ''}${asset.change}%</span>
+        </div>
+      `;
+      card.onclick = () => selectAsset(asset.symbol, card);
+      assetsGrid.appendChild(card);
+    });
+
+    const positionsGrid = document.getElementById('positions-grid');
+    POSITIONS.forEach(pos => {
+      const profit = pos.current - pos.entry;
+      const card = document.createElement('div');
+      card.className = 'position-card';
+      card.innerHTML = `
+        <div class="position-header">
+          <div class="position-symbol">${pos.symbol}</div>
+          <div class="position-pnl ${profit >= 0 ? 'profit' : 'loss'}">
+            ${profit >= 0 ? '+' : ''}$${profit.toFixed(2)}
+          </div>
+        </div>
+        <div class="position-detail"><span>Entry:</span><span class="position-detail-value">$${pos.entry.toLocaleString()}</span></div>
+        <div class="position-detail"><span>Current:</span><span class="position-detail-value">$${pos.current.toLocaleString()}</span></div>
+        <div class="position-detail"><span>Return:</span><span class="position-detail-value" style="color: ${profit >= 0 ? '#10b981' : '#ef4444'}">${profit >= 0 ? '+' : ''}${((profit / pos.entry) * 100).toFixed(2)}%</span></div>
+      `;
+      positionsGrid.appendChild(card);
+    });
+
+    const signalsGrid = document.getElementById('signals-grid');
+    SIGNALS.forEach(signal => {
+      const card = document.createElement('div');
+      card.className = 'signal-card';
+      card.innerHTML = `
+        <div class="signal-icon">${signal.type === 'buy' ? '🟢' : '🔴'}</div>
+        <div class="signal-symbol">${signal.symbol}</div>
+        <div class="signal-type ${signal.type === 'sell' ? 'sell' : ''}">${signal.type.toUpperCase()}</div>
+        <div style="font-size: 12px; color: #8b92a9; margin-top: 8px;">Confidence: ${signal.confidence}%</div>
+      `;
+      signalsGrid.appendChild(card);
+    });
+
+    function selectAsset(symbol, element) {
+      document.querySelectorAll('.asset-card').forEach(c => c.classList.remove('active'));
+      element.classList.add('active');
+      document.getElementById('chart-title').textContent = symbol + ' - Click to view chart';
+    }
+  </script>
+</body>
+</html>
