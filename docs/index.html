@@ -475,26 +475,21 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,50,110,.55);color:var(--t1
   button{touch-action:manipulation;}
 }
 
-/* ── Strategy Scanner Panel ── */
-#scanner-panel{height:calc(100vh - 220px);overflow-y:auto;}
-.scan-tbl{width:100%;border-collapse:collapse;font-size:12px;}
-.scan-tbl th{padding:7px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);border-bottom:1px solid var(--brd2);white-space:nowrap;}
-.scan-tbl td{padding:9px 10px;border-bottom:1px solid rgba(30,50,110,.2);font-variant-numeric:tabular-nums;vertical-align:middle;}
-.scan-tbl tbody tr:hover{background:var(--a05);cursor:pointer;}
-.sig-buy{background:var(--g10);color:var(--grn);border:1px solid var(--g25);padding:3px 10px;border-radius:12px;font-weight:700;font-size:11px;white-space:nowrap;}
-.sig-watch{background:var(--am10);color:var(--amb);border:1px solid rgba(245,158,11,.25);padding:3px 10px;border-radius:12px;font-weight:600;font-size:11px;white-space:nowrap;}
-.sig-none{background:rgba(100,116,139,.08);color:var(--t3);border:1px solid rgba(100,116,139,.15);padding:3px 10px;border-radius:12px;font-size:11px;}
-.cond-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:2px;}
+/* ── Home Screen Scanner Badges ── */
+.scan-sig-buy{background:var(--g10);color:var(--grn);border:1px solid var(--g25);padding:2px 6px;border-radius:8px;font-weight:700;font-size:9px;white-space:nowrap;}
+.scan-sig-watch{background:var(--am10);color:var(--amb);border:1px solid rgba(245,158,11,.25);padding:2px 6px;border-radius:8px;font-weight:600;font-size:9px;white-space:nowrap;}
+.scan-sig-none{color:var(--t3);font-size:9px;}
+.cond-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:1px;}
 .cond-dot.p{background:var(--grn);}
 .cond-dot.f{background:var(--t3);}
-.scan-empty{padding:30px;text-align:center;color:var(--t3);font-size:12px;}
-.scan-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 12px 6px;}
-.scan-hdr-info{line-height:1.4;}
-.scan-hdr-info .title{font-size:12px;font-weight:700;color:var(--ta);}
-.scan-hdr-info .sub{font-size:10px;color:var(--t3);}
-#scan-btn{background:var(--a15);border:1px solid var(--a40);color:var(--ta);padding:5px 12px;border-radius:7px;font-size:11px;cursor:pointer;font-weight:600;flex-shrink:0;}
-#scan-btn:hover{background:var(--a25);}
-#scan-status{padding:0 12px 6px;font-size:10px;color:var(--t3);}
+.tr-badges{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:52px;}
+/* ── Unusual Activity Panel ── */
+.unusual-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(30,50,110,.3);}
+.unusual-sym{font-weight:700;color:#fff;font-size:13px;}
+.unusual-vol{font-size:10px;color:#64748b;margin-left:6px;}
+.unusual-price{font-weight:700;color:#e2e8f0;font-size:12px;}
+.unusual-chg-up{font-size:11px;color:var(--grn);font-weight:600;}
+.unusual-chg-dn{font-size:11px;color:var(--red);font-weight:600;}
 </style>
 <!-- Lightweight Charts (interactive candlestick) -->
 <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
@@ -562,6 +557,7 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,50,110,.55);color:var(--t1
       <button onclick="toggleScalpPanel()" class="admin-only" title="Trade log">📋</button>
       <button id="alert-bell" onclick="toggleAlertPanel()" class="admin-only" title="Signal alerts">🔔</button>
       <button onclick="toggleNtfyPanel()" class="admin-only" title="Phone notifications">📲</button>
+      <button onclick="toggleUnusualPanel()" title="Unusual activity — volume spikes & options flow">🔥</button>
       <button onclick="clearAppCache()" title="Clear cache & reload">🔄</button>
       <button onclick="toggleApiSettings()" title="Alpaca API keys" style="color:var(--ta);border-color:var(--a25)">⚙️</button>
       <button class="signout" onclick="doLogout()">Sign Out</button>
@@ -644,28 +640,14 @@ td{padding:7px 6px 7px 0;border-top:1px solid rgba(30,50,110,.55);color:var(--t1
           <div class="chip" onclick="sortTickersByRSI()" title="Sort by RSI strength">⚡ Strength</div>
         </div>
         <div class="chips" style="margin-top:6px;border-top:1px solid rgba(59,130,246,.1);padding-top:6px">
-          <div class="chip on" id="tab-tickers" onclick="showTab('tickers')">📊 Tickers</div>
-          <div class="chip" id="tab-scanner" onclick="showTab('scanner')">📡 Scanner</div>
+          <div class="chip on" onclick="runHomeScan()" title="Re-run scanner on all tickers">📡 Scan Now</div>
+          <div id="scan-run-ts" style="font-size:9px;color:var(--t3);padding:4px 2px"></div>
         </div>
       </div>
       <div id="trade-summary" style="padding:12px;margin-bottom:12px"></div>
       <div class="tick-wrap" id="tick-wrap"><div class="tick-track" id="tick-track"><span style="font-size:10px;color:#8ba0c0;padding:0 10px">Waiting for ticks…</span></div></div>
       <div class="tgrid" id="tgrid"><div class="empty">Loading tickers…</div></div>
 
-      <!-- ── Strategy Scanner Panel ── -->
-      <div id="scanner-panel" style="display:none">
-        <div class="scan-hdr">
-          <div class="scan-hdr-info">
-            <div class="title">📡 Strategy Scanner</div>
-            <div class="sub">EMA200 · EMA9/21 · AVWAP · RSI&lt;55 · EMA9 Candle Test · ATR SL/TP</div>
-          </div>
-          <button id="scan-btn" onclick="runScan()">↻ Scan All</button>
-        </div>
-        <div id="scan-status">Click 'Scan All' to run the strategy scanner on all tickers</div>
-        <div id="scan-results" style="padding:0 8px 16px">
-          <div class="scan-empty">No results yet. Click Scan All to begin.</div>
-        </div>
-      </div>
     </div>
 
     <!-- ── RIGHT: CHART & ANALYSIS ── -->
@@ -1957,6 +1939,13 @@ function analyse(bars) {
     e200 = cls[i]*(2/201) + e200*(1-2/201);
   }
 
+  // SMAs for scanner (SMA9, SMA21, SMA20 + previous SMA20 for crossover detection)
+  const sma9  = cls.slice(-Math.min(9,n)).reduce((a,b)=>a+b,0)  / Math.min(9,n);
+  const sma21 = cls.slice(-Math.min(21,n)).reduce((a,b)=>a+b,0) / Math.min(21,n);
+  const sma20 = cls.slice(-Math.min(20,n)).reduce((a,b)=>a+b,0) / Math.min(20,n);
+  const prevSma20Sl = n >= 21 ? cls.slice(-21,-1) : cls.slice(0,-1);
+  const prevSma20 = prevSma20Sl.length ? prevSma20Sl.reduce((a,b)=>a+b,0) / prevSma20Sl.length : sma20;
+
   // MACD (12,26,9) — build MACD history then EMA9 of it for signal
   let me12 = cls[0], me26 = cls[0];
   const macdArr = [];
@@ -2053,35 +2042,38 @@ function analyse(bars) {
     aboveVwap: last.c>vwap, priceUp: n>=4 && cls[n-1]>cls[n-4],
     vwap:+vwap.toFixed(2), sH:+sH.toFixed(2), sL:+sL.toFixed(2),
     price:+last.c, chg1h:+(((cls[n-1]-cls[n-1-cN])/cls[n-1-cN])*100).toFixed(2), n,
+    sma9:+sma9.toFixed(2), sma21:+sma21.toFixed(2), sma20:+sma20.toFixed(2), prevSma20:+prevSma20.toFixed(2),
     // 📊 TIER 2: Add Pivots, Order Flow
     pivots: pivots_t2,
     orderFlow: orderFlow_t2
   };
 }
 
-// ─── Pine Script v5 Strategy Signal ──────────────────────────────────────────
-// Conditions: EMA200 macro + EMA9>21 micro + AVWAP + RSI<55 + candle tests EMA9
+// ─── Strategy Signal — 4 conditions ─────────────────────────────────────────
+// C1: SMA9 > SMA21           (momentum)
+// C2: SMA20 crossed above VWAP (recent crossover)
+// C3: Price > VWAP            (above intraday avg)
+// C4: RSI < 40                (oversold buy zone)
 // SL = Entry − 1.5×ATR  |  TP = Entry + 2.0×ATR
 function newSignal(a, bars) {
-  if (!a) return { sig: 'NONE', passed: 0, c1:false, c2:false, c3:false, c4:false, c5:false };
-  const atr  = a.atr || (a.price * 0.015);
-  const lastL = (bars && bars.length) ? bars[bars.length - 1].l : a.price;
-  const c1 = !!(a.e200 && a.price > a.e200);   // Price > EMA200 (macro trend)
-  const c2 = a.e9 > a.e21;                      // EMA9 > EMA21 (micro momentum)
-  const c3 = a.price > a.vwap;                  // Price > AVWAP
-  const c4 = a.rsi < 55;                        // RSI pullback zone
-  const c5 = Math.abs(lastL - a.e9) <= atr * 0.5; // Candle low tests EMA9
-  const passed = [c1, c2, c3, c4, c5].filter(Boolean).length;
+  if (!a) return { sig: 'NONE', passed: 0, c1:false, c2:false, c3:false, c4:false };
+  const c1 = !!(a.sma9 && a.sma21 && a.sma9 > a.sma21);
+  const c2 = !!(a.sma20 && a.prevSma20 !== undefined && a.vwap &&
+               a.prevSma20 <= a.vwap && a.sma20 > a.vwap);
+  const c3 = a.price > a.vwap;
+  const c4 = a.rsi < 40;
+  const passed = [c1, c2, c3, c4].filter(Boolean).length;
+  const atr = a.atr || (a.price * 0.015);
   const sl = +(a.price - 1.5 * atr).toFixed(2);
   const tp = +(a.price + 2.0 * atr).toFixed(2);
-  if (passed === 5) return { sig: 'BUY',   passed, entry: a.price, sl, tp, c1, c2, c3, c4, c5 };
-  if (passed >= 3)  return { sig: 'WATCH', passed, entry: a.price, sl, tp, c1, c2, c3, c4, c5 };
-  return { sig: 'NONE', passed, c1, c2, c3, c4, c5 };
+  if (passed === 4) return { sig: 'BUY',   passed, entry: a.price, sl, tp, c1, c2, c3, c4 };
+  if (passed >= 2)  return { sig: 'WATCH', passed, entry: a.price, sl, tp, c1, c2, c3, c4 };
+  return { sig: 'NONE', passed, c1, c2, c3, c4 };
 }
 
 function getDir(a, bars) {
   const s = newSignal(a, bars);
-  return s.sig === 'BUY' ? 'bull' : 'neutral';
+  return s.sig === 'BUY' ? 'bull' : s.sig === 'WATCH' ? 'bull' : 'neutral';
 }
 
 // ─── Chart pattern detection ─────────────────────────────────────────────────
@@ -3260,7 +3252,7 @@ async function autoScalpCheck(sym, a, bars, cfg) {
   const price = (LP[sym] && LP[sym].price) || a.price;
 
   if (s.sig === 'BUY' && !openPositions[sym]) {
-    await scalpBuy(sym, price, cfg, 'Strategy: EMA200+EMA9/21+AVWAP+RSI<55+EMA9 test');
+    await scalpBuy(sym, price, cfg, 'Strategy: SMA9>SMA21 + SMA20×VWAP + Price>VWAP + RSI<40');
   } else if (s.sig === 'NONE' && openPositions[sym]) {
     await scalpSell(sym, price, cfg);
   }
@@ -3268,66 +3260,101 @@ async function autoScalpCheck(sym, a, bars, cfg) {
 
 // ─── Ticker grid ──────────────────────────────────────────────────────────────
 async function loadTickers() {
-  g('tgrid').innerHTML = '<div class="empty">Waiting for live prices...</div>';
+  g('tgrid').innerHTML = '<div class="empty">Loading tickers...</div>';
   const cards = [];
   for (const [sym, cfg] of Object.entries(UNI)) {
-    // Skip bars - use WebSocket for live prices only
-    const bars = [];
-    liveBars[sym] = bars;
+    liveBars[sym] = [];
     const label = cfg.label || sym;
-    const lp = (LP[sym] && LP[sym].price) || (bars.length ? bars[bars.length-1].c : null);
-    let dir = 'neutral', rsi = '—', pxTxt = '—', arrow = '→', chgHtml = '';
-    if (bars.length >= 5 && lp) {
-      // Inject live price as synthetic current bar before analyse
-      let abars = bars;
-      if (LP[sym] && LP[sym].price && bars.length > 0) {
-        const prev = bars[bars.length - 1];
-        abars = [...bars, { o: prev.c, h: Math.max(prev.c, lp), l: Math.min(prev.c, lp), c: lp, v: prev.v, t: new Date().toISOString() }];
-      }
-      const a = analyse(abars);
-      rsi = a.rsi;
-      const dec = lp<1?5:lp<100?3:2;
-      pxTxt = '$' + lp.toFixed(dec);
-      const prev = bars[Math.max(0,bars.length-2)].c;
-      const pct = ((lp-prev)/prev*100);
-      chgHtml = '<span style="font-size:11px;color:'+(pct>=0?'#22c55e':'#ef4444')+'">'+(pct>=0?'▲ +':'▼ ')+Math.abs(pct).toFixed(2)+'%</span>';
-      dir = getDir(a, abars);
-      arrow = dir==='bull' ? '↑' : '→';
-      checkAlerts(sym, a, abars);
-      autoScalpCheck(sym, a, abars, cfg);
-    }
-    const dc = dir==='bull'?'#22c55e':dir==='bear'?'#ef4444':'#64748b';
-    const rb = cfg.risk==='high'
-      ? '<span style="font-size:9px;background:rgba(245,158,11,.12);color:#f59e0b;padding:1px 5px;border-radius:10px">RISK</span>'
-      : '<span style="font-size:9px;background:rgba(59,130,246,.12);color:#93c5fd;padding:1px 5px;border-radius:10px">PROVEN</span>';
+    const lp = LP[sym] ? LP[sym].price : null;
+    const pxTxt = lp ? '$' + lp.toFixed(lp < 1 ? 5 : 2) : '—';
+    const isCrypto = sym.endsWith('USD') && sym.length > 3;
     const polBuys = POLITICAL_BUYS[sym] || [];
     const polBadge = polBuys.length ? '<span class="pol-badge">🏛️ ' + polBuys.length + '</span>' : '';
     const trumpMentions = TRUMP_DATA[sym];
     const trumpBadge = trumpMentions ? trumpBadgeHtml(sym) : '';
-    const isCrypto = sym.endsWith('USD') && sym.length > 3;
-    const rsiNum = typeof rsi === 'number' ? rsi : -1;
-    const rsiClass = rsiNum > 65 ? 'hot' : rsiNum > 45 ? 'ok' : '';
-    const dirPillCls = dir === 'bull' ? 'bull-pill' : dir === 'bear' ? 'bear-pill' : 'neut-pill';
-    const dirPillTxt = dir === 'bull' ? '↑ BULL' : dir === 'bear' ? '↓ BEAR' : '→ WAIT';
-    const chgTxt = chgHtml ? chgHtml : '<span style="color:#a0aec0">—</span>';
     cards.push(
-      '<div class="tc ' + dir + '" data-sym="' + sym + '" data-dir="' + dir + '" data-crypto="' + isCrypto + '" onclick="openModal(\'' + sym + '\')">' +
+      '<div class="tc neutral" data-sym="' + sym + '" data-dir="neutral" data-crypto="' + isCrypto + '" onclick="openModal(\'' + sym + '\')">' +
       '<div class="tr-sym">' +
       '<span class="tname">' + label + '</span>' + polBadge + trumpBadge +
-      '<span class="tr-sub">' + cfg.hw + '% win</span>' +
+      '<span class="tr-sub" id="trsub-' + sym + '">scanning…</span>' +
       '</div>' +
       '<div class="tr-price">' +
       '<span class="tpx" data-px="' + sym + '">' + pxTxt + '</span>' +
-      '<span class="tr-chg" data-chg="' + sym + '">' + chgTxt + '</span>' +
+      '<span class="tr-chg" data-chg="' + sym + '">—</span>' +
       '</div>' +
-      '<div class="tr-badges">' +
-      '<span class="rsi-pill ' + rsiClass + '">RSI ' + rsi + '</span>' +
-      '<span class="dir-pill ' + dirPillCls + '">' + dirPillTxt + '</span>' +
+      '<div class="tr-badges" id="scan-badge-' + sym + '">' +
+      '<span class="scan-sig-none">·</span>' +
       '</div>' +
       '</div>'
     );
   }
   g('tgrid').innerHTML = cards.join('');
+  runHomeScan();
+}
+
+// ─── Home Screen Background Scanner ──────────────────────────────────────────
+let _homeScanRunning = false;
+async function runHomeScan() {
+  if (_homeScanRunning) return;
+  _homeScanRunning = true;
+  const ts0 = g('scan-run-ts');
+  if (ts0) ts0.textContent = 'Scanning…';
+  const syms = Object.keys(UNI);
+  for (const sym of syms) {
+    try {
+      const bars = await getBars(sym, 100);
+      if (!bars || bars.length < 10) { _updateScanBadge(sym, null, null, null); continue; }
+      liveBars[sym] = bars;
+      let abars = bars;
+      if (LP[sym] && LP[sym].price) {
+        const lp = LP[sym].price, prev = bars[bars.length - 1];
+        abars = [...bars, { o:prev.c, h:Math.max(prev.c,lp), l:Math.min(prev.c,lp), c:lp, v:prev.v, t:new Date().toISOString() }];
+      }
+      const a = analyse(abars);
+      if (!a) { _updateScanBadge(sym, null, null, null); continue; }
+      const lp2 = LP[sym] ? LP[sym].price : bars[bars.length-1].c;
+      a.price = lp2;
+      const s = newSignal(a, abars);
+      const cfg = UNI[sym];
+      _updateScanBadge(sym, s, a, abars);
+      checkAlerts(sym, a, abars);
+      autoScalpCheck(sym, a, abars, cfg);
+    } catch (e) { console.warn('[scan]', sym, e.message); }
+  }
+  _homeScanRunning = false;
+  const now = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  if (ts0) ts0.textContent = 'Last scan ' + now;
+  setTimeout(runHomeScan, 5 * 60 * 1000);
+}
+
+function _updateScanBadge(sym, s, a, bars) {
+  const card = document.querySelector('#tgrid .tc[data-sym="' + sym + '"]');
+  if (!card) return;
+  if (!s) {
+    const sub = g('trsub-' + sym); if (sub) sub.textContent = 'No data';
+    return;
+  }
+  // Update card border colour
+  const dir = s.sig === 'BUY' ? 'bull' : s.sig === 'WATCH' ? 'bull' : 'neutral';
+  card.className = 'tc ' + dir;
+  card.setAttribute('data-dir', dir);
+  // Sub-text: RSI + VWAP
+  const sub = g('trsub-' + sym);
+  if (sub) sub.textContent = 'RSI ' + a.rsi + ' · V $' + a.vwap;
+  // Scanner badge
+  const el = g('scan-badge-' + sym);
+  if (!el) return;
+  const condLabels = ['S9>S21','S20×V','P>V','RSI<40'];
+  const conds = [s.c1, s.c2, s.c3, s.c4];
+  const dots = conds.map((c,i) =>
+    '<span class="cond-dot ' + (c?'p':'f') + '" title="' + condLabels[i] + '"></span>'
+  ).join('');
+  const sigHtml = s.sig === 'BUY'
+    ? '<span class="scan-sig-buy">🟢 BUY</span>'
+    : s.sig === 'WATCH'
+    ? '<span class="scan-sig-watch">👀 ' + s.passed + '/4</span>'
+    : '<span class="scan-sig-none">— ' + s.passed + '/4</span>';
+  el.innerHTML = sigHtml + '<br><span style="letter-spacing:1px">' + dots + '</span>';
 }
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
@@ -3454,105 +3481,71 @@ async function clearAppCache() {
 }
 
 // ─── Tab switcher ─────────────────────────────────────────────────────────────
-function showTab(tab) {
-  ['tickers', 'scanner'].forEach(t => {
-    const btn = g('tab-' + t);
-    if (btn) btn.className = 'chip' + (t === tab ? ' on' : '');
-  });
-  const tickWrap  = g('tick-wrap');
-  const tgridEl   = g('tgrid');
-  const scanPanel = g('scanner-panel');
-  const tradeSumm = g('trade-summary');
-  if (tab === 'scanner') {
-    if (tickWrap)  tickWrap.style.display  = 'none';
-    if (tgridEl)   tgridEl.style.display   = 'none';
-    if (tradeSumm) tradeSumm.style.display = 'none';
-    if (scanPanel) scanPanel.style.display = 'block';
-  } else {
-    if (tickWrap)  tickWrap.style.display  = '';
-    if (tgridEl)   tgridEl.style.display   = '';
-    if (tradeSumm) tradeSumm.style.display = '';
-    if (scanPanel) scanPanel.style.display = 'none';
-  }
+// ─── Unusual Activity Panel ───────────────────────────────────────────────────
+async function toggleUnusualPanel() {
+  let p = g('unusual-panel');
+  if (p) { p.remove(); return; }
+  p = document.createElement('div');
+  p.id = 'unusual-panel';
+  p.style.cssText = 'position:fixed;top:54px;right:16px;width:370px;max-height:520px;overflow-y:auto;background:#0c0f1e;border:1px solid rgba(59,130,246,.35);border-radius:14px;z-index:300;padding:18px;box-shadow:0 24px 48px rgba(0,0,0,.75)';
+  p.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">' +
+    '<div style="font-size:13px;font-weight:700;color:#fff">🔥 Unusual Activity</div>' +
+    '<button onclick="g(\'unusual-panel\').remove()" style="background:none;border:1px solid rgba(100,116,139,.3);color:#64748b;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer">✕</button>' +
+    '</div>' +
+    '<div id="unusual-body"><div style="padding:24px;text-align:center;color:#64748b;font-size:12px">Scanning…</div></div>';
+  document.body.appendChild(p);
+  document.addEventListener('click', function _out(e) {
+    const panel = g('unusual-panel');
+    if (panel && !panel.contains(e.target) && !e.target.closest('[onclick*="toggleUnusualPanel"]')) {
+      panel.remove(); document.removeEventListener('click', _out);
+    }
+  }, true);
+  await loadUnusualActivity();
 }
 
-// ─── Strategy Scanner ─────────────────────────────────────────────────────────
-let _scanRunning = false;
-
-async function runScan() {
-  if (_scanRunning) return;
-  _scanRunning = true;
-  const btn     = g('scan-btn');
-  const status  = g('scan-status');
-  const results = g('scan-results');
-  if (btn)     btn.textContent = '⏳ Scanning...';
-  if (results) results.innerHTML = '<div class="scan-empty">Fetching bar data…</div>';
-
-  const scanSyms = Object.keys(UNI).filter(s => !(s.endsWith('USD') && s.length > 3));
-  const hits = [], watches = [], rest = [];
-
-  for (const sym of scanSyms) {
-    if (status) status.textContent = 'Scanning ' + sym + '…';
+async function loadUnusualActivity() {
+  const el = g('unusual-body');
+  if (!el) return;
+  const stockSyms = STOCKS.slice(0, 18);
+  const volHits = [];
+  for (const sym of stockSyms) {
     try {
-      const bars = await getBars(sym, 250);
-      if (!bars || bars.length < 10) { rest.push({ sym }); continue; }
-      const lp = (LP[sym] && LP[sym].price) || bars[bars.length - 1].c;
-      const prev = bars[bars.length - 1];
-      const abars = lp ? [...bars, { o:prev.c, h:Math.max(prev.c,lp), l:Math.min(prev.c,lp), c:lp, v:prev.v, t:new Date().toISOString() }] : bars;
-      const a = analyse(abars);
-      if (!a) { rest.push({ sym }); continue; }
-      a.price = lp;
-      const s = newSignal(a, abars);
-      const item = { sym, a, s, lp };
-      if (s.sig === 'BUY')   hits.push(item);
-      else if (s.sig === 'WATCH') watches.push(item);
-      else rest.push(item);
-    } catch (e) {
-      rest.push({ sym });
-    }
+      const cached = liveBars[sym] && liveBars[sym].length >= 15;
+      const bars = cached ? liveBars[sym] : await getBars(sym, 60);
+      if (!bars || bars.length < 10) continue;
+      const vols = bars.map(b => b.v);
+      const n = vols.length;
+      const avgVol = vols.slice(-Math.min(11,n),-1).reduce((a,b)=>a+b,0) / Math.min(10,n-1) || 1;
+      const volRatio = vols[n-1] / avgVol;
+      const cls = bars.map(b => b.c);
+      const pctChg = n >= 2 ? (cls[n-1]-cls[n-2])/cls[n-2]*100 : 0;
+      const lp = LP[sym] ? LP[sym].price : cls[n-1];
+      if (volRatio >= 1.8) volHits.push({ sym, volRatio, pctChg, lp });
+    } catch {}
   }
+  volHits.sort((a,b) => b.volRatio - a.volRatio);
 
-  const ts = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  if (status) status.textContent = 'Scanned at ' + ts + ' · 🟢 ' + hits.length + ' BUY · 👀 ' + watches.length + ' Watch · ' + rest.length + ' None';
-  if (btn)    btn.textContent = '↻ Scan All';
-  _scanRunning = false;
+  const stockRows = volHits.length
+    ? volHits.map(r => {
+        const up = r.pctChg >= 0;
+        return '<div class="unusual-row">' +
+          '<div><span class="unusual-sym">' + r.sym + '</span>' +
+          '<span class="unusual-vol">Vol ' + r.volRatio.toFixed(1) + 'x</span></div>' +
+          '<div style="text-align:right"><span class="unusual-price">$' + r.lp.toFixed(2) + '</span><br>' +
+          '<span class="' + (up?'unusual-chg-up':'unusual-chg-dn') + '">' + (up?'▲ +':'▼ ') + Math.abs(r.pctChg).toFixed(2) + '%</span></div>' +
+          '</div>';
+      }).join('')
+    : '<div style="padding:12px 0;color:#64748b;font-size:12px">No notable volume spikes right now</div>';
 
-  const allItems = [...hits, ...watches, ...rest];
-
-  function condDots(s) {
-    if (!s || !s.c1 === undefined) return '';
-    return [s.c1, s.c2, s.c3, s.c4, s.c5].map((c, i) =>
-      '<span class="cond-dot ' + (c ? 'p' : 'f') + '" title="C' + (i+1) + ['=EMA200','=EMA9/21','=AVWAP','=RSI<55','=Candle'][i] + '"></span>'
-    ).join('');
-  }
-
-  const html =
-    '<table class="scan-tbl">' +
-    '<thead><tr><th>Ticker</th><th>Signal</th><th>Entry</th><th>SL ⛔</th><th>TP 🎯</th><th>RSI</th><th>Conds</th></tr></thead>' +
-    '<tbody>' +
-    allItems.map(item => {
-      if (!item.a || !item.s) {
-        return '<tr><td style="font-weight:700;color:var(--t1)">' + item.sym + '</td>' +
-          '<td colspan="6" class="sig-none" style="border:none;background:none;font-size:11px;color:var(--t3)">—</td></tr>';
-      }
-      const s   = item.s;
-      const lp  = item.lp;
-      const dec = lp < 1 ? 5 : 2;
-      const sigCls = s.sig === 'BUY' ? 'sig-buy' : s.sig === 'WATCH' ? 'sig-watch' : 'sig-none';
-      const sigTxt = s.sig === 'BUY' ? '🟢 BUY' : s.sig === 'WATCH' ? '👀 ' + s.passed + '/5' : '— ' + s.passed + '/5';
-      return '<tr onclick="openModal(\'' + item.sym + '\')">' +
-        '<td style="font-weight:700;color:var(--t1)">' + item.sym + '</td>' +
-        '<td><span class="' + sigCls + '">' + sigTxt + '</span></td>' +
-        '<td style="color:var(--ta);font-variant-numeric:tabular-nums">$' + lp.toFixed(dec) + '</td>' +
-        '<td style="color:var(--red);font-variant-numeric:tabular-nums">' + (s.sl ? '$' + s.sl : '—') + '</td>' +
-        '<td style="color:var(--grn);font-variant-numeric:tabular-nums">' + (s.tp ? '$' + s.tp : '—') + '</td>' +
-        '<td style="color:' + (item.a.rsi < 55 ? 'var(--grn)' : 'var(--t2)') + ';font-variant-numeric:tabular-nums">' + item.a.rsi + '</td>' +
-        '<td>' + condDots(s) + '</td>' +
-        '</tr>';
-    }).join('') +
-    '</tbody></table>';
-
-  if (results) results.innerHTML = html;
+  el.innerHTML =
+    '<div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">📈 Stock Volume Spikes</div>' +
+    stockRows +
+    '<div style="margin-top:16px;font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.07em">⚡ Options Unusual Flow</div>' +
+    '<div style="margin-top:8px;padding:10px 12px;background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.12);border-radius:8px;font-size:11px;color:#94a3b8;line-height:1.6">' +
+    'Live options flow requires a premium feed (Unusual Whales, Market Chameleon, Tradier).<br>' +
+    '<span style="color:#3b82f6;margin-top:4px;display:block">Volume spikes above are the best proxy with Alpaca paper-trading data.</span>' +
+    '</div>';
 }
 
 async function startAll() {
