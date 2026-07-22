@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-22T19:54:33.490Z",
+  "timestamp": "2026-07-22T20:53:57.555Z",
   "totalSignals": 1,
   "totalExecuted": 1,
   "signals": [
@@ -7,16 +7,16 @@
       "type": "ORDER_FLOW_SELL",
       "direction": "BEARISH",
       "symbol": "ORCL",
-      "price": 125.75,
+      "price": 120,
       "imbalance": -84.8,
       "message": "🔴 ORCL BEARISH — Sell imbalance 84.8% | Vol 1.6x",
       "strength": "HIGH",
       "order": {
-        "id": "3ab430d6-b666-4906-92b8-467d580abc86",
-        "client_order_id": "fcb53da1-1858-4f6b-86fc-cb4dffa41d4a",
-        "created_at": "2026-07-22T19:54:33.072673424Z",
-        "updated_at": "2026-07-22T19:54:33.074276984Z",
-        "submitted_at": "2026-07-22T19:54:33.072673424Z",
+        "id": "d949c492-afae-4ba9-90d4-226ccfe33de8",
+        "client_order_id": "8b9ddd0c-9cce-4308-9e36-f4bc1b1e1985",
+        "created_at": "2026-07-22T20:53:57.076537393Z",
+        "updated_at": "2026-07-22T20:53:57.078023143Z",
+        "submitted_at": "2026-07-22T20:53:57.076537393Z",
         "filled_at": null,
         "expired_at": null,
         "canceled_at": null,
@@ -39,7 +39,7 @@
         "time_in_force": "day",
         "limit_price": null,
         "stop_price": null,
-        "status": "pending_new",
+        "status": "accepted",
         "extended_hours": false,
         "legs": null,
         "trail_percent": null,
@@ -47,7 +47,7 @@
         "hwm": null,
         "subtag": null,
         "source": null,
-        "expires_at": "2026-07-22T20:00:00Z"
+        "expires_at": "2026-07-23T20:00:00Z"
       },
       "executed": true
     }
