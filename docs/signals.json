@@ -1,23 +1,22 @@
 {
-  "timestamp": "2026-07-22T12:17:18.083Z",
-  "totalSignals": 2,
+  "timestamp": "2026-07-22T14:26:50.560Z",
+  "totalSignals": 1,
   "totalExecuted": 1,
   "signals": [
     {
-      "type": "VWAP_CROSS_DOWN",
+      "type": "ORDER_FLOW_SELL",
       "direction": "BEARISH",
-      "symbol": "CRM",
-      "price": 162.66,
-      "vwap": "170.70",
-      "volRatio": "2.4",
-      "message": "🔴 CRM BEARISH — VWAP cross down $170.70 | Vol 2.4x",
-      "strength": "MEDIUM",
+      "symbol": "ORCL",
+      "price": 127.45,
+      "imbalance": -84.8,
+      "message": "🔴 ORCL BEARISH — Sell imbalance 84.8% | Vol 1.6x",
+      "strength": "HIGH",
       "order": {
-        "id": "c0c3d814-c9fa-43c4-8d6b-c25afe1e4f9d",
-        "client_order_id": "443077de-2b64-45d2-80be-6a1e0478ed9b",
-        "created_at": "2026-07-22T12:17:17.507741719Z",
-        "updated_at": "2026-07-22T12:17:17.509101929Z",
-        "submitted_at": "2026-07-22T12:17:17.507741719Z",
+        "id": "9c19c112-98c6-43e9-81d7-66d103adf664",
+        "client_order_id": "91fc0373-61f9-497f-98a3-960ddcc5202a",
+        "created_at": "2026-07-22T14:26:50.447908769Z",
+        "updated_at": "2026-07-22T14:26:50.449575419Z",
+        "submitted_at": "2026-07-22T14:26:50.447908769Z",
         "filled_at": null,
         "expired_at": null,
         "canceled_at": null,
@@ -25,8 +24,8 @@
         "replaced_at": null,
         "replaced_by": null,
         "replaces": null,
-        "asset_id": "cf80d13f-470c-4947-8593-c5e098aeba4e",
-        "symbol": "CRM",
+        "asset_id": "27982558-2464-4daf-bb2f-b3b728659884",
+        "symbol": "ORCL",
         "asset_class": "us_equity",
         "notional": null,
         "qty": "100",
@@ -35,8 +34,8 @@
         "order_class": "",
         "order_type": "market",
         "type": "market",
-        "side": "buy",
-        "position_intent": "buy_to_open",
+        "side": "sell",
+        "position_intent": "sell_to_open",
         "time_in_force": "day",
         "limit_price": null,
         "stop_price": null,
@@ -51,17 +50,6 @@
         "expires_at": "2026-07-22T20:00:00Z"
       },
       "executed": true
-    },
-    {
-      "type": "ORDER_FLOW_SELL",
-      "direction": "BEARISH",
-      "symbol": "ORCL",
-      "price": 119.19,
-      "imbalance": -84.8,
-      "message": "🔴 ORCL BEARISH — Sell imbalance 84.8% | Vol 1.6x",
-      "strength": "HIGH",
-      "executed": false,
-      "error": "Order failed: 403"
     }
   ]
 }
