@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-22T23:43:57.157Z",
+  "timestamp": "2026-07-23T01:13:21.087Z",
   "totalSignals": 1,
   "totalExecuted": 1,
   "signals": [
@@ -12,11 +12,11 @@
       "message": "🔴 ORCL BEARISH — Sell imbalance 84.8% | Vol 1.6x",
       "strength": "HIGH",
       "order": {
-        "id": "ced548dc-f1de-4050-81d9-9b7d2a20ad4a",
-        "client_order_id": "2b9d3a42-21c9-4130-9a96-9af8b3c57615",
-        "created_at": "2026-07-22T23:43:56.719895031Z",
-        "updated_at": "2026-07-22T23:43:56.721283971Z",
-        "submitted_at": "2026-07-22T23:43:56.719895031Z",
+        "id": "84454c98-2efc-4bae-a65e-db383277ad06",
+        "client_order_id": "a0bc7359-7c2e-421d-a2c4-b3da9030cc75",
+        "created_at": "2026-07-23T01:13:20.899740785Z",
+        "updated_at": "2026-07-23T01:13:20.901573335Z",
+        "submitted_at": "2026-07-23T01:13:20.899740785Z",
         "filled_at": null,
         "expired_at": null,
         "canceled_at": null,
