@@ -262,6 +262,70 @@ table.of tbody tr:hover{background:var(--a05)}
   .wrap{padding:10px}
   .stat .v{font-size:17px}
 }
+
+/* ---------- UI/UX polish ---------- */
+/* Smooth value transitions — changes glide, not jump */
+.stat .v, .pick .pl-score .n, .sigbox .cscore .n, .mg .v, .rc .v,
+.dp-price .p, .pcr-info b, #fgGauge + .fg .ctr .n {
+  transition: color .5s ease;
+}
+.flash-up{ animation: flashUp .9s ease; }
+.flash-dn{ animation: flashDn .9s ease; }
+@keyframes flashUp{ 0%{color:var(--grn)} 60%{color:var(--grn)} 100%{color:inherit} }
+@keyframes flashDn{ 0%{color:var(--red)} 60%{color:var(--red)} 100%{color:inherit} }
+
+/* Premium gradient panels with inner glow */
+.panel{
+  box-shadow:0 8px 28px rgba(0,0,0,.32);
+  transition:border-color .2s, box-shadow .2s, transform .2s;
+}
+.panel:hover{ border-color:var(--a40); box-shadow:0 10px 34px rgba(0,0,0,.42) }
+.phead{ background:linear-gradient(180deg, rgba(59,130,246,.04), transparent); }
+
+/* Refined stat cards */
+.stat{ transition:transform .18s, border-color .18s }
+.stat:hover{ transform:translateY(-2px); border-color:var(--a40) }
+.stat .v{ font-size:22px }
+
+/* Live scan shimmer on the signal feed empty state */
+@keyframes scan{ 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+.scan-line{ position:relative; overflow:hidden }
+.scan-line::after{
+  content:''; position:absolute; inset:0; width:40%;
+  background:linear-gradient(90deg, transparent, var(--a10), transparent);
+  animation:scan 2.4s infinite;
+}
+
+/* Better feed items */
+.feed-item{ transition:border-color .15s, background .15s, transform .15s }
+.feed-item:hover{ border-color:var(--a40); background:var(--a10); transform:translateX(2px) }
+.feed-item.new-in{ animation: newIn .5s ease }
+@keyframes newIn{ from{ opacity:0; transform:translateY(-6px) } to{ opacity:1; transform:none } }
+
+/* Pick card premium feel */
+.pick{ transition:border-color .15s, background .15s, transform .15s, box-shadow .15s }
+.pick:hover{ box-shadow:0 8px 22px rgba(0,0,0,.3) }
+.pick.top1{ border-color:var(--a40) }
+.pick.top1::after{ content:'★'; position:absolute; top:6px; right:8px; font-size:9px; color:var(--amb) }
+
+/* Screener row micro-interaction */
+table.scr tbody tr:hover{ background:var(--a10) }
+
+/* Refined buttons */
+.btn{ transition: all .15s }
+.btn:active{ transform:scale(.96) }
+.btn.primary{ background:linear-gradient(135deg,var(--acc),#2563eb) }
+
+/* Tabular numbers everywhere for clean columns */
+.v, .n, .p, td, .num, .pl-score .n, .cscore .n, .mg .v, .rc .v { font-variant-numeric:tabular-nums }
+
+/* Footer */
+.footer{
+  margin-top:8px; padding:14px 4px 0; border-top:1px solid var(--brd2);
+  display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  font-size:9px; color:var(--t3); text-transform:uppercase; letter-spacing:.08em;
+}
+.footer b{ color:var(--t2) }
 </style>
 <script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
 </head>
@@ -279,6 +343,7 @@ table.of tbody tr:hover{background:var(--a05)}
     <span class="chip">Session <b id="sessionLabel">—</b></span>
   </div>
   <div class="hdr-r">
+    <button class="btn" id="btnPause">⏸ Pause</button>
     <button class="btn" id="btnRefresh">↻ Refresh</button>
     <button class="btn primary" id="btnFilters">⚙ Filters</button>
   </div>
@@ -463,6 +528,11 @@ table.of tbody tr:hover{background:var(--a05)}
 
     </div>
 
+  </div>
+  <div class="footer">
+    <span>Chinna Trading Terminal · Pro · Multi-factor confluence + options flow</span>
+    <span>Signals: <b>BUY ≥70</b> · <b>SELL ≤30</b> · <b>WATCH 31–69</b> · Risk 1% of $10k</span>
+    <span id="footerTime">—</span>
   </div>
 </div>
 
@@ -1054,22 +1124,29 @@ function drawChart(sym){
   const bars=BARS[sym], a=ANA[sym];
   if(!bars||!window.LightweightChart) return;
   const el=document.getElementById('chart');
-  if(chart){ chart.remove(); chart=null; }
-  chart=LightweightChart.createChart(el,{layout:{background:{color:'transparent'},textColor:'#94a3b8'},grid:{vertLines:{color:'rgba(48,72,130,.15)'},horzLines:{color:'rgba(48,72,130,.15)'}},rightPriceScale:{borderColor:'rgba(48,72,130,.3)'},timeScale:{borderColor:'rgba(48,72,130,.3)',timeVisible:false},crosshair:{mode:0}});
-  candleSeries=chart.addCandlestickSeries({upColor:'#22c55e',downColor:'#ef4444',borderUpColor:'#22c55e',borderDownColor:'#ef4444',wickUpColor:'#22c55e',wickDownColor:'#ef4444'});
+  // Reuse the existing chart instance — only rebuild when the symbol changes
+  if(chart && chart._sym!==sym){ chart.remove(); chart=null; candleSeries=null; ema9Series=null; ema21Series=null; ema50Series=null; volSeries=null; }
+  if(!chart){
+    chart=LightweightChart.createChart(el,{layout:{background:{color:'transparent'},textColor:'#94a3b8'},grid:{vertLines:{color:'rgba(48,72,130,.15)'},horzLines:{color:'rgba(48,72,130,.15)'}},rightPriceScale:{borderColor:'rgba(48,72,130,.3)'},timeScale:{borderColor:'rgba(48,72,130,.3)',timeVisible:false},crosshair:{mode:0}});
+    chart._sym=sym;
+    candleSeries=chart.addCandlestickSeries({upColor:'#22c55e',downColor:'#ef4444',borderUpColor:'#22c55e',borderDownColor:'#ef4444',wickUpColor:'#22c55e',wickDownColor:'#ef4444'});
+    ema9Series=chart.addLineSeries({color:'#3b82f6',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
+    ema21Series=chart.addLineSeries({color:'#f59e0b',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
+    ema50Series=chart.addLineSeries({color:'#a855f7',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
+    volSeries=chart.addHistogramSeries({color:'rgba(59,130,246,.25)',priceFormat:{type:'volume'},priceScaleId:'',scaleMargins:{top:0.82,bottom:0}});
+    volSeries.priceScale().applyOptions({scaleMargins:{top:0.82,bottom:0}});
+  }
   const data=bars.map((b,i)=>({time:i, open:b.o, high:b.h, low:b.l, close:b.c}));
   candleSeries.setData(data);
-  ema9Series=chart.addLineSeries({color:'#3b82f6',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
   ema9Series.setData(emaSeries(bars.map(b=>b.c),9).map((v,i)=>({time:i,value:v})));
-  ema21Series=chart.addLineSeries({color:'#f59e0b',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
   ema21Series.setData(emaSeries(bars.map(b=>b.c),21).map((v,i)=>({time:i,value:v})));
-  ema50Series=chart.addLineSeries({color:'#a855f7',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
   ema50Series.setData(emaSeries(bars.map(b=>b.c),50).map((v,i)=>({time:i,value:v})));
-  // TP/SL lines
-  candleSeries.createPriceLine({price:a.tp,color:'rgba(34,197,94,.6)',lineWidth:1,lineStyle:2,axisLabelVisible:true,title:'TP'});
-  candleSeries.createPriceLine({price:a.sl,color:'rgba(239,68,68,.6)',lineWidth:1,lineStyle:2,axisLabelVisible:true,title:'SL'});
-  volSeries=chart.addHistogramSeries({color:'rgba(59,130,246,.25)',priceFormat:{type:'volume'},priceScaleId:'',scaleMargins:{top:0.82,bottom:0}});
-  volSeries.priceScale().applyOptions({scaleMargins:{top:0.82,bottom:0}});
+  // TP/SL lines — remove old price lines then add fresh ones
+  if(candleSeries._pl){ candleSeries._pl.forEach(p=>candleSeries.removePriceLine(p)); }
+  candleSeries._pl=[
+    candleSeries.createPriceLine({price:a.tp,color:'rgba(34,197,94,.6)',lineWidth:1,lineStyle:2,axisLabelVisible:true,title:'TP'}),
+    candleSeries.createPriceLine({price:a.sl,color:'rgba(239,68,68,.6)',lineWidth:1,lineStyle:2,axisLabelVisible:true,title:'SL'})
+  ];
   volSeries.setData(bars.map((b,i)=>({time:i,value:b.v,color:b.c>=b.o?'rgba(34,197,94,.3)':'rgba(239,68,68,.3)'})));
   chart.timeScale().fitContent();
 }
@@ -1083,33 +1160,49 @@ function bindEvents(){
   document.querySelector('[data-offilter="all"]').classList.add('primary');
   document.getElementById('ofBody').addEventListener('click',e=>{ const tr=e.target.closest('tr'); if(!tr)return; if(tr.dataset.sym) selectSym(tr.dataset.sym); });
   document.getElementById('picksList').addEventListener('click',e=>{ const pk=e.target.closest('.pick'); if(!pk)return; if(pk.dataset.sym) selectSym(pk.dataset.sym); });
-  document.getElementById('btnRefresh').addEventListener('click',tick);
+  document.getElementById('btnRefresh').addEventListener('click',()=>{ if(!LIVE) tick(); else tick(); });
+  const bp=document.getElementById('btnPause');
+  if(bp) bp.addEventListener('click',()=>{ toggleLive(); bp.textContent = LIVE ? '⏸ Pause' : '▶ Resume'; bp.classList.toggle('primary', !LIVE); });
   document.querySelector('[data-filter="all"]').classList.add('primary');
 }
 
 /* ---------- Live tick simulation ---------- */
 function tick(){
+  // Gentle, market-realistic micro-moves so the tape looks alive
+  // but not jumpy — the last candle updates with a small mean-reverting
+  // drift, and a fresh candle only rolls every ~8 ticks (24s).
   KEYS.forEach(s=>{
-    const bars=BARS[s]; const last={...bars[bars.length-1]};
+    const bars=BARS[s]; const last=bars[bars.length-1];
     const cfg=UNI[s];
     const vola=(s.includes('USD')?0.012:0.008)*(cfg.risk==='med'?1.4:1);
-    const o=last.c;
-    const p=Math.max(0.01,o*(1+(Math.random()*2-1)*vola));
-    const h=Math.max(o,p)*(1+vola*Math.random()*0.4);
-    const l=Math.min(o,p)*(1+vola*Math.random()*0.4);
-    const v=Math.round((cfg.vol||1e6)*(0.4+Math.random()*1.2));
-    bars.push({o:+o.toFixed(4),h:+h.toFixed(4),l:+l.toFixed(4),c:+p.toFixed(4),v});
-    if(bars.length>200) bars.shift();
+    // tiny per-tick drift (≈1/8 of a full candle move)
+    const drift=(Math.random()*2-1)*vola*0.18;
+    const o=last.o;
+    const p=Math.max(0.01, last.c*(1+drift));
+    // update the in-progress candle's high/low/close + volume
+    last.c=+p.toFixed(4);
+    last.h=+Math.max(last.h, p).toFixed(4);
+    last.l=+Math.min(last.l, p).toFixed(4);
+    last.v=(last.v||0)+Math.floor(Math.random()*18000);
+    // roll a new candle occasionally, not every tick
+    bars._n=(bars._n||0)+1;
+    if(bars._n>=8){
+      bars._n=0;
+      const v=Math.round((cfg.vol||1e6)*(0.4+Math.random()*1.2));
+      bars.push({o:+p.toFixed(4),h:+(p*(1+vola*Math.random()*0.4)).toFixed(4),l:+(p*(1-vola*Math.random()*0.4)).toFixed(4),c:+p.toFixed(4),v});
+      if(bars.length>200) bars.shift();
+    }
     ANA[s]=analyse(bars);
   });
-  // occasionally add a fresh options flow event (simulate live tape)
-  if(Math.random()<0.6){
+  // occasionally add ONE fresh options flow event (simulate live tape)
+  if(Math.random()<0.5){
     const s=OPTABLE[Math.floor(Math.random()*OPTABLE.length)];
-    const e=genOptFlow(s); if(e){ OPTS.unshift(e); OPTS.sort((a,b)=>b.prem-a.prem); }
+    const e=genOptFlow(s); if(e){ OPTS.unshift(e); if(OPTS.length>80)OPTS.pop(); OPTS.sort((a,b)=>b.prem-a.prem); }
   }
   genOptUniverseAggregate();
   renderScreener(); renderContext(); renderFeed(); renderOptFlow(); renderPicks();
   if(activeSym) renderDetail(activeSym);
+  const ft=document.getElementById('footerTime'); if(ft) ft.textContent = new Date().toLocaleTimeString();
 }
 // re-aggregate OFCONF from current OPTS without regenerating all events
 function genOptUniverseAggregate(){
@@ -1125,7 +1218,14 @@ function genOptUniverseAggregate(){
 }
 
 init();
-setInterval(tick, 3000);
+let TICK_TIMER = setInterval(tick, 4500);
+let LIVE = true;
+function toggleLive(){
+  LIVE=!LIVE;
+  const dot=document.getElementById('liveDot'), lbl=document.getElementById('liveLabel');
+  if(LIVE){ TICK_TIMER=setInterval(tick,4500); dot.classList.remove('off'); lbl.textContent='Live'; }
+  else{ clearInterval(TICK_TIMER); dot.classList.add('off'); lbl.textContent='Paused'; }
+}
 </script>
 </body>
 </html>
