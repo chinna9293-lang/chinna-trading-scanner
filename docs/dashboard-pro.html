@@ -175,6 +175,26 @@ table.of tbody tr:hover{background:rgba(59,158,255,.06)}
 #loader .sp{width:40px;height:40px;border:3px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:sp 0.8s linear infinite}
 #loader .tx{color:var(--muted);font-size:13px}
 @keyframes sp{to{transform:rotate(360deg)}}
+/* Buy/Sell dominance bar — screener */
+.dom-wrap{display:flex;align-items:center;gap:4px;min-width:60px}
+.dom{display:inline-block;width:54px;height:7px;border-radius:4px;overflow:hidden;background:var(--line);position:relative;vertical-align:middle}
+.dom .buy-fill{display:block;height:100%;background:var(--green);float:left;transition:width .3s}
+.dom .sell-fill{display:block;height:100%;background:var(--red);float:right;transition:width .3s}
+.dom-pct{font-size:9px;font-family:var(--mono);font-weight:600;min-width:28px}
+.dom-pct.buy{color:var(--green)}
+.dom-pct.sell{color:var(--red)}
+/* Large dominance bar — detail panel */
+.dom-lg-wrap{margin-bottom:10px}
+.dom-lg{display:flex;height:24px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.dom-lg .buy-side{display:flex;align-items:center;justify-content:center;background:var(--green-bg);color:var(--green);font-weight:700;font-size:11px;font-family:var(--mono);transition:width .3s}
+.dom-lg .sell-side{display:flex;align-items:center;justify-content:center;background:var(--red-bg);color:var(--red);font-weight:700;font-size:11px;font-family:var(--mono);transition:width .3s;flex:1}
+.dom-lg-label{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:4px}
+/* X NEW badge */
+.xnew{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(34,211,238,.15);color:var(--cyan);text-transform:uppercase;letter-spacing:.3px}
+.xtrend-badge{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(245,166,35,.15);color:var(--gold);text-transform:uppercase;letter-spacing:.3px}
+/* Power score in picks */
+.pick .pwr{font-size:9px;color:var(--muted);font-weight:600}
+.pick .strat{font-size:9px;color:var(--cyan);font-weight:600}
 /* Responsive */
 @media(max-width:1100px){.grid{grid-template-columns:1fr}.kpi{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:600px){.kpi{grid-template-columns:repeat(2,1fr)}.hdr .sub{display:none}}
@@ -225,7 +245,7 @@ table.of tbody tr:hover{background:rgba(59,158,255,.06)}
           <thead><tr>
             <th data-k="sym">Symbol</th><th data-k="price">Price</th><th data-k="chg">Chg%</th>
             <th data-k="score">Score</th><th data-k="dir">Signal</th><th data-k="rsi">RSI</th>
-            <th data-k="volR">VolR</th><th data-k="rr">R:R</th><th data-k="ofc">Flow</th>
+            <th data-k="volR">VolR</th><th data-k="dom">Buy/Sell</th><th data-k="ofc">Flow</th>
           </tr></thead>
           <tbody id="scrBody"></tbody>
         </table>
@@ -575,6 +595,52 @@ const STABILITY = {
 };
 
 /* ====================================================================
+   X / TWITTER TRENDING — dynamically fetch trending tickers
+   ==================================================================== */
+const XTREND = {
+  // Embedded fallback list of trending tickers (from stockanalysis.com/trending)
+  embedded: ['NVDA','MU','GOOGL','MSFT','TSLA','ORCL','INTC','AMZN','GOOG','AAPL','META','NOW','SKHY','AVGO','AMD','SNDK','STAK','SNA','PLTR','SPCX'],
+  // Metadata for tickers NOT in the current UNI universe
+  meta: {
+    GOOG:  {risk:'med',sec:'Tech',    vol:2.0e7, name:'Alphabet Class C'},
+    SKHY:  {risk:'high',sec:'ETF',    vol:1.0e6, name:'Direxion Semiconductor'},
+    SNDK:  {risk:'med',sec:'Semis',   vol:4.0e6, name:'SanDisk/Western Digital'},
+    STAK:  {risk:'high',sec:'Fintech', vol:5.0e5, name:'Stak Holdings'},
+    SNA:   {risk:'low',sec:'Industrials',vol:1.5e6, name:'Snap-on Inc'},
+    PLTR:  {risk:'med',sec:'Tech',    vol:4.5e7, name:'Palantir Technologies'},
+    SPCX:  {risk:'high',sec:'SPAC',   vol:8.0e5, name:'Spac Holdings'},
+  },
+  fetched: [],
+  newTickers: [],  // tickers that were added from trending (not in original UNI)
+  async fetchTrending(){
+    const url = 'https://stockanalysis.com/trending-stocks/';
+    for(let i=0;i<CORS_PROXIES.length;i++){
+      const pi = (proxyIdx + i) % CORS_PROXIES.length;
+      try{
+        const proxied = CORS_PROXIES[pi](url);
+        const r = await fetch(proxied);
+        if(!r.ok) continue;
+        const html = await r.text();
+        // Extract ticker symbols from the HTML (they appear in data-ticker attributes or /stocks/ links)
+        const matches = html.match(/data-symbol="([A-Z]+)"/g) || html.match(/href="\/stocks\/([A-Z]+)\/?"/g) || [];
+        const tickers = matches.map(m => m.replace(/.*?"([A-Z]+)".*/,'$1')).filter(t => t.length>=1 && t.length<=6);
+        if(tickers.length>0){
+          proxyIdx = pi;
+          this.fetched = [...new Set(tickers)].slice(0,25);
+          return this.fetched;
+        }
+      }catch(e){ /* try next proxy */ }
+    }
+    return null; // use embedded fallback
+  },
+  // Get the list of trending tickers to add (those not already in UNI)
+  getNewTickers(){
+    const all = this.fetched.length > 0 ? this.fetched : this.embedded;
+    return all.filter(t => !UNI[t]);
+  }
+};
+
+/* ====================================================================
    STATE
    ==================================================================== */
 let BARS = {};        // sym -> bars[]
@@ -592,6 +658,9 @@ let lastDataMs = 0;
 let lastRenderMs = 0;
 let chart = null, chartSeries = null, emaLines = {};
 let dataMode = 'embedded'; // 'live' or 'embedded'
+let DOM = {};      // sym -> {buy: 0-100, sell: 0-100, buyPct, sellPct}
+let POWER = {};    // sym -> power score (comprehensive profit strategy)
+let xtrendLoaded = false;
 
 /* ====================================================================
    OPTIONS FLOW (derived from real volume / price action + heuristics)
@@ -639,6 +708,115 @@ function genOptFlow(){
 }
 
 /* ====================================================================
+   BUY/SELL DOMINANCE — order-flow + signal confluence
+   Computes how dominant the buy-side vs sell-side is based on:
+   - Options flow (call premium vs put premium, sweep/block direction)
+   - Signal confluence (trend, momentum, RSI)
+   - Volume ratio (buying volume vs selling volume)
+   Returns {buy: 0-100, sell: 0-100, buyPct, sellPct}
+   ==================================================================== */
+function calcDom(sym){
+  const a = ANA[sym]; if(!a) return {buy:50, sell:50, buyPct:50, sellPct:50};
+  const ofc = OFCONF[sym] || {callPrem:0, putPrem:0, sweeps:0, blocks:0, events:0};
+  // Options flow dominance: call premium vs put premium
+  const totalPrem = ofc.callPrem + ofc.putPrem;
+  const ofBuy = totalPrem>0 ? (ofc.callPrem/totalPrem)*100 : 50;
+  // Signal confluence dominance: map score 0-100 to buy dominance
+  // score 70+ = strong buy, 30- = strong sell, 50 = neutral
+  const sigBuy = a.score; // already 0-100, higher = more bullish
+  // Volume ratio: high volR with positive chg = buy pressure
+  let volBuy = 50;
+  if(a.volR > 1.2 && a.chgD > 0) volBuy = 65;
+  else if(a.volR > 1.2 && a.chgD < 0) volBuy = 35;
+  else if(a.volR < 0.7) volBuy = 45; // low volume = less conviction either way
+  else volBuy = 50 + (a.chgD>0?8:a.chgD<0?-8:0);
+  // RSI: overbought = buy pressure (momentum), oversold = sell exhaustion
+  let rsiBuy = 50;
+  if(a.rsi > 60) rsiBuy = 62;
+  else if(a.rsi < 40) rsiBuy = 38;
+  else rsiBuy = 50;
+  // Trend alignment
+  let trendBuy = 50 + (a.trend/40)*25; // trend ranges -40 to +40
+  trendBuy = Math.max(15, Math.min(85, trendBuy));
+  // Weighted combination
+  const buyPct = Math.round(
+    ofBuy * 0.30 +      // 30% options flow
+    sigBuy * 0.30 +     // 30% signal confluence score
+    volBuy * 0.15 +     // 15% volume pressure
+    rsiBuy * 0.10 +     // 10% RSI
+    trendBuy * 0.15     // 15% trend alignment
+  );
+  const sellPct = 100 - buyPct;
+  return { buy: buyPct, sell: sellPct, buyPct, sellPct };
+}
+
+/* ====================================================================
+   POWER SCORE — comprehensive profit strategy
+   Combines all factors to find the MOST POWERFUL buy/sell signals:
+   - Signal confluence score (trend + momentum + vol + mean-revert + volume)
+   - Options flow conviction (smart money direction)
+   - Buy/sell dominance (order flow imbalance)
+   - Trend alignment (signal matches trend direction)
+   - R:R ratio (reward to risk)
+   - Volume ratio (liquidity + conviction)
+   - Signal stability (confirmed = more reliable)
+   - X trending boost (social momentum)
+   ==================================================================== */
+function calcPower(sym){
+  const a = ANA[sym]; if(!a) return 0;
+  const st = STABLE[sym] || 'watch';
+  const ofc = OFCONF[sym] || {conv:0};
+  const dom = DOM[sym] || {buy:50, sell:50};
+  const tr = UNI[sym].tr || 0;
+  const isNew = XTREND.newTickers.includes(sym) ? 1 : 0;
+
+  // Base: signal confluence score (0-100)
+  let power = a.score * 0.30;
+
+  // Options flow conviction (0-100): smart money leaning
+  power += ofc.conv * 0.20;
+
+  // Dominance: buy dominance for buy signals, sell dominance for sell signals
+  // A strong buy signal with 80% buy dominance = very powerful
+  const domScore = st === 'buy' ? dom.buy : st === 'sell' ? dom.sell : Math.max(dom.buy, dom.sell);
+  power += domScore * 0.15;
+
+  // Trend alignment: signal direction matches trend = +bonus
+  const trendAlign = (st === 'buy' && a.trend > 0) || (st === 'sell' && a.trend < 0);
+  if(trendAlign) power += 10; else power -= 5;
+
+  // R:R ratio: higher = better (capped at 3.0)
+  const rrScore = Math.min(3, a.rr) / 3 * 100;
+  power += rrScore * 0.10;
+
+  // Volume ratio: above average volume = conviction (capped at 2.0x)
+  const volScore = Math.min(2, a.volR) / 2 * 100;
+  power += volScore * 0.10;
+
+  // Signal stability bonus: confirmed signals = more powerful
+  const stInfo = STABILITY.votes[sym];
+  if(stInfo && stInfo.count >= STABILITY.req) power += 5;
+
+  // X trending boost: social momentum adds power
+  if(tr > 0) power += Math.min(10, tr/200 * 10);
+  if(isNew) power += 3; // new trending ticker bonus
+
+  // Penalty: watch signals are less actionable
+  if(st === 'watch') power *= 0.7;
+
+  // Strategy label
+  let strategy = 'Neutral';
+  if(st === 'buy' && power > 70) strategy = 'STRONG BUY';
+  else if(st === 'buy') strategy = 'BUY';
+  else if(st === 'sell' && power > 70) strategy = 'STRONG SELL';
+  else if(st === 'sell') strategy = 'SELL';
+  else if(power > 60) strategy = 'WATCH-BULL';
+  else if(power < 40) strategy = 'WATCH-BEAR';
+
+  return Math.round(Math.max(0, Math.min(100, power)));
+}
+
+/* ====================================================================
    RENDERING — throttled, diff-aware (no lag)
    ==================================================================== */
 function fmtP(v){ return v>=1000? v.toFixed(2) : v>=1? v.toFixed(2) : v.toFixed(4); }
@@ -674,7 +852,7 @@ function renderKPIs(){
   document.getElementById('kEquitySub').textContent = openPnL>=0?'+$'+openPnL.toFixed(0)+' open':'-$'+Math.abs(openPnL).toFixed(0)+' open';
   document.getElementById('kEquity').className = 'val '+(openPnL>=0?'g':'r');
   document.getElementById('updTime').textContent = new Date().toLocaleTimeString();
-  document.getElementById('picksBadge').textContent = dataMode==='live' ? 'LIVE · confluence+flow+R:R' : 'confluence+flow+R:R';
+  document.getElementById('picksBadge').textContent = dataMode==='live' ? 'LIVE · power+flow+dom+R:R' : 'power+flow+dom+R:R';
   document.getElementById('feedBadge').textContent = dataMode==='live' ? 'LIVE' : 'embedded';
 }
 
@@ -682,11 +860,13 @@ function renderScreener(){
   let rows = KEYS.map(s=>({s, a:ANA[s], st:STABLE[s]||'watch'}));
   if(activeFilter==='buy') rows=rows.filter(r=>r.st==='buy');
   else if(activeFilter==='sell') rows=rows.filter(r=>r.st==='sell');
-  else if(activeFilter==='x') rows=rows.filter(r=>(UNI[r.s].tr||0)>0);
+  else if(activeFilter==='x') rows=rows.filter(r=>(UNI[r.s].tr||0)>0 || XTREND.newTickers.includes(r.s) || (XTREND.fetched.length>0 && XTREND.fetched.includes(r.s)));
   rows.sort((a,b)=>{
     let va, vb;
     if(sortKey==='sym'){ va=a.s; vb=b.s; }
     else if(sortKey==='dir'){ va=a.st; vb=b.st; }
+    else if(sortKey==='dom'){ va=(DOM[a.s]||{buy:50}).buy; vb=(DOM[b.s]||{buy:50}).buy; }
+    else if(sortKey==='ofc'){ va=OFCONF[a.s]?OFCONF[a.s].conv:0; vb=OFCONF[b.s]?OFCONF[b.s].conv:0; }
     else { va=a.a[sortKey]; vb=b.a[sortKey]; }
     if(typeof va==='string') return sortDir * va.localeCompare(vb);
     return sortDir * ((va||0)-(vb||0));
@@ -698,15 +878,20 @@ function renderScreener(){
     const ofcV = ofc(r.s);
     const trendBar = a.trend>=0? 'var(--green)':'var(--red)';
     const trendW = Math.min(100, Math.abs(a.trend)/40*100);
+    const dom = DOM[r.s] || {buy:50, sell:50};
+    const domBuy = dom.buy;
+    const isNew = XTREND.newTickers.includes(r.s);
+    const tr = UNI[r.s].tr || 0;
+    const tickerExtra = isNew ? ' <span class="xnew">X NEW</span>' : (tr>0 ? ' <span class="xtrend-badge">🔥'+tr+'</span>' : '');
     return `<tr data-sym="${r.s}" class="${activeSym===r.s?'sel':''}">
-      <td><span class="tkr">${r.s}${(UNI[r.s].tr||0)>0?' <span class="fire">🔥'+UNI[r.s].tr+'</span>':''}<span class="nm">${UNI[r.s].name}</span></span></td>
+      <td><span class="tkr">${r.s}${tickerExtra}<span class="nm">${UNI[r.s].name}</span></span></td>
       <td class="mono">${fmtP(a.price)}</td>
       <td class="mono ${a.chgD>=0?'g':'r'}">${a.chgD>=0?'+':''}${a.chgD.toFixed(2)}%</td>
       <td><span class="bar"><i style="width:${a.score}%;background:hsl(${a.score*1.2},70%,45%)"></i></span> <span class="mono">${a.score}</span></td>
       <td><span class="dir ${dc}">${st==='buy'?'BUY':st==='sell'?'SELL':'WATCH'}</span></td>
       <td class="mono ${a.rsi<30?'g':a.rsi>70?'r':'m'}">${a.rsi.toFixed(0)}</td>
       <td class="mono ${a.volR>1.5?'g':a.volR<0.6?'r':'m'}">${a.volR.toFixed(2)}×</td>
-      <td class="mono">${a.rr.toFixed(2)}</td>
+      <td><div class="dom-wrap"><span class="dom"><span class="buy-fill" style="width:${domBuy}%"></span><span class="sell-fill" style="width:${100-domBuy}%"></span></span><span class="dom-pct ${domBuy>=55?'buy':domBuy<=45?'sell':''}">${domBuy}%</span></div></td>
       <td class="mono ${ofcV>50?'gold':'m'}">${ofcV||'—'}</td>
     </tr>`;
   }).join('');
@@ -802,14 +987,21 @@ function rankPicks(){
     const a=ANA[s], st=STABLE[s]||'watch';
     const ofc=OFCONF[s]||{conv:0};
     const tr=UNI[s].tr||0;
+    const dom=DOM[s]||{buy:50,sell:50};
+    const power=POWER[s]||0;
     const trendAlign = (st==='buy' && a.trend>0) || (st==='sell' && a.trend<0);
-    // combined conviction score
-    let total = a.score*0.55 + ofc.conv*0.25 + Math.min(100, a.volR*40)*0.10 + Math.min(100, tr/20)*0.10;
-    if(!trendAlign) total *= 0.8;
-    if(a.rr<1.0) total *= 0.85;
-    return { s, a, st, ofc, total };
+    // Strategy label
+    let strat='Neutral';
+    if(st==='buy' && power>70) strat='STRONG BUY';
+    else if(st==='buy') strat='BUY';
+    else if(st==='sell' && power>70) strat='STRONG SELL';
+    else if(st==='sell') strat='SELL';
+    else if(power>55) strat='WATCH-BULL';
+    else if(power<45) strat='WATCH-BEAR';
+    return { s, a, st, ofc, tr, dom, power, strat, trendAlign };
   });
-  rows.sort((a,b)=>b.total-a.total);
+  // Sort by power score (comprehensive profit strategy)
+  rows.sort((a,b)=>b.power-a.power);
   return rows;
 }
 
@@ -817,11 +1009,13 @@ function renderPicks(){
   const rows = rankPicks().slice(0,6);
   const html = rows.map((r,i)=>{
     const dc=r.st==='buy'?'buy':r.st==='sell'?'sell':'watch';
+    const isNew=XTREND.newTickers.includes(r.s);
     return `<div class="pick" data-sym="${r.s}">
       <div class="rnk">${i+1}</div>
-      <div class="info"><div class="sym">${r.s} <span class="dir ${dc}" style="font-size:9px">${r.st.toUpperCase()}</span></div>
-      <div class="met">Score ${r.a.score} · Flow ${r.ofc.conv} · R:R ${r.a.rr} · VolR ${r.a.volR}${(UNI[r.s].tr||0)>0?' · 🔥'+UNI[r.s].tr:''}</div></div>
-      <div class="sco ${r.st==='buy'?'g':r.st==='sell'?'r':'gold'}">${Math.round(r.total)}</div>
+      <div class="info"><div class="sym">${r.s} <span class="dir ${dc}" style="font-size:9px">${r.st.toUpperCase()}</span> ${isNew?'<span class="xnew">X</span>':''}</div>
+      <div class="met">Pwr ${r.power} · Score ${r.a.score} · Flow ${r.ofc.conv} · R:R ${r.a.rr.toFixed(2)} · Dom ${r.dom.buy}/${r.dom.sell}${(r.tr>0)?' · 🔥'+r.tr:''}</div>
+      <div class="strat">${r.strat}</div></div>
+      <div class="sco ${r.power>60?'g':r.power<40?'r':'gold'}">${r.power}</div>
     </div>`;
   }).join('');
   document.getElementById('picksList').innerHTML = html;
@@ -848,13 +1042,32 @@ function renderDetail(sym){
   const rd = REALDATA[sym]||{};
   const ofc = OFCONF[sym]||{conv:0,sweeps:0,blocks:0,events:0};
   const cfg = UNI[sym]||{};
+  const dom = DOM[sym]||{buy:50,sell:50};
+  const power = POWER[sym]||0;
+  const isNew = XTREND.newTickers.includes(sym);
+  const tr = UNI[sym].tr || 0;
+  let strat='Neutral';
+  if(st==='buy' && power>70) strat='STRONG BUY';
+  else if(st==='buy') strat='BUY';
+  else if(st==='sell' && power>70) strat='STRONG SELL';
+  else if(st==='sell') strat='SELL';
+  else if(power>55) strat='WATCH-BULL';
+  else if(power<45) strat='WATCH-BEAR';
   const html = `
     <div class="dth">
-      <div><div class="sym">${sym}</div><div class="nm">${rd.name||cfg.name||''}</div></div>
+      <div><div class="sym">${sym} ${isNew?'<span class="xnew" style="font-size:9px;vertical-align:middle">X NEW</span>':''} ${tr>0?'<span class="xtrend-badge" style="font-size:9px;vertical-align:middle">🔥'+tr+'</span>':''}</div><div class="nm">${rd.name||cfg.name||''}</div></div>
       <div class="px"><div class="now mono">${fmtP(a.price)}</div><div class="chg mono ${a.chgD>=0?'g':'r'}">${a.chgD>=0?'+':''}${a.chgD.toFixed(2)}%</div></div>
     </div>
     <div class="sig-box">
       <div class="sig-big"><div class="dir ${dc}">${st==='buy'?'BUY':st==='sell'?'SELL':'WATCH'}</div><div class="sc ${dc==='buy'?'g':dc==='sell'?'r':'gold'}">${a.score}</div><div class="st">confluence · ${STABILITY.votes[sym]?STABILITY.votes[sym].count+'/'+STABILITY.req:'0/'+STABILITY.req} confirm</div></div>
+      <div class="sig-big" style="border:1px solid var(--cyan);background:rgba(34,211,238,.06)"><div style="font-size:18px;font-weight:800;color:var(--cyan)">${strat}</div><div class="sc" style="color:var(--cyan)">${power}</div><div class="st">power score · profit strategy</div></div>
+    </div>
+    <div class="dom-lg-wrap">
+      <div class="dom-lg">
+        <div class="buy-side" style="width:${dom.buy}%">BUY ${dom.buy}%</div>
+        <div class="sell-side" style="width:${dom.sell}%">SELL ${dom.sell}%</div>
+      </div>
+      <div class="dom-lg-label"><span>Buy-Side Dominance</span><span>Sell-Side Dominance</span></div>
     </div>
     <div class="metrics">
       <div class="m"><div class="l">RSI(14)</div><div class="v ${a.rsi<30?'g':a.rsi>70?'r':''}">${a.rsi.toFixed(1)}</div></div>
@@ -874,9 +1087,10 @@ function renderDetail(sym){
       <div class="cfrow"><span class="nm">Mean Revert (15)</span><span class="bar"><i style="width:${Math.min(100,Math.abs(a.mr)/15*100)}%;background:${a.mr>=0?'var(--green)':'var(--red)'}"></i></span><span class="v ${a.mr>=0?'g':'r'}">${a.mr>0?'+':''}${a.mr.toFixed(0)}</span></div>
       <div class="cfrow"><span class="nm">Volume (10)</span><span class="bar"><i style="width:${Math.min(100,Math.abs(a.vcf)/10*100)}%;background:${a.vcf>=0?'var(--green)':'var(--red)'}"></i></span><span class="v ${a.vcf>=0?'g':'r'}">${a.vcf>0?'+':''}${a.vcf.toFixed(0)}</span></div>
       <div class="cfrow"><span class="nm">Flow Conviction</span><span class="bar"><i style="width:${ofc.conv}%;background:var(--gold)"></i></span><span class="v gold">${ofc.conv}</span></div>
+      <div class="cfrow"><span class="nm">Power Score</span><span class="bar"><i style="width:${power}%;background:var(--cyan)"></i></span><span class="v" style="color:var(--cyan)">${power}</span></div>
     </div>
     <div class="plan">
-      <div class="ph2">Trade Plan · ${st==='buy'?'Long':st==='sell'?'Short':'Neutral'}</div>
+      <div class="ph2">Trade Plan · ${st==='buy'?'Long':st==='sell'?'Short':'Neutral'} · ${strat}</div>
       <div class="pl">
         <div class="i"><div class="l">Entry</div><div class="v">${fmtP(a.entry)}</div></div>
         <div class="i"><div class="l">Stop (${a.slPct}%)</div><div class="v r">${fmtP(a.sl)}</div></div>
@@ -1023,6 +1237,9 @@ async function tick(){
 }
 
 function renderAll(){
+  // Compute dominance and power scores for all symbols
+  KEYS.forEach(sym=>{ DOM[sym] = calcDom(sym); });
+  KEYS.forEach(sym=>{ POWER[sym] = calcPower(sym); });
   renderKPIs();
   renderScreener();
   renderContext();
@@ -1127,6 +1344,28 @@ function toggleLive(){
 }
 
 /* ====================================================================
+   ADD TRENDING TICKERS — integrate X trending stocks into the universe
+   ==================================================================== */
+function addTrendingTickers(newSyms){
+  newSyms.forEach(sym=>{
+    if(UNI[sym]) return; // already in universe
+    const meta = XTREND.meta[sym];
+    if(!meta){
+      // Default metadata for unknown trending ticker
+      UNI[sym] = { risk:'med', sec:'Trending', vol:5e6, tr:500, name: sym+' (X Trending)' };
+    } else {
+      UNI[sym] = Object.assign({ tr: 500 }, meta); // mark with trending score
+    }
+    XTREND.newTickers.push(sym);
+    // Generate bars for the new ticker
+    BARS[sym] = genBars(sym, 180);
+  });
+  // Rebuild KEYS to include new tickers
+  KEYS.length = 0;
+  KEYS.push(...Object.keys(UNI));
+}
+
+/* ====================================================================
    INIT
    ==================================================================== */
 async function init(){
@@ -1141,7 +1380,29 @@ async function init(){
   const top = rankPicks()[0];
   if(top) selectSym(top.s);
   setSess();
-  // 2) Fetch live data in background, then re-render
+  // 2) Fetch X/Twitter trending stocks and add new tickers to universe
+  try{
+    const fetched = await XTREND.fetchTrending();
+    if(fetched && fetched.length > 0){
+      const newSyms = XTREND.getNewTickers();
+      if(newSyms.length > 0){
+        addTrendingTickers(newSyms);
+        reanalyseAll();
+        genOptFlow();
+        renderAll();
+      }
+    } else {
+      // Use embedded trending list as fallback
+      const newSyms = XTREND.getNewTickers();
+      if(newSyms.length > 0){
+        addTrendingTickers(newSyms);
+        reanalyseAll();
+        genOptFlow();
+        renderAll();
+      }
+    }
+  }catch(e){ /* fallback handled above */ }
+  // 3) Fetch live data in background, then re-render
   try{
     await refreshLiveData();
     renderAll();
