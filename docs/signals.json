@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-31T10:07:00.864Z",
+  "timestamp": "2026-07-31T12:10:01.378Z",
   "totalSignals": 2,
   "totalExecuted": 1,
   "signals": [
@@ -12,11 +12,11 @@
       "message": "🟢 META BULLISH — Buy imbalance 45% | Vol 2.2x",
       "strength": "HIGH",
       "order": {
-        "id": "916eb60b-015a-4607-b598-0dccd1dab902",
-        "client_order_id": "3b1f6edf-0a5a-4613-90f8-4980e40ed90d",
-        "created_at": "2026-07-31T10:07:00.336253674Z",
-        "updated_at": "2026-07-31T10:07:00.337528064Z",
-        "submitted_at": "2026-07-31T10:07:00.336253674Z",
+        "id": "c525b607-c2aa-47b3-a115-bbaef4e1dbb5",
+        "client_order_id": "8e4e1220-6bbc-424e-969e-13d0ace393e2",
+        "created_at": "2026-07-31T12:10:01.158585696Z",
+        "updated_at": "2026-07-31T12:10:01.159890946Z",
+        "submitted_at": "2026-07-31T12:10:01.158585696Z",
         "filled_at": null,
         "expired_at": null,
         "canceled_at": null,
