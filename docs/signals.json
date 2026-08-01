@@ -1,29 +1,6 @@
 {
-  "timestamp": "2026-08-01T01:13:06.248Z",
-  "totalSignals": 2,
+  "timestamp": "2026-08-01T04:34:08.786Z",
+  "totalSignals": 0,
   "totalExecuted": 0,
-  "signals": [
-    {
-      "type": "ORDER_FLOW_BUY",
-      "direction": "BULLISH",
-      "symbol": "META",
-      "price": 527.76,
-      "imbalance": 45,
-      "message": "🟢 META BULLISH — Buy imbalance 45% | Vol 2.2x",
-      "strength": "HIGH",
-      "executed": false,
-      "error": "Order failed: 403"
-    },
-    {
-      "type": "BEARISH_ENGULFING",
-      "direction": "BEARISH",
-      "symbol": "META",
-      "price": 527.76,
-      "rsi": 59,
-      "message": "🔴 META BEARISH — Engulfing candle at $527.76 | RSI 59 | Vol 2.2x",
-      "strength": "MEDIUM",
-      "executed": false,
-      "error": "ntfy error: 400"
-    }
-  ]
+  "signals": []
 }
