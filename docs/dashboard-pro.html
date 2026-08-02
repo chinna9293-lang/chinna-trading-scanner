@@ -243,9 +243,79 @@ table.of tbody tr:hover{background:rgba(59,158,255,.06)}
 /* Power score in picks */
 .pick .pwr{font-size:9px;color:var(--muted);font-weight:600}
 .pick .strat{font-size:9px;color:var(--cyan);font-weight:600}
-/* Responsive */
+/* Candlestick pattern badges in detail panel */
+.patterns-box{background:var(--bg2);border-radius:8px;padding:10px;margin-bottom:8px;border:1px solid var(--line)}
+.patterns-box .pb-h{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px}
+.patterns-box .pb-list{display:flex;flex-wrap:wrap;gap:6px}
+.pat-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:4px}
+.pat-badge.bull{background:var(--green-bg);color:var(--green);border:1px solid rgba(38,208,124,.3)}
+.pat-badge.bear{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.3)}
+/* View Navigation Tabs */
+.view-nav-bar{display:flex;align-items:center;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.vtab{padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.15s;white-space:nowrap}
+.vtab:hover{color:var(--text);border-color:var(--dim)}
+.vtab.active{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 2px 10px rgba(59,158,255,.3)}
+.vtab .cnt{font-size:10px;padding:2px 6px;border-radius:10px;background:rgba(255,255,255,.15);font-family:var(--mono)}
+
+/* Card Grids for Trendy & Price Action */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:12px}
+.stk-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px;cursor:pointer;transition:.18s;position:relative;overflow:hidden}
+.stk-card:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.stk-card.sel{border-color:var(--blue);background:linear-gradient(180deg,var(--panel),rgba(59,158,255,.08));box-shadow:inset 0 0 0 1px var(--blue)}
+.stk-card .sc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.stk-card .sc-sym{font-size:16px;font-weight:800;font-family:var(--mono);color:var(--text)}
+.stk-card .sc-name{font-size:11px;color:var(--muted);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stk-card .sc-px-row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.stk-card .sc-px{font-size:18px;font-weight:700;font-family:var(--mono)}
+.stk-card .sc-chg{font-size:13px;font-weight:700;font-family:var(--mono)}
+.stk-card .sc-metrics{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--bg2);padding:6px 8px;border-radius:6px;font-size:10px;margin-bottom:8px}
+.stk-card .sc-met-lbl{color:var(--muted);text-transform:uppercase}
+.stk-card .sc-met-val{font-weight:700;font-family:var(--mono);margin-top:1px}
+.stk-card .sc-badge-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+
+/* ENTRY & EXIT STRATEGY BOX (High Clarity) */
+.trade-levels-card{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+.tl-head{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.tl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.tl-box{padding:10px;border-radius:8px;border:1px solid var(--line)}
+.tl-box.entry-box{background:rgba(59,158,255,.08);border-color:rgba(59,158,255,.3)}
+.tl-box.sl-box{background:var(--red-bg);border-color:rgba(255,87,87,.3)}
+.tl-box.tp-box{background:var(--green-bg);border-color:rgba(38,208,124,.3)}
+.tl-box.rr-box{background:rgba(245,166,35,.08);border-color:rgba(245,166,35,.3)}
+.tl-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:2px}
+.tl-val{font-size:18px;font-weight:800;font-family:var(--mono)}
+.tl-sub{font-size:10px;font-weight:600;margin-top:2px}
+
+/* Position Risk Calculator */
+.ps-calc{background:var(--panel2);padding:10px;border-radius:8px;border:1px solid var(--line);margin-bottom:10px}
+.ps-calc-head{display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.ps-calc-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ps-btn-group{display:flex;gap:4px}
+.ps-risk-btn{padding:3px 8px;font-size:10px;font-weight:700;border-radius:4px;border:1px solid var(--line);background:var(--bg2);color:var(--muted);cursor:pointer}
+.ps-risk-btn.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.ps-result{font-size:13px;font-weight:700;font-family:var(--mono);color:var(--text)}
+
+/* Active Dock Bar & Sticky Inspector */
+.active-dock-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px;position:sticky;top:6px;z-index:90;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.adb-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.adb-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.adb-sym{font-size:16px;font-weight:800;color:var(--text);font-family:var(--mono)}
+.adb-px{font-size:15px;font-weight:700}
+.adb-right{display:flex;align-items:center;gap:8px}
+.active-pulse{animation:panelPulse 0.9s ease-in-out}
+@keyframes panelPulse{0%{box-shadow:0 0 0px var(--blue);border-color:var(--line)}50%{box-shadow:0 0 20px rgba(59,158,255,.6);border-color:var(--blue)}100%{box-shadow:0 0 0px var(--blue);border-color:var(--line)}}
+.search-input{padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:var(--bg2);color:var(--text);font-size:11px;outline:none;transition:.15s;width:150px}
+.search-input:focus{border-color:var(--blue);box-shadow:0 0 6px rgba(59,158,255,.3)}
+
+/* Responsive & Sticky Right Inspector Column */
+@media(min-width:1101px){
+  .grid{display:grid;grid-template-columns:1fr 440px;gap:12px;align-items:start}
+  .col-r{position:sticky;top:10px;max-height:calc(100vh - 20px);overflow-y:auto;z-index:100;padding-right:2px}
+  .col-r::-webkit-scrollbar{width:4px}
+  .col-r::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+}
 @media(max-width:1100px){.grid{grid-template-columns:1fr}.kpi{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:600px){.kpi{grid-template-columns:repeat(2,1fr)}.hdr .sub{display:none}}
+@media(max-width:600px){.kpi{grid-template-columns:repeat(2,1fr)}.hdr .sub{display:none}.adb-label{display:none}}
 
 </style>
 </head>
@@ -271,106 +341,171 @@ table.of tbody tr:hover{background:rgba(59,158,255,.06)}
   <div class="k"><div class="lbl">Paper Equity</div><div class="val" id="kEquity">$10,000</div><div class="sub" id="kEquitySub">virtual account</div></div>
 </div>
 
+<div class="active-dock-bar" id="activeDockBar">
+  <div class="adb-left">
+    <span class="adb-label">🎯 ACTIVE INSPECTOR:</span>
+    <span class="adb-sym" id="adbSym">—</span>
+    <span class="adb-px mono" id="adbPx">$0.00</span>
+    <span class="adb-dir dir buy" id="adbDir">BUY</span>
+  </div>
+  <div class="adb-right">
+    <input type="text" id="symSearch" class="search-input" placeholder="🔍 Search symbol/name...">
+    <button class="btn primary sm" onclick="jumpToDetail()">🎯 View Chart & Trade Levels</button>
+  </div>
+</div>
+
 <div class="grid">
   <div class="col-l">
-    <!-- Best Trades -->
-    <div class="panel">
-      <div class="ph"><span class="ic">★</span> Best Trades — Easy Picks <span class="badge" id="picksBadge">power + flow + setup + congress</span></div>
-      <div class="picks" id="picksList"></div>
+    <!-- View Navigation Bar -->
+    <div class="view-nav-bar">
+      <div class="vtab active" data-vtab="trendy">🔥 Trendy Stocks <span class="cnt" id="cntTrendy">0</span></div>
+      <div class="vtab" data-vtab="priceaction">⚡ Price Action Setups <span class="cnt" id="cntPA">0</span></div>
+      <div class="vtab" data-vtab="screener">📊 Screener Table <span class="cnt" id="cntScr">0</span></div>
+      <div class="vtab" data-vtab="picks">★ Top Picks</div>
+      <div class="vtab" data-vtab="congress">🏛️ Congress Trades</div>
+      <div class="vtab" data-vtab="options">🌊 Options Flow</div>
     </div>
-    <!-- Screener -->
-    <div class="panel">
-      <div class="ph">
-        <span class="ic">📊</span> Live Screener
-        <span class="spacer"></span>
-        <button class="btn sm" data-filter="all">All</button>
-        <button class="btn sm primary" data-filter="buy">Buy</button>
-        <button class="btn sm" data-filter="sell">Sell</button>
-        <button class="btn sm" data-filter="x">🔥 X Trend</button>
-        <button class="btn sm" data-filter="setup">✓ Setups</button>
-      </div>
-      <div class="scr-wrap">
-        <table class="scr">
-          <thead><tr>
-            <th data-k="sym">Symbol</th><th data-k="price">Price</th><th data-k="chg">Chg%</th>
-            <th data-k="score">Score</th><th data-k="dir">Signal</th><th data-k="rsi">RSI</th>
-            <th data-k="volR">VolR</th><th data-k="dom">Buy/Sell</th><th data-k="ofc">Flow</th>
-          </tr></thead>
-          <tbody id="scrBody"></tbody>
-        </table>
+
+    <!-- VIEW 1: Trendy Stocks Grid -->
+    <div class="view-panel" id="viewTrendy">
+      <div class="panel">
+        <div class="ph">
+          <span class="ic">🔥</span> Trendy Stocks & Volume Surge Leaders
+          <span class="badge" id="trendyBadge">vol spike > 1.2x · momentum surge</span>
+        </div>
+        <div class="pb">
+          <div class="card-grid" id="trendyGrid"></div>
+        </div>
       </div>
     </div>
+
+    <!-- VIEW 2: Price Action Setups Grid -->
+    <div class="view-panel" id="viewPriceAction" style="display:none">
+      <div class="panel">
+        <div class="ph">
+          <span class="ic">⚡</span> Price Action Breakouts & Candlestick Patterns
+          <span class="badge">reversals · breakouts · EMAs</span>
+        </div>
+        <div class="pb">
+          <div class="card-grid" id="paGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: Full Screener Table -->
+    <div class="view-panel" id="viewScreener" style="display:none">
+      <div class="panel">
+        <div class="ph">
+          <span class="ic">📊</span> Complete Live Screener Table
+          <span class="spacer"></span>
+          <button class="btn sm primary" data-filter="all">All</button>
+          <button class="btn sm" data-filter="buy">Buy</button>
+          <button class="btn sm" data-filter="sell">Sell</button>
+          <button class="btn sm" data-filter="x">🔥 X Trend</button>
+          <button class="btn sm" data-filter="setup">✓ Setups</button>
+        </div>
+        <div class="scr-wrap">
+          <table class="scr">
+            <thead><tr>
+              <th data-k="sym">Symbol</th><th data-k="price">Price</th><th data-k="chg">Chg%</th>
+              <th data-k="score">Score</th><th data-k="dir">Signal</th><th data-k="rsi">RSI</th>
+              <th data-k="volR">VolR</th><th data-k="dom">Buy/Sell</th><th data-k="ofc">Flow</th>
+            </tr></thead>
+            <tbody id="scrBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 4: Top Picks Panel -->
+    <div class="view-panel" id="viewPicks" style="display:none">
+      <div class="panel">
+        <div class="ph"><span class="ic">★</span> Best Trades — High Confluence Easy Picks <span class="badge" id="picksBadge">power + flow + setup</span></div>
+        <div class="picks" id="picksList"></div>
+      </div>
+    </div>
+
+    <!-- VIEW 5: Congress Trades Panel -->
+    <div class="view-panel" id="viewCongress" style="display:none">
+      <div class="panel">
+        <div class="ph"><span class="ic">🏛️</span> Congressional Trades <span class="badge" id="congBadge">STOCK Act</span><span class="spacer"></span><button class="btn sm" id="btnCong">All</button></div>
+        <div class="cong">
+          <div class="cong-summary">
+            <span class="c-stat">Tracked: <b id="congCount">0</b></span>
+            <span class="c-stat">Net Buy Bias: <b id="congBias">—</b></span>
+          </div>
+          <div class="cong-filters">
+            <button class="btn sm primary" data-congfilter="all">All</button>
+            <button class="btn sm" data-congfilter="buy">Buys</button>
+            <button class="btn sm" data-congfilter="sell">Sells</button>
+            <button class="btn sm" data-congfilter="setup">On Setups</button>
+          </div>
+          <div class="cong-wrap" id="congBody"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 6: Options Flow Panel -->
+    <div class="view-panel" id="viewOptions" style="display:none">
+      <div class="panel">
+        <div class="ph"><span class="ic">🌊</span> Options Flow <span class="badge">unusual activity</span></div>
+        <div class="offilters">
+          <button class="btn sm primary" data-offilter="all">All</button>
+          <button class="btn sm" data-offilter="sweep">Sweeps</button>
+          <button class="btn sm" data-offilter="block">Blocks</button>
+          <button class="btn sm" data-offilter="call">Calls</button>
+          <button class="btn sm" data-offilter="put">Puts</button>
+        </div>
+        <div class="ofwrap">
+          <table class="of">
+            <thead><tr><th>Time</th><th>Symbol</th><th>Type</th><th>Side</th><th>Strike</th><th>Exp</th><th>Prem</th><th>Vol/OI</th><th>IV</th><th>Conv</th></tr></thead>
+            <tbody id="ofBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Market Context -->
     <div class="panel">
-      <div class="ph"><span class="ic">🌍</span> Market Context</div>
+      <div class="ph"><span class="ic">🌍</span> Market Sentiment & Confluence Context</div>
       <div class="ctx" id="ctxRow"></div>
       <div class="gauge-wrap">
-        <canvas id="gauge" width="280" height="130"></canvas>
+        <canvas id="gauge" width="280" height="120"></canvas>
         <div class="gval" id="gaugeVal">—</div>
-        <div class="glbl">Sentiment Gauge (Bull 0–100 Bear)</div>
-      </div>
-    </div>
-    <!-- Signal Feed -->
-    <div class="panel">
-      <div class="ph"><span class="ic">📡</span> Signal Feed <span class="badge" id="feedBadge">live</span></div>
-      <div class="feed" id="feedBody"></div>
-    </div>
-    <!-- Options Flow -->
-    <div class="panel">
-      <div class="ph"><span class="ic">🌊</span> Options Flow <span class="badge">unusual activity</span></div>
-      <div class="offilters">
-        <button class="btn sm primary" data-offilter="all">All</button>
-        <button class="btn sm" data-offilter="sweep">Sweeps</button>
-        <button class="btn sm" data-offilter="block">Blocks</button>
-        <button class="btn sm" data-offilter="call">Calls</button>
-        <button class="btn sm" data-offilter="put">Puts</button>
-      </div>
-      <div class="ofwrap">
-        <table class="of">
-          <thead><tr><th>Time</th><th>Symbol</th><th>Type</th><th>Side</th><th>Strike</th><th>Exp</th><th>Prem</th><th>Vol/OI</th><th>IV</th><th>Conv</th></tr></thead>
-          <tbody id="ofBody"></tbody>
-        </table>
+        <div class="glbl">Sentiment Gauge (Bear 0–100 Bull)</div>
       </div>
     </div>
   </div>
 
   <div class="col-r">
-    <!-- Detail Panel -->
-    <div class="panel">
-      <div class="ph"><span class="ic">🎯</span> Detail <span class="badge" id="detBadge">—</span></div>
+    <!-- Detail Stock Inspector Panel -->
+    <div class="panel" id="detailPanel">
+      <div class="ph">
+        <span class="ic">🎯</span> Stock Inspector & Trade Entry/Exit Strategy
+        <span class="badge" id="detBadge">—</span>
+      </div>
       <div class="det" id="detBody"></div>
     </div>
-    <!-- Congressional Trades -->
-    <div class="panel">
-      <div class="ph"><span class="ic">🏛️</span> Congressional Trades <span class="badge" id="congBadge">STOCK Act</span><span class="spacer"></span><button class="btn sm" id="btnCong">All</button></div>
-      <div class="cong">
-        <div class="cong-summary">
-          <span class="c-stat">Tracked: <b id="congCount">0</b></span>
-          <span class="c-stat">Net Buy Bias: <b id="congBias">—</b></span>
-        </div>
-        <div class="cong-filters">
-          <button class="btn sm primary" data-congfilter="all">All</button>
-          <button class="btn sm" data-congfilter="buy">Buys</button>
-          <button class="btn sm" data-congfilter="sell">Sells</button>
-          <button class="btn sm" data-congfilter="setup">On Setups</button>
-        </div>
-        <div class="cong-wrap" id="congBody"></div>
-      </div>
-    </div>
-    <!-- Paper Trading -->
+    <!-- Paper Trading Widget -->
     <div class="panel paper">
-      <div class="ph"><span class="ic">💵</span> Paper Trading <span class="badge" id="paperBadge">$10k</span><span class="spacer"></span><button class="btn sm" id="btnReset">Reset</button></div>
+      <div class="ph">
+        <span class="ic">💵</span> Paper Trading Account <span class="badge" id="paperBadge">$10k</span>
+        <span class="spacer"></span>
+        <button class="btn sm primary" id="btnAutoTrade" onclick="autoExecuteTrades()" style="margin-right:4px">⚡ Auto-Trade Positive Setups</button>
+        <button class="btn sm" id="btnToggleBot" onclick="toggleAutoBot()" style="margin-right:4px">🤖 Auto-Bot: OFF</button>
+        <button class="btn sm" id="btnReset">Reset Account</button>
+      </div>
       <div class="ps-top">
         <div class="ps-i"><div class="l">Equity</div><div class="v" id="psEquity">$10,000</div></div>
         <div class="ps-i"><div class="l">Open P&L</div><div class="v" id="psOpenPnL">$0.00</div></div>
         <div class="ps-i"><div class="l">Realized</div><div class="v" id="psRealized">$0.00</div></div>
       </div>
       <div class="ps-sec">
-        <div class="st">Open Positions</div>
+        <div class="st">Active Simulated Positions</div>
         <div id="psOpen"></div>
       </div>
       <div class="ps-sec">
-        <div class="st">Trade History</div>
+        <div class="st">Closed Trade Log</div>
         <div class="hist" id="psHist"></div>
       </div>
     </div>
@@ -480,6 +615,86 @@ function bbands(arr, p=20, k=2){ const s=arr.slice(-Math.min(p,arr.length)); con
 function atrCalc(bars, p=14){ const n=bars.length; if(n<2) return 0; let sum=0; const len=Math.min(p,n-1); for(let i=n-len;i<n;i++){ const h=bars[i].h,l=bars[i].l,pc=bars[i-1].c; sum+=Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc)); } return sum/len; }
 function stochCalc(bars, p=14){ const n=bars.length; if(n<p) return {k:50,d:50}; const sl=bars.slice(-p); const hh=Math.max(...sl.map(b=>b.h)), ll=Math.min(...sl.map(b=>b.l)); const c=bars[n-1].c; const k=(c-ll)/(hh-ll||1e-9)*100; let dSum=0,cnt=Math.min(3,n); for(let i=n-cnt;i<n;i++){ const s2=bars.slice(Math.max(0,i-p+1),i+1); const hh2=Math.max(...s2.map(b=>b.h)),ll2=Math.min(...s2.map(b=>b.l)); dSum+=(bars[i].c-ll2)/(hh2-ll2||1e-9)*100; } return {k, d:dSum/cnt}; }
 
+/* ---------- Candlestick Pattern Engine ---------- */
+function detectCandlePatterns(bars) {
+  if (!bars || bars.length < 3) return { patterns: [], score: 0 };
+
+  const patterns = [];
+  let patternScore = 0;
+
+  const b0 = bars[bars.length - 1];
+  const b1 = bars[bars.length - 2];
+  const b2 = bars[bars.length - 3];
+
+  const c = b0.c, o = b0.o, h = b0.h, l = b0.l;
+  const c1 = b1.c, o1 = b1.o, h1 = b1.h, l1 = b1.l;
+  const c2 = b2.c, o2 = b2.o, h2 = b2.h, l2 = b2.l;
+
+  const body = Math.abs(c - o);
+  const range = (h - l) || 0.0001;
+  const upperShadow = h - Math.max(c, o);
+  const lowerShadow = Math.min(c, o) - l;
+
+  const isBullish = c > o;
+  const isBearish = c < o;
+  const prevIsBearish = c1 < o1;
+  const prevIsBullish = c1 > o1;
+
+  // Bullish Reversal Patterns (after downtrend / red candle)
+  if (prevIsBearish && lowerShadow >= 1.8 * Math.max(body, range * 0.05) && upperShadow <= 0.6 * Math.max(body, range * 0.05)) {
+    patterns.push({ name: 'HAMMER', label: '🔨 Hammer', type: 'bullish', score: 20 });
+    patternScore += 20;
+  }
+  if (prevIsBearish && upperShadow >= 1.8 * Math.max(body, range * 0.05) && lowerShadow <= 0.6 * Math.max(body, range * 0.05)) {
+    patterns.push({ name: 'INVERTED_HAMMER', label: '🔨 Inverted Hammer', type: 'bullish', score: 15 });
+    patternScore += 15;
+  }
+  if (prevIsBearish && isBullish && o <= c1 && c >= o1) {
+    patterns.push({ name: 'BULLISH_ENGULFING', label: '🐂 Bullish Engulfing', type: 'bullish', score: 25 });
+    patternScore += 25;
+  }
+  if (c2 < o2 && Math.abs(c1 - o1) <= 0.3 * (h1 - l1) && isBullish && c > (o2 + c2) / 2) {
+    patterns.push({ name: 'MORNING_STAR', label: '🌅 Morning Star', type: 'bullish', score: 30 });
+    patternScore += 30;
+  }
+  if (prevIsBearish && isBullish && o <= c1 && c > (o1 + c1) / 2 && c < o1) {
+    patterns.push({ name: 'PIERCING_LINE', label: '⚡ Piercing Line', type: 'bullish', score: 20 });
+    patternScore += 20;
+  }
+  if (c2 > o2 && c1 > o1 && isBullish && c > c1 && c1 > c2) {
+    patterns.push({ name: 'THREE_WHITE_SOLDIERS', label: '📈 3 White Soldiers', type: 'bullish', score: 25 });
+    patternScore += 25;
+  }
+
+  // Bearish Reversal Patterns (after uptrend / green candle)
+  if (prevIsBullish && lowerShadow >= 1.8 * Math.max(body, range * 0.05) && upperShadow <= 0.6 * Math.max(body, range * 0.05)) {
+    patterns.push({ name: 'HANGING_MAN', label: '🪢 Hanging Man', type: 'bearish', score: -20 });
+    patternScore -= 20;
+  }
+  if (prevIsBullish && upperShadow >= 1.8 * Math.max(body, range * 0.05) && lowerShadow <= 0.6 * Math.max(body, range * 0.05)) {
+    patterns.push({ name: 'SHOOTING_STAR', label: '☄️ Shooting Star', type: 'bearish', score: -20 });
+    patternScore -= 20;
+  }
+  if (prevIsBullish && isBearish && o >= c1 && c <= o1) {
+    patterns.push({ name: 'BEARISH_ENGULFING', label: '🐻 Bearish Engulfing', type: 'bearish', score: -25 });
+    patternScore -= 25;
+  }
+  if (c2 > o2 && Math.abs(c1 - o1) <= 0.3 * (h1 - l1) && isBearish && c < (o2 + c2) / 2) {
+    patterns.push({ name: 'EVENING_STAR', label: '🌆 Evening Star', type: 'bearish', score: -30 });
+    patternScore -= 30;
+  }
+  if (prevIsBullish && isBearish && o >= c1 && c < (o1 + c1) / 2 && c > o1) {
+    patterns.push({ name: 'DARK_CLOUD_COVER', label: '🌩️ Dark Cloud Cover', type: 'bearish', score: -20 });
+    patternScore -= 20;
+  }
+  if (c2 < o2 && c1 < o1 && isBearish && c < c1 && c1 < c2) {
+    patterns.push({ name: 'THREE_BLACK_CROWS', label: '📉 3 Black Crows', type: 'bearish', score: -25 });
+    patternScore -= 25;
+  }
+
+  return { patterns, score: Math.max(-40, Math.min(40, patternScore)) };
+}
+
 /* ---------- Signal engine (multi-factor confluence) ---------- */
 function analyse(bars){
   const cls=bars.map(b=>b.c), hs=bars.map(b=>b.h), ls=bars.map(b=>b.l), vols=bars.map(b=>b.v);
@@ -520,24 +735,33 @@ function analyse(bars){
   if (volR>1.5 && price>cls[n-2]) vcf=10; else if (volR>1.5 && price<cls[n-2]) vcf=-10;
   else if (volR<0.6) vcf=-4;
   vcf = Math.max(-10, Math.min(10, vcf));
-  const raw = trend + mom + vol + mr + vcf;
-  const score = Math.round((raw+100)/2);
-  let dir='neutral';
-  if (score>=70) dir='buy'; else if (score<=30) dir='sell'; else dir='watch';
+  
+  const candleRes = detectCandlePatterns(bars);
+  const raw = trend + mom + vol + mr + vcf + (candleRes.score * 0.25);
+  const score = Math.round(Math.max(0, Math.min(100, (raw+100)/2)));
+
   const chg1h = +(((cls[n-1]-cls[Math.max(0,n-1-12)])/cls[Math.max(0,n-1-12)])*100).toFixed(2);
   const chg = cls.length>2 ? +(((cls[n-1]-cls[0])/cls[0])*100).toFixed(2) : 0;
   const chgD = REALDATA[symOfBars] ? +(((price-REALDATA[symOfBars].pc)/REALDATA[symOfBars].pc)*100).toFixed(2) : chg;
+
+  let dir='neutral';
+  if (score>=52 || (score>=46 && chgD>0)) dir='buy';
+  else if (score<=38 || (score<=45 && chgD<0)) dir='sell';
+  else dir='watch';
+  
   const atrVal = atr || price*0.012;
   const slDist = atrVal*1.5, tpDist = atrVal*2.0;
   const entry=price;
-  // Exact entry zone: half an ATR around current price (intraday pullback zone)
+  // Exact entry zone: half an ATR around current price
   const entryLow = +(entry - atrVal*0.5).toFixed(price>500?2:price>1?4:6);
   const entryHigh = +(entry + atrVal*0.5).toFixed(price>500?2:price>1?4:6);
-  const sl = dir==='sell'? entry+slDist : entry-slDist;
-  const tp = dir==='sell'? entry-tpDist : entry+tpDist;
+  
+  const isShort = (dir === 'sell' || (dir === 'watch' && score < 50));
+  const sl = isShort ? entry + slDist : entry - slDist;
+  const tp = isShort ? entry - tpDist : entry + tpDist;
   const rr = +(tpDist/slDist).toFixed(2);
   const slPct=+(slDist/price*100).toFixed(2), tpPct=+(tpDist/price*100).toFixed(2);
-  return { price, score, dir, trend, mom, vol, mr, vcf, raw, rsi, macd, stoch, bb, atr, volR, e9, e21, e50, e200, entry, entryLow, entryHigh, sl, tp, rr, slPct, tpPct, chg, chg1h, chgD, slope };
+  return { price, score, dir, isShort, trend, mom, vol, mr, vcf, raw, rsi, macd, stoch, bb, atr, volR, e9, e21, e50, e200, entry, entryLow, entryHigh, sl, tp, rr, slPct, tpPct, chg, chg1h, chgD, slope, patterns: candleRes.patterns };
 }
 
 /* ---------- Symbol tracking for analyse (so we know ticker for chgD) ---------- */
@@ -652,7 +876,7 @@ const YF = {
    before it "flips". This prevents noise-driven flip-flopping.
    ==================================================================== */
 const STABILITY = {
-  req: 3,             // need 3 consecutive confirmations to flip
+  req: 1,             // 1 confirmation to flip for fast responsive updates
   votes: {},          // sym -> { dir, count, confirmed }
   /* returns the STABLE direction (not raw) */
   check(sym, rawDir){
@@ -910,32 +1134,54 @@ function setupValid(sym){
   const reasons = [], flags = [];
   let score = 0;
 
-  // 1. Clear trend
-  const trendOK = Math.abs(a.trend) >= 15;
-  if(trendOK){ score += 30; reasons.push(`Clear ${a.trend>0?'up':'down'}trend (EMA stack aligned, trend score ${a.trend>0?'+':''}${a.trend.toFixed(0)})`); }
-  else flags.push('Trend too weak/noise');
+  const isPositive = a.chgD > 0 || a.dir === 'buy' || a.score >= 48;
+
+  // 1. Clear trend or positive movement
+  const trendOK = Math.abs(a.trend) >= 6 || isPositive;
+  if(trendOK){
+    score += 35;
+    reasons.push(`${a.chgD>=0?'Bullish positive':'Bearish'} trend (${a.chgD>=0?'+':''}${a.chgD.toFixed(2)}% today)`);
+  } else {
+    flags.push('Trend neutral');
+  }
 
   // 2. Momentum confirmation
-  const momOK = Math.abs(a.mom) >= 6 && ((a.dir==='buy'&&a.mom>0)||(a.dir==='sell'&&a.mom<0)||(a.mom!==0));
-  if(Math.abs(a.mom) >= 6){ score += 22; reasons.push(`Momentum ${a.mom>0?'bullish':'bearish'} (MACD ${a.macd.hist>=0?'positive':'negative'}, Stoch %K ${a.stoch.k.toFixed(0)})`); }
-  else flags.push('Momentum not confirming');
+  const momOK = Math.abs(a.mom) >= 3 || isPositive;
+  if(momOK){
+    score += 25;
+    reasons.push(`Momentum active (MACD ${a.macd.hist>=0?'positive':'improving'}, RSI ${a.rsi.toFixed(0)})`);
+  } else {
+    flags.push('Momentum weak');
+  }
 
   // 3. Volume confirmation
-  const volOK = a.volR >= 0.9;
-  if(volOK){ score += 23; reasons.push(`Supporting volume (${a.volR.toFixed(2)}× avg)${a.volR>1.5?' — heavy volume conviction':''}`); }
-  else flags.push('Volume below average');
+  const volOK = a.volR >= 0.6;
+  if(volOK){
+    score += 20;
+    reasons.push(`Supporting volume (${a.volR.toFixed(2)}× avg)`);
+  } else {
+    flags.push('Volume below average');
+  }
 
-  // 4. Volatility filter — BB width > 0.8% means it's actually moving (not flat)
-  const volaOK = a.bb.width > 0.8;
-  if(volaOK){ score += 15; reasons.push(`Active volatility regime (BB width ${a.bb.width.toFixed(2)}%, ATR ${a.atr.toFixed(2)})`); }
-  else flags.push('Low volatility — range-bound');
+  // 4. Volatility filter
+  const volaOK = a.bb.width > 0.4 || isPositive;
+  if(volaOK){
+    score += 10;
+    reasons.push(`Active volatility regime (ATR ${a.atr.toFixed(2)})`);
+  } else {
+    flags.push('Low volatility');
+  }
 
-  // 5. Acceptable risk — R:R >= 1.2 and SL within 0.5%–8%
-  const rrOK = a.rr >= 1.2 && a.slPct >= 0.5 && a.slPct <= 8;
-  if(rrOK){ score += 10; reasons.push(`Acceptable risk: R:R ${a.rr.toFixed(2)}, SL ${a.slPct.toFixed(1)}% away`); }
-  else flags.push(`Risk not acceptable (R:R ${a.rr.toFixed(2)}, SL ${a.slPct.toFixed(1)}%)`);
+  // 5. Acceptable risk
+  const rrOK = a.rr >= 1.0;
+  if(rrOK){
+    score += 10;
+    reasons.push(`Risk/Reward ${a.rr.toFixed(2)}`);
+  } else {
+    flags.push(`R:R ${a.rr.toFixed(2)}`);
+  }
 
-  const valid = trendOK && volOK && rrOK; // core requirements: trend + volume + risk
+  const valid = isPositive || (trendOK && volOK);
   return { valid, score: Math.round(score), reasons, flags };
 }
 
@@ -1054,10 +1300,12 @@ function setSess(){
   const s = SESSION.status();
   const el = document.getElementById('sess');
   const lbl = document.getElementById('sessLbl');
-  el.classList.remove('closed','pre','after');
-  if(s.state==='closed') el.classList.add('closed');
-  if(s.state==='pre') el.classList.add('pre');
-  lbl.textContent = s.label;
+  if(el){
+    el.classList.remove('closed','pre','after');
+    if(s.state==='closed') el.classList.add('closed');
+    if(s.state==='pre') el.classList.add('pre');
+  }
+  if(lbl) lbl.textContent = s.label;
   return s;
 }
 
@@ -1070,22 +1318,32 @@ function renderKPIs(){
   const dec = KEYS.filter(s=>ANA[s].chgD<0).length;
   const openPnL = paperOpenPnL();
   const eq = PAPER.account + PAPER.realized + openPnL;
-  document.getElementById('kUniverse').textContent = KEYS.length;
-  document.getElementById('kBuys').textContent = buys;
-  document.getElementById('kSells').textContent = sells;
-  document.getElementById('kAvg').textContent = avg;
-  document.getElementById('kBreadth').textContent = adv+'/'+dec;
-  document.getElementById('kBreadthSub').textContent = dataMode==='live' ? 'adv / dec · LIVE' : 'adv / dec';
-  document.getElementById('kEquity').textContent = '$'+eq.toLocaleString(undefined,{maximumFractionDigits:0});
-  document.getElementById('kEquitySub').textContent = openPnL>=0?'+$'+openPnL.toFixed(0)+' open':'-$'+Math.abs(openPnL).toFixed(0)+' open';
-  document.getElementById('kEquity').className = 'val '+(openPnL>=0?'g':'r');
-  document.getElementById('updTime').textContent = new Date().toLocaleTimeString();
-  document.getElementById('picksBadge').textContent = dataMode==='live' ? 'LIVE · power+flow+setup+congress' : 'power+flow+setup+congress';
-  document.getElementById('feedBadge').textContent = dataMode==='live' ? 'LIVE' : 'embedded';
+  const setTxt = (id, txt, cls) => {
+    const el = document.getElementById(id);
+    if(el){
+      if(txt !== undefined) el.textContent = txt;
+      if(cls !== undefined) el.className = cls;
+    }
+  };
+  setTxt('kUniverse', KEYS.length);
+  setTxt('kBuys', buys);
+  setTxt('kSells', sells);
+  setTxt('kAvg', avg);
+  setTxt('kBreadth', adv+'/'+dec);
+  setTxt('kBreadthSub', dataMode==='live' ? 'adv / dec · LIVE' : 'adv / dec');
+  setTxt('kEquity', '$'+eq.toLocaleString(undefined,{maximumFractionDigits:0}), 'val '+(openPnL>=0?'g':'r'));
+  setTxt('kEquitySub', openPnL>=0?'+$'+openPnL.toFixed(0)+' open':'-$'+Math.abs(openPnL).toFixed(0)+' open');
+  setTxt('updTime', new Date().toLocaleTimeString());
+  setTxt('picksBadge', dataMode==='live' ? 'LIVE · power+flow+setup' : 'power+flow+setup');
+  setTxt('feedBadge', dataMode==='live' ? 'LIVE' : 'embedded');
 }
 
 function renderScreener(){
   let rows = KEYS.map(s=>({s, a:ANA[s], st:STABLE[s]||'watch', sv:SETUP[s]||{valid:false,score:0}}));
+  const q = (document.getElementById('symSearch')?.value || '').trim().toLowerCase();
+  if(q){
+    rows = rows.filter(r => r.s.toLowerCase().includes(q) || (UNI[r.s] && UNI[r.s].name && UNI[r.s].name.toLowerCase().includes(q)));
+  }
   if(activeFilter==='buy') rows=rows.filter(r=>r.st==='buy');
   else if(activeFilter==='sell') rows=rows.filter(r=>r.st==='sell');
   else if(activeFilter==='setup') rows=rows.filter(r=>r.sv.valid);
@@ -1154,7 +1412,8 @@ function renderContext(){
     {l:'Sweeps',v:sweeps,c:'pur'},{l:'Blocks',v:blocks,c:'cy'},
     {l:'Avg Confluence',v:avgScore,c:''},{l:'Flow Events',v:OPTFLOW.length,c:''}
   ];
-  document.getElementById('ctxRow').innerHTML = items.map(i=>`<div class="ci"><div class="lbl">${i.l}</div><div class="val ${i.c}">${i.v}</div></div>`).join('');
+  const cr = document.getElementById('ctxRow');
+  if(cr) cr.innerHTML = items.map(i=>`<div class="ci"><div class="lbl">${i.l}</div><div class="val ${i.c}">${i.v}</div></div>`).join('');
   drawGauge(+avgScore);
 }
 
@@ -1180,8 +1439,11 @@ function drawGauge(score){
   ctx.lineWidth=3; ctx.beginPath();
   ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(t)*R*0.92, cy+Math.sin(t)*R*0.92); ctx.stroke();
   ctx.fillStyle='#e6edf3'; ctx.beginPath(); ctx.arc(cx,cy,5,0,Math.PI*2); ctx.fill();
-  document.getElementById('gaugeVal').textContent = score;
-  document.getElementById('gaugeVal').className = 'gval '+(score>=55?'g':score<=45?'r':'gold');
+  const gv = document.getElementById('gaugeVal');
+  if(gv){
+    gv.textContent = score;
+    gv.className = 'gval '+(score>=55?'g':score<=45?'r':'gold');
+  }
 }
 
 function renderFeed(){
@@ -1196,7 +1458,8 @@ function renderFeed(){
     const dc = f.dir==='buy'?'buy':f.dir==='sell'?'sell':'watch';
     return `<div class="fitem"><span class="tm">${f.time.toLocaleTimeString().slice(0,8)}</span><span class="sy">${f.sym}</span><span class="ds">${f.msg}</span><span class="ac dir ${dc}">${f.dir.toUpperCase()}</span></div>`;
   }).join('');
-  document.getElementById('feedBody').innerHTML = html;
+  const fb = document.getElementById('feedBody');
+  if(fb) fb.innerHTML = html;
 }
 
 function renderOptFlow(){
@@ -1218,7 +1481,8 @@ function renderOptFlow(){
     <td class="mono m">${(e.iv*100).toFixed(0)}%</td>
     <td class="mono ${e.conv>60?'g':e.conv>40?'gold':'m'}">${e.conv}</td>
   </tr>`).join('');
-  document.getElementById('ofBody').innerHTML = html || '<tr><td colspan="10" class="m" style="text-align:center;padding:14px">No flow events</td></tr>';
+  const ob = document.getElementById('ofBody');
+  if(ob) ob.innerHTML = html || '<tr><td colspan="10" class="m" style="text-align:center;padding:14px">No flow events</td></tr>';
 }
 
 /* ====================================================================
@@ -1265,17 +1529,21 @@ function renderCongress(){
     </div>`;
   }).join('');
 
-  document.getElementById('congBody').innerHTML = html || '<div class="m" style="padding:14px;font-size:11px;text-align:center">No congressional trades match this filter</div>';
+  const cb = document.getElementById('congBody');
+  if(cb) cb.innerHTML = html || '<div class="m" style="padding:14px;font-size:11px;text-align:center">No congressional trades match this filter</div>';
 
   // Summary stats
   const allTrades = CONGRESS.trades;
   const buyCount = allTrades.filter(t=>t.type==='BUY'||t.type==='EXERCISE').length;
   const sellCount = allTrades.filter(t=>t.type==='SELL').length;
-  document.getElementById('congCount').textContent = allTrades.length;
+  const cc = document.getElementById('congCount');
+  if(cc) cc.textContent = allTrades.length;
   const bias = buyCount > sellCount ? 'BULLISH' : sellCount > buyCount ? 'BEARISH' : 'NEUTRAL';
   const biasEl = document.getElementById('congBias');
-  biasEl.textContent = `${bias} (${buyCount}B/${sellCount}S)`;
-  biasEl.className = bias==='BULLISH'?'g':bias==='BEARISH'?'r':'';
+  if(biasEl){
+    biasEl.textContent = `${bias} (${buyCount}B/${sellCount}S)`;
+    biasEl.className = bias==='BULLISH'?'g':bias==='BEARISH'?'r':'';
+  }
 }
 
 function rankPicks(){
@@ -1317,17 +1585,191 @@ function renderPicks(){
   document.getElementById('picksList').innerHTML = html;
 }
 
+/* View Navigation Tab Switcher */
+let currentViewTab = 'trendy';
+function switchViewTab(tabName){
+  currentViewTab = tabName;
+  document.querySelectorAll('.vtab').forEach(b => {
+    b.classList.toggle('active', b.dataset.vtab === tabName);
+  });
+  document.querySelectorAll('.view-panel').forEach(p => p.style.display = 'none');
+  const targetId = 'view' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
+  const target = document.getElementById(targetId);
+  if(target) target.style.display = 'block';
+  renderAllViews();
+}
+
+function renderAllViews(){
+  renderTrendy();
+  renderPriceAction();
+  renderScreener();
+  renderPicks();
+  renderCongress();
+  renderOptFlow();
+}
+
+/* Render Trendy Stocks Grid */
+function renderTrendy(){
+  const container = document.getElementById('trendyGrid');
+  if(!container) return;
+  let rows = KEYS.map(s => {
+    const a = ANA[s], st = STABLE[s] || 'watch';
+    const tr = UNI[s].tr || 0;
+    const isNew = XTREND.newTickers.includes(s);
+    const trendScore = (a.volR * 30) + (tr / 10) + Math.abs(a.chgD) * 5 + (isNew ? 50 : 0);
+    return { s, a, st, tr, isNew, trendScore };
+  });
+  rows.sort((a,b) => b.trendScore - a.trendScore);
+
+  const trendyCount = rows.filter(r => r.a.volR > 1.2 || r.tr > 0).length;
+  const cntEl = document.getElementById('cntTrendy');
+  if(cntEl) cntEl.textContent = trendyCount;
+
+  const html = rows.map(r => {
+    const a = r.a, st = r.st, s = r.s;
+    const dc = st==='buy'?'buy':st==='sell'?'sell':'watch';
+    const dom = DOM[s] || { buy:50, sell:50 };
+    const name = UNI[s]?.name || '';
+    const volBadge = a.volR > 1.5 ? `<span class="tag sweep">🔥 ${a.volR.toFixed(1)}x Vol Spike</span>` : (a.volR > 1.2 ? `<span class="tag block">⚡ ${a.volR.toFixed(1)}x Vol</span>` : '');
+    const xtrendBadge = r.tr > 0 ? `<span class="tag call">🔥 Social Hype ${r.tr}</span>` : '';
+    const newBadge = r.isNew ? `<span class="tag put">X NEW</span>` : '';
+
+    return `<div class="stk-card ${activeSym===s?'sel':''}" data-sym="${s}">
+      <div class="sc-top">
+        <span class="sc-sym">${s}</span>
+        <span class="dir ${dc}">${st.toUpperCase()}</span>
+      </div>
+      <div class="sc-name">${name}</div>
+      <div class="sc-px-row">
+        <span class="sc-px">${fmtP(a.price)}</span>
+        <span class="sc-chg ${a.chgD>=0?'g':'r'}">${a.chgD>=0?'+':''}${a.chgD.toFixed(2)}%</span>
+      </div>
+      <div class="sc-metrics">
+        <div><div class="sc-met-lbl">Volume Ratio</div><div class="sc-met-val ${a.volR>1.5?'g':'m'}">${a.volR.toFixed(2)}x</div></div>
+        <div><div class="sc-met-lbl">Buy Dominance</div><div class="sc-met-val ${dom.buy>=55?'g':dom.buy<=45?'r':'gold'}">${dom.buy}%</div></div>
+        <div><div class="sc-met-lbl">Confluence</div><div class="sc-met-val">${a.score}/100</div></div>
+        <div><div class="sc-met-lbl">RSI(14)</div><div class="sc-met-val ${a.rsi<30?'g':a.rsi>70?'r':''}">${a.rsi.toFixed(0)}</div></div>
+      </div>
+      <div class="sc-badge-row">
+        ${volBadge} ${xtrendBadge} ${newBadge}
+      </div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = html || '<div class="m" style="padding:20px">No trendy stocks detected</div>';
+}
+
+/* Render Price Action Setups Grid */
+function renderPriceAction(){
+  const container = document.getElementById('paGrid');
+  if(!container) return;
+
+  let rows = KEYS.map(s => {
+    const a = ANA[s], st = STABLE[s] || 'watch';
+    const sv = SETUP[s] || { valid:false, score:0 };
+    const patterns = a.patterns || [];
+    const hasPatterns = patterns.length > 0;
+    const paScore = (sv.score * 0.5) + (hasPatterns ? 30 : 0) + (a.score * 0.2);
+    return { s, a, st, sv, patterns, paScore };
+  });
+  rows.sort((a,b) => b.paScore - a.paScore);
+
+  const activeSetups = rows.filter(r => r.sv.valid || r.patterns.length > 0);
+  const cntEl = document.getElementById('cntPA');
+  if(cntEl) cntEl.textContent = activeSetups.length;
+
+  const html = rows.map(r => {
+    const a = r.a, st = r.st, s = r.s, sv = r.sv;
+    const dc = st==='buy'?'buy':st==='sell'?'sell':'watch';
+    const name = UNI[s]?.name || '';
+    const patBadges = r.patterns.map(p => `<span class="pat-badge ${p.type==='bullish'?'bull':'bear'}">${p.label}</span>`).join(' ');
+
+    return `<div class="stk-card ${activeSym===s?'sel':''}" data-sym="${s}">
+      <div class="sc-top">
+        <span class="sc-sym">${s} ${sv.valid ? '<span class="setup-ok">✓ SETUP</span>' : ''}</span>
+        <span class="dir ${dc}">${st.toUpperCase()}</span>
+      </div>
+      <div class="sc-name">${name}</div>
+      <div class="sc-px-row">
+        <span class="sc-px">${fmtP(a.price)}</span>
+        <span class="sc-chg ${a.chgD>=0?'g':'r'}">${a.chgD>=0?'+':''}${a.chgD.toFixed(2)}%</span>
+      </div>
+      <div class="sc-metrics">
+        <div><div class="sc-met-lbl">Entry Price</div><div class="sc-met-val blue">${fmtP(a.entry)}</div></div>
+        <div><div class="sc-met-lbl">Stop Loss</div><div class="sc-met-val r">${fmtP(a.sl)}</div></div>
+        <div><div class="sc-met-lbl">Take Profit</div><div class="sc-met-val g">${fmtP(a.tp)}</div></div>
+        <div><div class="sc-met-lbl">Risk:Reward</div><div class="sc-met-val ${a.rr>=1.5?'g':'gold'}">${a.rr.toFixed(2)}</div></div>
+      </div>
+      <div class="sc-badge-row">
+        ${patBadges || '<span class="m" style="font-size:10px">EMA Confluence Breakout</span>'}
+      </div>
+    </div>`;
+  }).join('');
+
+  container.innerHTML = html;
+}
+
 function selectSym(sym){
   activeSym = sym;
-  renderScreener();
+  renderAllViews();
   renderDetail(sym);
-  document.getElementById('detBadge').textContent = sym;
+  const badge = document.getElementById('detBadge');
+  if(badge) badge.textContent = sym;
+  updateDockBar(sym);
+
+  const detPanel = document.getElementById('detailPanel');
+  if (detPanel) {
+    detPanel.classList.add('active-pulse');
+    setTimeout(() => detPanel.classList.remove('active-pulse'), 1200);
+
+    const rect = detPanel.getBoundingClientRect();
+    const fullyInView = (rect.top >= 0 && rect.bottom <= window.innerHeight + 80);
+
+    if (!fullyInView || window.innerWidth <= 1100) {
+      detPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+}
+
+function jumpToDetail(){
+  const det = document.getElementById('detailPanel');
+  if(det) det.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function jumpToScreener(){
+  const scr = document.querySelector('.scr-wrap') || document.querySelector('.col-l');
+  if(scr) scr.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function updateDockBar(sym){
+  const a = ANA[sym];
+  const st = STABLE[sym] || 'watch';
+  if(!a) return;
+  const symEl = document.getElementById('adbSym');
+  if(symEl) symEl.textContent = sym;
+  const pxEl = document.getElementById('adbPx');
+  if(pxEl) pxEl.textContent = fmtP(a.price);
+  const dirEl = document.getElementById('adbDir');
+  if(dirEl){
+    dirEl.textContent = st.toUpperCase();
+    dirEl.className = 'adb-dir dir ' + (st==='buy'?'buy':st==='sell'?'sell':'watch');
+  }
+}
+
+let activeRiskPct = 0.01; // default 1% risk
+function setRiskPct(pct){
+  activeRiskPct = pct;
+  if(activeSym) renderDetail(activeSym);
+}
+
+function posSizeRisk(price, slDist, riskPct=0.01){
+  const riskAmt = PAPER.account * riskPct;
+  const perShare = Math.max(slDist, price*0.005);
+  return Math.max(1, Math.floor(riskAmt/perShare));
 }
 
 function posSize(price, slDist){
-  const riskAmt = PAPER.account * 0.01; // 1% risk
-  const perShare = Math.max(slDist, price*0.005);
-  return Math.max(1, Math.floor(riskAmt/perShare));
+  return posSizeRisk(price, slDist, activeRiskPct);
 }
 
 function renderDetail(sym){
@@ -1353,15 +1795,72 @@ function renderDetail(sym){
   else if(st==='sell') strat='SELL';
   else if(power>55) strat='WATCH-BULL';
   else if(power<45) strat='WATCH-BEAR';
+
+  const slDist = Math.abs(a.sl - a.entry);
+  const sharesToTrade = posSizeRisk(a.price, slDist, activeRiskPct);
+  const totalPosValue = sharesToTrade * a.price;
+
   const html = `
     <div class="dth">
       <div><div class="sym">${sym} ${isNew?'<span class="xnew" style="font-size:9px;vertical-align:middle">X NEW</span>':''} ${tr>0?'<span class="xtrend-badge" style="font-size:9px;vertical-align:middle">🔥'+tr+'</span>':''}</div><div class="nm">${rd.name||cfg.name||''}</div></div>
       <div class="px"><div class="now mono">${fmtP(a.price)}</div><div class="chg mono ${a.chgD>=0?'g':'r'}">${a.chgD>=0?'+':''}${a.chgD.toFixed(2)}%</div></div>
     </div>
+    
     <div class="sig-box">
-      <div class="sig-big"><div class="dir ${dc}">${st==='buy'?'BUY':st==='sell'?'SELL':'WATCH'}</div><div class="sc ${dc==='buy'?'g':dc==='sell'?'r':'gold'}">${a.score}</div><div class="st">confluence · ${STABILITY.votes[sym]?STABILITY.votes[sym].count+'/'+STABILITY.req:'0/'+STABILITY.req} confirm</div></div>
-      <div class="sig-big" style="border:1px solid var(--cyan);background:rgba(34,211,238,.06)"><div style="font-size:18px;font-weight:800;color:var(--cyan)">${strat}</div><div class="sc" style="color:var(--cyan)">${power}</div><div class="st">power score · profit strategy</div></div>
+      <div class="sig-big"><div class="dir ${dc}">${st==='buy'?'BUY':st==='sell'?'SELL':'WATCH'}</div><div class="sc ${dc==='buy'?'g':dc==='sell'?'r':'gold'}">${a.score}</div><div class="st">confluence score</div></div>
+      <div class="sig-big" style="border:1px solid var(--cyan);background:rgba(34,211,238,.06)"><div style="font-size:18px;font-weight:800;color:var(--cyan)">${strat}</div><div class="sc" style="color:var(--cyan)">${power}</div><div class="st">power strategy</div></div>
     </div>
+
+    <!-- ENTRY AND EXIT TRADE STRATEGY BOX -->
+    <div class="trade-levels-card">
+      <div class="tl-head">
+        <span>🎯 TRADE ENTRY & EXIT STRATEGY</span>
+        <span class="${dc==='buy'?'g':'r'}">${st==='buy'?'BULLISH LONG':'BEARISH SHORT'}</span>
+      </div>
+      <div class="tl-grid">
+        <div class="tl-box entry-box">
+          <div class="tl-lbl">🟢 ENTRY POINT</div>
+          <div class="tl-val blue">${fmtP(a.entry)}</div>
+          <div class="tl-sub blue">Zone: ${fmtP(a.entryLow)} – ${fmtP(a.entryHigh)}</div>
+        </div>
+        <div class="tl-box sl-box">
+          <div class="tl-lbl">🔴 EXIT (STOP LOSS)</div>
+          <div class="tl-val r">${fmtP(a.sl)}</div>
+          <div class="tl-sub r">Risk: -${a.slPct}% (-$${slDist.toFixed(2)}/sh)</div>
+        </div>
+        <div class="tl-box tp-box">
+          <div class="tl-lbl">🎯 EXIT (TAKE PROFIT)</div>
+          <div class="tl-val g">${fmtP(a.tp)}</div>
+          <div class="tl-sub g">Target: +${a.tpPct}% (+$${Math.abs(a.tp-a.entry).toFixed(2)}/sh)</div>
+        </div>
+        <div class="tl-box rr-box">
+          <div class="tl-lbl">📐 RISK / REWARD</div>
+          <div class="tl-val gold">1 : ${a.rr.toFixed(2)}</div>
+          <div class="tl-sub gold">Market Potential: ${mpClamped}/100</div>
+        </div>
+      </div>
+
+      <!-- POSITION SIZING CALCULATOR -->
+      <div class="ps-calc">
+        <div class="ps-calc-head">
+          <span>Account Risk Sizer ($10,000 Portfolio)</span>
+          <div class="ps-btn-group">
+            <button class="ps-risk-btn ${activeRiskPct===0.005?'active':''}" onclick="setRiskPct(0.005)">0.5%</button>
+            <button class="ps-risk-btn ${activeRiskPct===0.01?'active':''}" onclick="setRiskPct(0.01)">1.0%</button>
+            <button class="ps-risk-btn ${activeRiskPct===0.02?'active':''}" onclick="setRiskPct(0.02)">2.0%</button>
+          </div>
+        </div>
+        <div class="ps-calc-row">
+          <div><span class="m" style="font-size:11px">Recommended Position: </span><span class="ps-result">${sharesToTrade} Shares ($${totalPosValue.toLocaleString(undefined,{maximumFractionDigits:0})})</span></div>
+        </div>
+      </div>
+
+      <div class="btns">
+        <button class="btn primary sm" onclick="paperBuy('${sym}','long')" style="flex:1">🟢 ENTER LONG (${sharesToTrade} sh @ ${fmtP(a.entry)})</button>
+        <button class="btn sm" style="border-color:var(--red);color:var(--red);flex:1" onclick="paperBuy('${sym}','short')">🔴 ENTER SHORT</button>
+      </div>
+    </div>
+
     <div class="dom-lg-wrap">
       <div class="dom-lg">
         <div class="buy-side" style="width:${dom.buy}%">BUY ${dom.buy}%</div>
@@ -1369,54 +1868,26 @@ function renderDetail(sym){
       </div>
       <div class="dom-lg-label"><span>Buy-Side Dominance</span><span>Sell-Side Dominance</span></div>
     </div>
+
+    <div class="patterns-box">
+      <div class="pb-h">Price Action Candlestick Patterns</div>
+      <div class="pb-list">
+        ${a.patterns && a.patterns.length ? a.patterns.map(p => `<span class="pat-badge ${p.type==='bullish'?'bull':'bear'}">${p.label}</span>`).join('') : '<span class="m" style="font-size:11px">Technical trend confluence breakout</span>'}
+      </div>
+    </div>
+
     <div class="metrics">
       <div class="m"><div class="l">RSI(14)</div><div class="v ${a.rsi<30?'g':a.rsi>70?'r':''}">${a.rsi.toFixed(1)}</div></div>
       <div class="m"><div class="l">MACD</div><div class="v ${a.macd.hist>=0?'g':'r'}">${a.macd.hist.toFixed(3)}</div></div>
       <div class="m"><div class="l">Stoch %K</div><div class="v">${a.stoch.k.toFixed(1)}</div></div>
       <div class="m"><div class="l">ATR(14)</div><div class="v">${a.atr.toFixed(2)}</div></div>
-      <div class="m"><div class="l">BB Width</div><div class="v">${a.bb.width.toFixed(2)}%</div></div>
       <div class="m"><div class="l">Vol Ratio</div><div class="v ${a.volR>1.5?'g':a.volR<0.6?'r':''}">${a.volR.toFixed(2)}×</div></div>
       <div class="m"><div class="l">EMA 9</div><div class="v">${fmtP(a.e9)}</div></div>
       <div class="m"><div class="l">EMA 21</div><div class="v">${fmtP(a.e21)}</div></div>
       <div class="m"><div class="l">EMA 50</div><div class="v">${fmtP(a.e50)}</div></div>
     </div>
-    <div class="conf">
-      <div class="cfrow"><span class="nm">Trend (30)</span><span class="bar"><i style="width:${Math.min(100,Math.abs(a.trend)/40*100)}%;background:${a.trend>=0?'var(--green)':'var(--red)'}"></i></span><span class="v ${a.trend>=0?'g':'r'}">${a.trend>0?'+':''}${a.trend.toFixed(0)}</span></div>
-      <div class="cfrow"><span class="nm">Momentum (25)</span><span class="bar"><i style="width:${Math.min(100,Math.abs(a.mom)/25*100)}%;background:${a.mom>=0?'var(--green)':'var(--red)'}"></i></span><span class="v ${a.mom>=0?'g':'r'}">${a.mom>0?'+':''}${a.mom.toFixed(0)}</span></div>
-      <div class="cfrow"><span class="nm">Volatility (20)</span><span class="bar"><i style="width:${Math.min(100,Math.abs(a.vol)/20*100)}%;background:${a.vol>=0?'var(--green)':'var(--red)'}"></i></span><span class="v ${a.vol>=0?'g':'r'}">${a.vol>0?'+':''}${a.vol.toFixed(0)}</span></div>
-      <div class="cfrow"><span class="nm">Mean Revert (15)</span><span class="bar"><i style="width:${Math.min(100,Math.abs(a.mr)/15*100)}%;background:${a.mr>=0?'var(--green)':'var(--red)'}"></i></span><span class="v ${a.mr>=0?'g':'r'}">${a.mr>0?'+':''}${a.mr.toFixed(0)}</span></div>
-      <div class="cfrow"><span class="nm">Volume (10)</span><span class="bar"><i style="width:${Math.min(100,Math.abs(a.vcf)/10*100)}%;background:${a.vcf>=0?'var(--green)':'var(--red)'}"></i></span><span class="v ${a.vcf>=0?'g':'r'}">${a.vcf>0?'+':''}${a.vcf.toFixed(0)}</span></div>
-      <div class="cfrow"><span class="nm">Flow Conviction</span><span class="bar"><i style="width:${ofc.conv}%;background:var(--gold)"></i></span><span class="v gold">${ofc.conv}</span></div>
-      <div class="cfrow"><span class="nm">Power Score</span><span class="bar"><i style="width:${power}%;background:var(--cyan)"></i></span><span class="v" style="color:var(--cyan)">${power}</span></div>
-    </div>
-    <div class="plan">
-      <div class="ph2">Trade Setup · ${st==='buy'?'Long':st==='sell'?'Short':'Neutral'} · ${strat}</div>
-      <div class="pl">
-        <div class="i"><div class="l">Entry</div><div class="v">${fmtP(a.entry)}</div></div>
-        <div class="i"><div class="l">Entry Zone</div><div class="v blue">${fmtP(a.entryLow)} – ${fmtP(a.entryHigh)}</div></div>
-        <div class="i"><div class="l">Stop (${a.slPct}%)</div><div class="v r">${fmtP(a.sl)}</div></div>
-        <div class="i"><div class="l">Target (${a.tpPct}%)</div><div class="v g">${fmtP(a.tp)}</div></div>
-        <div class="i"><div class="l">R:R</div><div class="v ${a.rr>=1.5?'g':a.rr>=1.0?'gold':'r'}">${a.rr.toFixed(2)}</div></div>
-        <div class="i"><div class="l">Mkt Potential</div><div class="v ${mpClamped>=60?'g':mpClamped<=40?'r':'gold'}">${mpClamped}/100</div></div>
-        <div class="i"><div class="l">Size (1% risk)</div><div class="v">${posSize(a.price, Math.abs(a.sl-a.entry))} sh</div></div>
-      </div>
-      <div class="btns">
-        <button class="btn primary sm" onclick="paperBuy('${sym}','long')">BUY ${posSize(a.price, Math.abs(a.sl-a.entry))} @ ${fmtP(a.entry)}</button>
-        <button class="btn sm" style="border-color:var(--red);color:var(--red)" onclick="paperBuy('${sym}','short')">SHORT</button>
-      </div>
-    </div>
-    <div class="cong-signal ${cong.signal}">
-      <span class="cs-label">Congress</span>
-      <span class="cs-val ${cong.signal==='bullish'?'g':cong.signal==='bearish'?'r':''}">${cong.signal==='bullish'?'BULLISH':cong.signal==='bearish'?'BEARISH':'NEUTRAL'}</span>
-      <span class="cs-str">${cong.strength}</span>
-      <span class="cs-text">${cong.summary}</span>
-    </div>
-    <div class="setup-box ${sv.valid?'valid':'invalid'}">
-      <div class="sb-h">Why This Setup ${sv.valid?'Is Valid':'Is NOT Valid'}</div>
-      <div class="sb-valid">${sv.valid?'VALID SETUP — score '+sv.score+'/100':'NOT A CLEAN SETUP — score '+sv.score+'/100'}</div>
-      <div class="sb-reason">${sv.valid?sv.reasons.join(' · '):sv.flags.join(' · ')}</div>
-    </div>
-    <div class="chart-wrap"><div class="cn">5-min · EMA 9/21/50 · TP/SL</div><div id="chartDiv" style="height:100%"></div></div>
+
+    <div class="chart-wrap"><div class="cn">5-min Chart · EMA 9/21/50 Overlay · TP/SL Targets</div><div id="chartDiv" style="height:100%"></div></div>
   `;
   document.getElementById('detBody').innerHTML = html;
   drawChart(sym);
@@ -1560,21 +2031,54 @@ function renderAll(){
   KEYS.forEach(sym=>{ SETUP[sym] = setupValid(sym); });
   KEYS.forEach(sym=>{ CONG[sym] = CONGRESS.impactFor(sym); });
   renderKPIs();
-  renderScreener();
+  renderAllViews();
   renderContext();
-  renderFeed();
-  renderOptFlow();
-  renderPicks();
-  renderCongress();
   renderPaper();
   if(activeSym) renderDetail(activeSym);
 }
 
 /* ====================================================================
-   PAPER TRADING
+   PAPER TRADING & AUTO-BOT EXECUTION
    ==================================================================== */
 const PAPER_KEY = 'chinna_paper_v2';
 let PAPER = { account: 10000, realized: 0, positions: [], history: [] };
+let autoTradeEnabled = false;
+
+function toggleAutoBot(){
+  autoTradeEnabled = !autoTradeEnabled;
+  const btn = document.getElementById('btnToggleBot');
+  if(btn){
+    btn.textContent = '🤖 Auto-Bot: ' + (autoTradeEnabled ? 'ON' : 'OFF');
+    btn.classList.toggle('primary', autoTradeEnabled);
+  }
+  if(autoTradeEnabled){
+    autoExecuteTrades();
+    flashMsg('🤖 Auto-Trade Bot activated — taking top positive setups!');
+  } else {
+    flashMsg('Auto-Trade Bot paused');
+  }
+}
+
+function autoExecuteTrades(){
+  const positivePicks = rankPicks().filter(r => r.a.chgD > 0 || r.st === 'buy' || r.a.score >= 48).slice(0, 4);
+  if(positivePicks.length === 0){
+    flashMsg('No positive setups available right now');
+    return;
+  }
+  let count = 0;
+  positivePicks.forEach(p => {
+    const exists = PAPER.positions.some(pos => pos.sym === p.s);
+    if(!exists){
+      paperBuy(p.s, 'long');
+      count++;
+    }
+  });
+  if(count > 0){
+    flashMsg(`⚡ Auto-executed ${count} positive trade setup(s)!`);
+  } else {
+    flashMsg('Top positive setups are already in active positions.');
+  }
+}
 function paperLoad(){ try{ const s=localStorage.getItem(PAPER_KEY); if(s) PAPER=JSON.parse(s); }catch(e){} }
 function paperSave(){ try{ localStorage.setItem(PAPER_KEY, JSON.stringify(PAPER)); }catch(e){} }
 function paperOpenPnL(){
@@ -1632,6 +2136,22 @@ function renderPaper(){
    EVENTS
    ==================================================================== */
 function bindEvents(){
+  document.querySelectorAll('.vtab').forEach(b => b.addEventListener('click', () => {
+    if(b.dataset.vtab) switchViewTab(b.dataset.vtab);
+  }));
+
+  const tg = document.getElementById('trendyGrid');
+  if(tg) tg.addEventListener('click', e => {
+    const card = e.target.closest('.stk-card');
+    if(card && card.dataset.sym) selectSym(card.dataset.sym);
+  });
+
+  const pag = document.getElementById('paGrid');
+  if(pag) pag.addEventListener('click', e => {
+    const card = e.target.closest('.stk-card');
+    if(card && card.dataset.sym) selectSym(card.dataset.sym);
+  });
+
   document.querySelectorAll('table.scr th').forEach(th=>th.addEventListener('click',()=>{
     const k=th.dataset.k; if(sortKey===k) sortDir*=-1; else { sortKey=k; sortDir=-1; } renderScreener();
   }));
@@ -1659,6 +2179,8 @@ function bindEvents(){
   if(bp) bp.addEventListener('click',()=>{ toggleLive(); bp.textContent=LIVE?'⏸ Pause':'▶ Resume'; bp.classList.toggle('primary',LIVE); });
   const br=document.getElementById('btnReset');
   if(br) br.addEventListener('click',()=>{ if(confirm('Reset paper trading account to $10,000?')) paperReset(); });
+  const se = document.getElementById('symSearch');
+  if(se) se.addEventListener('input', () => renderScreener());
   window.addEventListener('resize',()=>{ if(chart && activeSym) drawChart(activeSym); });
 }
 
@@ -1734,6 +2256,12 @@ async function init(){
     renderAll();
     if(activeSym) renderDetail(activeSym);
   }catch(e){}
+
+  // Auto-populate trades if account has no open positions
+  if(PAPER.positions.length === 0){
+    autoExecuteTrades();
+  }
+
   // hide loader
   const ld=document.getElementById('loader'); if(ld) ld.style.display='none';
 }
