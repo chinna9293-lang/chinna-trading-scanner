@@ -336,7 +336,7 @@ async function placeOrder(symbol, side, qty, price) {
         'APCA-API-KEY-ID': ALPACA_KEY,
         'APCA-API-SECRET-KEY': ALPACA_SECRET,
         'Content-Type': 'application/json',
-        'Content-Length': payload.length,
+        'Content-Length': Buffer.byteLength(payload, 'utf8'),
       },
     };
 
@@ -387,7 +387,7 @@ async function sendAlert(signal, orderResult = null) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Content-Length': payload.length,
+        'Content-Length': Buffer.byteLength(payload, 'utf8'),
       },
     };
 
@@ -398,7 +398,7 @@ async function sendAlert(signal, orderResult = null) {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(`✅ Alert sent: ${signal.symbol} ${signal.type}`);
         } else {
-          reject(new Error(`ntfy error: ${res.statusCode}`));
+          reject(new Error(`ntfy error: ${res.statusCode} — ${data}`));
         }
       });
     });

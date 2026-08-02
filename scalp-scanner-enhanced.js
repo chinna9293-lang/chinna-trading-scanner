@@ -614,7 +614,7 @@ async function placeOrder(symbol, side, qty, price) {
         'APCA-API-KEY-ID': ALPACA_KEY,
         'APCA-API-SECRET-KEY': ALPACA_SECRET,
         'Content-Type': 'application/json',
-        'Content-Length': payload.length,
+        'Content-Length': Buffer.byteLength(payload, 'utf8'),
       },
     };
 
@@ -666,16 +666,20 @@ async function sendAlert(signal, orderResult = null, qty = null) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Content-Length': payload.length,
+        'Content-Length': Buffer.byteLength(payload, 'utf8'),
       },
     };
 
     const req = https.request(options, (res) => {
-      if (res.statusCode >= 200 && res.statusCode < 300) {
-        resolve(`✅ Alert sent: ${signal.symbol} ${signal.type}`);
-      } else {
-        reject(new Error(`ntfy error: ${res.statusCode}`));
-      }
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(`✅ Alert sent: ${signal.symbol} ${signal.type}`);
+        } else {
+          reject(new Error(`ntfy error: ${res.statusCode} — ${data}`));
+        }
+      });
     });
 
     req.on('error', reject);

@@ -56,16 +56,21 @@ async function apPost(path, body) {
 
 async function notify(title, body, priority = 'default', emoji = '') {
   try {
-    await fetch(`https://ntfy.sh/${NTFY}`, {
+    // ntfy's Title/Tags headers must be ASCII (RFC 7230) — emoji here throws
+    // a client-side TypeError ("Invalid character in header content") that
+    // silently kills the whole alert before it ever reaches ntfy.sh.
+    const asciiTitle = title.replace(/[^\x00-\x7F]/g, '').trim();
+    const res = await fetch(`https://ntfy.sh/${NTFY}`, {
       method: 'POST',
       headers: {
-        'Title': title,
+        'Title': asciiTitle,
         'Priority': priority,
         'Tags': emoji,
-        'Content-Type': 'text/plain'
+        'Content-Type': 'text/plain; charset=utf-8'
       },
       body
     });
+    if (!res.ok) console.error(`Notify error: ntfy ${res.status} — ${await res.text()}`);
   } catch(e) { console.error('Notify error:', e.message); }
 }
 

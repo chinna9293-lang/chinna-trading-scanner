@@ -74,16 +74,18 @@ async function apDelete(orderId) {
 
 async function notify(title, body, priority, tags) {
   try {
-    await fetch('https://ntfy.sh/' + NTFY, {
+    const res = await fetch('https://ntfy.sh/' + NTFY, {
       method: 'POST',
       headers: {
         'Title':    title.replace(/[^\x00-\x7F]/g, ''),
         'Priority': priority || 'default',
         'Tags':     tags || 'chart_with_upwards_trend',
+        'Content-Type': 'text/plain; charset=utf-8',
       },
       body,
     });
-    console.log('[ntfy]', title);
+    if (res.ok) console.log('[ntfy]', title);
+    else console.error(`ntfy error: ${res.status} — ${await res.text()}`);
   } catch(e) { console.error('ntfy error:', e.message); }
 }
 
