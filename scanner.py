@@ -14,7 +14,6 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-import pandas_ta as ta
 import pytz
 import yfinance as yf
 from fastapi import FastAPI, Query
@@ -69,7 +68,29 @@ def _avwap(df: pd.DataFrame) -> pd.Series:
 
 
 def _ema(series: pd.Series, length: int) -> pd.Series:
-    return ta.ema(series, length=length)
+    return series.ewm(span=length, adjust=False).mean()
+
+
+def _rsi(series: pd.Series, length: int = 14) -> pd.Series:
+    delta = series.diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    avg_gain = gain.ewm(alpha=1 / length, adjust=False, min_periods=length).mean()
+    avg_loss = loss.ewm(alpha=1 / length, adjust=False, min_periods=length).mean()
+    rsi = 100 - (100 / (1 + avg_gain / avg_loss.replace(0, np.nan)))
+    # No losses in the window → maxed-out RSI; no movement at all → neutral 50
+    rsi = rsi.where(avg_loss != 0, np.where(avg_gain == 0, 50.0, 100.0))
+    return rsi
+
+
+def _atr(high: pd.Series, low: pd.Series, close: pd.Series, length: int = 14) -> pd.Series:
+    prev_close = close.shift(1)
+    tr = pd.concat([
+        high - low,
+        (high - prev_close).abs(),
+        (low - prev_close).abs(),
+    ], axis=1).max(axis=1)
+    return tr.ewm(alpha=1 / length, adjust=False, min_periods=length).mean()
 
 
 # ── per-ticker scan ───────────────────────────────────────────────────────────
@@ -87,8 +108,8 @@ def _scan_ticker(ticker: str) -> dict[str, Any] | None:
         df["ema9"]   = _ema(df["Close"], 9)
         df["ema21"]  = _ema(df["Close"], 21)
         df["ema200"] = _ema(df["Close"], 200)
-        df["rsi"]    = ta.rsi(df["Close"], length=14)
-        df["atr"]    = ta.atr(df["High"], df["Low"], df["Close"], length=14)
+        df["rsi"]    = _rsi(df["Close"], length=14)
+        df["atr"]    = _atr(df["High"], df["Low"], df["Close"], length=14)
         df["avwap"]  = _avwap(df)
 
         df = df.dropna(subset=["ema9", "ema21", "rsi", "atr", "avwap"])
