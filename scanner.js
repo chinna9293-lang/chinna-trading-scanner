@@ -367,6 +367,20 @@ async function riskGate() {
   } catch { return { pass: true }; }
 }
 
+// ── Signal ranking (Gate 3.5) ─────────────────────────────────────────────────
+// All symbols that pass G1-G4 in a given cycle are scored here so the bot takes
+// only the single best-ranked setup, not just the first symbol found in UNIVERSE.
+function rankSignal(sig, cfg) {
+  let score = sig.entryScore * 10;                                     // 0-60: entry quality dominates
+  score += Math.max(0, sig.regime.adx - ADX_MIN) * 1.5;                 // stronger trend = bonus
+  score += Math.max(0, CI_MAX - sig.regime.ci);                        // lower choppiness = bonus
+  score += Math.min(20, Math.abs(sig.macdCurr) / (sig.atr || 1) * 100); // momentum strength, ATR-normalized, capped
+  const rsiEdge = sig.side === 'buy' ? sig.rsi - 52 : 48 - sig.rsi;    // how deep into the momentum zone
+  score += Math.max(0, rsiEdge) * 0.5;
+  score -= cfg.risk === 'high' ? 5 : 0;                                 // small conservative penalty
+  return +score.toFixed(2);
+}
+
 // ── Four-Gate Signal Check ────────────────────────────────────────────────────
 // Returns a signal object only when ALL four gates pass.
 // Direction is filtered by G2: longs only in daily uptrend, shorts only in daily downtrend.
@@ -839,7 +853,9 @@ async function main() {
 
   let signals = 0;
   const summaryLines = [];
+  const candidates = [];   // every symbol that passed all 4 gates this cycle
 
+  // ── Phase 1: scan the whole universe, collect qualifying signals (no orders yet) ──
   for (const [symbol, cfg] of Object.entries(UNIVERSE)) {
     try {
       if (cfg.type === 'stock' && (day === 0 || day === 6)) continue;
@@ -869,76 +885,92 @@ async function main() {
       if (!sig) { process.stdout.write('.'); continue; }
 
       signals++;
-      const dir    = sig.side === 'buy' ? 'LONG' : 'SHORT';
-      const m_     = sig.side === 'buy' ? 1 : -1;
-      const slPx   = (sig.price - m_ * ATR_SL  * sig.atr).toFixed(2);
-      const tp1Px  = (sig.price + m_ * ATR_TP1 * sig.atr).toFixed(2);
-      const tp2Px  = (sig.price + m_ * ATR_TP2 * sig.atr).toFixed(2);
-      const slPct  = +(ATR_SL  * sig.atr / sig.price * 100).toFixed(2);
-      const tp1Pct = +(ATR_TP1 * sig.atr / sig.price * 100).toFixed(2);
-      const tp2Pct = +(ATR_TP2 * sig.atr / sig.price * 100).toFixed(2);
-      const tag    = cfg.risk === 'high' ? '⚠️ HIGH-RISK' : '✅ LOW-RISK';
-      const sizeNote = sig.regime.sizeReduction < 1 ? ' (50% size — high vol)' : '';
-
-      console.log(`\n🚦 ${symbol} ${dir} @$${sig.price} | Score ${sig.entryScore}/6 | ATR $${sig.atr.toFixed(3)} | SL $${slPx} | TP1 $${tp1Px} | TP2 $${tp2Px}`);
-
-      await notify(
-        `${tag} ${dir} ${symbol} @ $${sig.price}`,
-        `🚦 ALL 4 GATES PASSED\n\n` +
-        `G1 Regime:  ADX ${sig.regime.adx} | CI ${sig.regime.ci} | ATR% ${sig.regime.atrPct.toFixed(0)}\n` +
-        `G2 Daily:   ${sig.daily.bullish ? '📈' : '📉'} SMA50 $${sig.daily.sma50} | SMA200 $${sig.daily.sma200}\n` +
-        `G3 Score:   ${sig.entryScore}/6 (Trend ${sig.trendScore}/3 · Mom ${sig.momentumScore}/3)\n` +
-        `   Trend:  EMA-struct ${sig.T1 ? '✓' : '✗'} · Slope ${sig.T2 ? '✓' : '✗'} · Above-EMA50 ${sig.T3 ? '✓' : '✗'}\n` +
-        `   Mom:    MACD-accel ${sig.M1 ? '✓' : '✗'} · RSI ${Math.round(sig.rsi)} ${sig.M2 ? '✓' : '✗'} · Volume ${sig.M3 ? '✓' : '✗'}\n` +
-        `G4 Risk:    OK (${g4.slHits || 0}/${MAX_SL_DAY} SL hits today)\n\n` +
-        `Entry:  $${sig.price}\n` +
-        `SL:     $${slPx}  (−${slPct}% = ${ATR_SL}×ATR)\n` +
-        `TP1:    $${tp1Px}  (+${tp1Pct}% = ${ATR_TP1}×ATR)  → exit 40%\n` +
-        `TP2:    $${tp2Px}  (+${tp2Pct}% = ${ATR_TP2}×ATR)  → exit 40%\n` +
-        `Trail:  remaining 20% from swing high\n` +
-        `Size:   1% equity risk${sizeNote}`,
-        'high', 'rotating_light'
-      );
-
-      // Place order
-      const fn = cfg.type === 'crypto' ? placeCryptoOrder : placeStockOrder;
-      const { order, qty, equity, slPx: filledSl, slOrderId } = await fn(
-        symbol, sig.side, sig.price, sig.atr, sig.regime.sizeReduction
-      );
-
-      if (order.id) {
-        await notify(
-          `ORDER PLACED ${symbol} ${dir}`,
-          `${sig.side.toUpperCase()} ${qty} ${cfg.type === 'crypto' ? 'units' : 'shares'} @ $${sig.price}\n` +
-          `SL: $${filledSl} | TP1: $${tp1Px} | TP2: $${tp2Px}\n` +
-          `Equity: $${parseFloat(equity).toFixed(2)} | Risk: 1% ($${(equity * RISK_PCT).toFixed(2)})\n` +
-          `Order ID: ${order.id}`,
-          'high', 'package'
-        );
-        console.log(symbol, 'order placed:', order.id, '| qty:', qty, '| equity: $' + parseFloat(equity).toFixed(2));
-
-        // Monitor with 3-stage exit until position closes
-        await monitorTrade(symbol, sig.side, sig.price, sig.atr, qty, cfg.type === 'crypto', slOrderId);
-
-        console.log(`\n✅ ${symbol} trade complete — resuming scan next cycle`);
-        break;
-      } else {
-        await notify(`ORDER FAILED ${symbol}`, order.message || JSON.stringify(order), 'urgent', 'x');
-        console.error(symbol, 'order failed:', order.message);
-      }
+      const score = rankSignal(sig, cfg);
+      candidates.push({ symbol, cfg, sig, score });
+      process.stdout.write('*');
 
     } catch(e) { console.error('\n' + symbol, 'error:', e.message); }
+  }
+
+  // ── Phase 2: rank all qualifying signals, trade only the single best one ──
+  let rankLines = '';
+  if (candidates.length) {
+    candidates.sort((a, b) => b.score - a.score);
+    rankLines = candidates
+      .map((c, i) => `${i === 0 ? '🏆' : '  '} #${i + 1} ${c.symbol.replace('/','').padEnd(8)} ${c.sig.side.toUpperCase().padEnd(4)} score ${c.score}`)
+      .join('\n');
+
+    const { symbol, cfg, sig } = candidates[0];
+    const dir    = sig.side === 'buy' ? 'LONG' : 'SHORT';
+    const m_     = sig.side === 'buy' ? 1 : -1;
+    const slPx   = (sig.price - m_ * ATR_SL  * sig.atr).toFixed(2);
+    const tp1Px  = (sig.price + m_ * ATR_TP1 * sig.atr).toFixed(2);
+    const tp2Px  = (sig.price + m_ * ATR_TP2 * sig.atr).toFixed(2);
+    const slPct  = +(ATR_SL  * sig.atr / sig.price * 100).toFixed(2);
+    const tp1Pct = +(ATR_TP1 * sig.atr / sig.price * 100).toFixed(2);
+    const tp2Pct = +(ATR_TP2 * sig.atr / sig.price * 100).toFixed(2);
+    const tag    = cfg.risk === 'high' ? '⚠️ HIGH-RISK' : '✅ LOW-RISK';
+    const sizeNote = sig.regime.sizeReduction < 1 ? ' (50% size — high vol)' : '';
+
+    console.log(`\n🚦 ${symbol} ${dir} @$${sig.price} | Score ${sig.entryScore}/6 | Rank ${candidates[0].score} (#1 of ${candidates.length}) | ATR $${sig.atr.toFixed(3)} | SL $${slPx} | TP1 $${tp1Px} | TP2 $${tp2Px}`);
+    console.log(rankLines);
+
+    await notify(
+      `${tag} ${dir} ${symbol} @ $${sig.price}`,
+      `🚦 ALL 4 GATES PASSED — Ranked #1 of ${candidates.length}\n\n` +
+      `G1 Regime:  ADX ${sig.regime.adx} | CI ${sig.regime.ci} | ATR% ${sig.regime.atrPct.toFixed(0)}\n` +
+      `G2 Daily:   ${sig.daily.bullish ? '📈' : '📉'} SMA50 $${sig.daily.sma50} | SMA200 $${sig.daily.sma200}\n` +
+      `G3 Score:   ${sig.entryScore}/6 (Trend ${sig.trendScore}/3 · Mom ${sig.momentumScore}/3)\n` +
+      `   Trend:  EMA-struct ${sig.T1 ? '✓' : '✗'} · Slope ${sig.T2 ? '✓' : '✗'} · Above-EMA50 ${sig.T3 ? '✓' : '✗'}\n` +
+      `   Mom:    MACD-accel ${sig.M1 ? '✓' : '✗'} · RSI ${Math.round(sig.rsi)} ${sig.M2 ? '✓' : '✗'} · Volume ${sig.M3 ? '✓' : '✗'}\n` +
+      `G4 Risk:    OK (${g4.slHits || 0}/${MAX_SL_DAY} SL hits today)\n\n` +
+      `Rank score: ${candidates[0].score}${candidates.length > 1 ? ` (beat ${candidates.length - 1} other qualifying signal${candidates.length === 2 ? '' : 's'})` : ''}\n` +
+      `Entry:  $${sig.price}\n` +
+      `SL:     $${slPx}  (−${slPct}% = ${ATR_SL}×ATR)\n` +
+      `TP1:    $${tp1Px}  (+${tp1Pct}% = ${ATR_TP1}×ATR)  → exit 40%\n` +
+      `TP2:    $${tp2Px}  (+${tp2Pct}% = ${ATR_TP2}×ATR)  → exit 40%\n` +
+      `Trail:  remaining 20% from swing high\n` +
+      `Size:   1% equity risk${sizeNote}`,
+      'high', 'rotating_light'
+    );
+
+    // Place order
+    const fn = cfg.type === 'crypto' ? placeCryptoOrder : placeStockOrder;
+    const { order, qty, equity, slPx: filledSl, slOrderId } = await fn(
+      symbol, sig.side, sig.price, sig.atr, sig.regime.sizeReduction
+    );
+
+    if (order.id) {
+      await notify(
+        `ORDER PLACED ${symbol} ${dir}`,
+        `${sig.side.toUpperCase()} ${qty} ${cfg.type === 'crypto' ? 'units' : 'shares'} @ $${sig.price}\n` +
+        `SL: $${filledSl} | TP1: $${tp1Px} | TP2: $${tp2Px}\n` +
+        `Equity: $${parseFloat(equity).toFixed(2)} | Risk: 1% ($${(equity * RISK_PCT).toFixed(2)})\n` +
+        `Order ID: ${order.id}`,
+        'high', 'package'
+      );
+      console.log(symbol, 'order placed:', order.id, '| qty:', qty, '| equity: $' + parseFloat(equity).toFixed(2));
+
+      // Monitor with 3-stage exit until position closes
+      await monitorTrade(symbol, sig.side, sig.price, sig.atr, qty, cfg.type === 'crypto', slOrderId);
+
+      console.log(`\n✅ ${symbol} trade complete — resuming scan next cycle`);
+    } else {
+      await notify(`ORDER FAILED ${symbol}`, order.message || JSON.stringify(order), 'urgent', 'x');
+      console.error(symbol, 'order failed:', order.message);
+    }
   }
 
   // Hourly summary push
   console.log(`\n=== Done. Signals: ${signals} ===`);
   const etTime = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: true });
   const header = signals > 0 ? `🔔 ${signals} SIGNAL(S) FIRED` : '📊 No signals this hour';
+  const rankSection = candidates.length ? `\n\n🏆 Ranked candidates (top one traded):\n${rankLines}` : '';
   await notify(
     `Scan ${etTime} | ${signals} signal${signals === 1 ? '' : 's'}`,
-    header + '\n\n' + summaryLines.join('\n') + '\n\n' +
+    header + '\n\n' + summaryLines.join('\n') + rankSection + '\n\n' +
     `🟢=BUY  🔴=SELL  ⛔=Regime blocked  →=No signal\n` +
-    `Framework: G1(Regime) × G2(Daily) × G3(Score≥4) × G4(Risk)\n` +
+    `Framework: G1(Regime) × G2(Daily) × G3(Score≥4) × G4(Risk) × Rank(best-of-N)\n` +
     `SL=${ATR_SL}×ATR | TP1=${ATR_TP1}×ATR | TP2=${ATR_TP2}×ATR`,
     signals > 0 ? 'high' : 'low',
     signals > 0 ? 'bell' : 'chart_with_upwards_trend'
