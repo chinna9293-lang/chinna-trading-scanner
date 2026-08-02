@@ -802,10 +802,15 @@ function genBars(sym, count=180){
    Dashboard ALWAYS works; live data is a best-effort enhancement.
    ==================================================================== */
 const CORS_PROXIES = [
-  function(url){ return 'https://corsproxy.io/?url=' + encodeURIComponent(url); },
+  // corsproxy.io now rejects all non-localhost callers ("Get an API key…"),
+  // so it was failing on every single request from the deployed site and
+  // burning the first attempt of every fetch. allorigins/cors.sh verified
+  // working from a live deployment; corsproxy.io kept only as a last resort
+  // in case they reopen free access.
   function(url){ return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url); },
   function(url){ return 'https://proxy.cors.sh/' + url; },
   function(url){ return url; }, // direct (works for some regions/ISPs)
+  function(url){ return 'https://corsproxy.io/?url=' + encodeURIComponent(url); },
 ];
 let proxyIdx = 0; // start with first proxy, advance on failure
 
@@ -2180,7 +2185,17 @@ function bindEvents(){
   const br=document.getElementById('btnReset');
   if(br) br.addEventListener('click',()=>{ if(confirm('Reset paper trading account to $10,000?')) paperReset(); });
   const se = document.getElementById('symSearch');
-  if(se) se.addEventListener('input', () => renderScreener());
+  if(se){
+    se.addEventListener('input', () => renderScreener());
+    se.addEventListener('keydown', async (e) => {
+      if(e.key !== 'Enter') return;
+      const q = se.value.trim().toUpperCase();
+      if(!q) return;
+      const localHit = KEYS.some(s => s === q || (UNI[s] && UNI[s].name && UNI[s].name.toUpperCase().includes(q)));
+      if(localHit) return; // already visible via the local filter, nothing to fetch
+      await searchAndAddSymbol(q);
+    });
+  }
   window.addEventListener('resize',()=>{ if(chart && activeSym) drawChart(activeSym); });
 }
 
@@ -2211,6 +2226,51 @@ function addTrendingTickers(newSyms){
   // Rebuild KEYS to include new tickers
   KEYS.length = 0;
   KEYS.push(...Object.keys(UNI));
+}
+
+/* ====================================================================
+   SEARCH → FETCH — the search box only ever filtered the fixed 28-symbol
+   UNI universe, so typing anything outside it silently returned zero rows
+   ("search doesn't work"). This does a real live fetch (Yahoo via the
+   CORS-proxy chain) for whatever the user typed and drops it into the
+   universe so it renders like any other row.
+   ==================================================================== */
+async function searchAndAddSymbol(rawQuery){
+  const q = rawQuery.trim().toUpperCase().replace(/[^A-Z0-9.\-]/g,'');
+  if(!q){ return; }
+  if(UNI[q]){ renderScreener(); return; } // already there, e.g. added moments ago
+
+  flashMsg(`Looking up ${q}…`);
+  let d = null;
+  try{ d = await YF.fetchOne(q); }catch(e){ /* fall through to error path below */ }
+
+  if(!d || !d.bars || d.bars.length < 5){
+    flashMsg(`No data found for "${q}" — check the symbol and try again`);
+    return;
+  }
+
+  UNI[q] = {
+    risk: 'med',
+    sec: 'Search',
+    vol: d.vol || 1e6,
+    tr: 0,
+    name: d.name || q,
+    label: q.endsWith('USD') ? q.slice(0,-3)+'/USD' : undefined,
+  };
+  let bars = d.bars.map(b=>({o:b.o,h:b.h,l:b.l,c:b.c,v:b.v}));
+  while(bars.length<180){ const f=bars[0]; bars.unshift({o:f.c,h:f.h,l:f.l,c:f.c,v:Math.max(1000,(f.v/4)|0)}); }
+  BARS[q] = bars.slice(-180);
+  REALDATA[q] = REALDATA[q] || {};
+  REALDATA[q].p = d.p;
+  dataMode = 'live';
+
+  KEYS.length = 0;
+  KEYS.push(...Object.keys(UNI));
+
+  reanalyseAll();
+  renderAll();
+  selectSym(q);
+  flashMsg(`✓ Added ${q} from live search`);
 }
 
 /* ====================================================================
