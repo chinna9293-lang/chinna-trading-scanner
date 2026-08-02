@@ -167,6 +167,22 @@ table.of tbody tr:hover{background:rgba(59,158,255,.06)}
 .hitem .sym{font-weight:700;font-family:var(--mono);width:50px}
 .hitem .dt{color:var(--muted);font-size:10px;flex:1}
 .hitem .pnl{font-weight:600;font-family:var(--mono)}
+/* Alpaca connect row */
+.alpaca-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;background:rgba(31,42,60,.45);border-bottom:1px solid var(--line)}
+.alpaca-left{display:flex;align-items:center;gap:6px;font-size:11px;flex:1;min-width:200px}
+.alpaca-ic{font-size:14px}
+.alpaca-label{font-weight:700;color:var(--text)}
+.alpaca-status{color:var(--muted);font-size:10px}
+.alpaca-status.ok{color:var(--green)}
+.alpaca-status.err{color:var(--red)}
+.alpaca-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.alpaca-in{padding:5px 8px;font-size:11px;border:1px solid var(--line);border-radius:6px;background:var(--bg2);color:var(--text);width:130px;font-family:var(--mono)}
+.alpaca-in:focus{outline:none;border-color:var(--gold)}
+.alpaca-in.connected{display:none}
+.alpaca-right.connected .alpaca-in{display:none}
+.alpaca-right.connected #btnAlpacaConnect::before{content:'✓ '}
+.pos.alpaca{border-left:3px solid var(--gold)}
+.pos .src{font-size:8px;color:var(--gold);text-transform:uppercase;letter-spacing:.3px;margin-left:4px}
 /* Flash */
 #flash{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--gold);color:var(--text);padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:.3s;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.5)}
 #flash.show{opacity:1}
@@ -257,7 +273,7 @@ table.of tbody tr:hover{background:rgba(59,158,255,.06)}
 .vtab.active{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 2px 10px rgba(59,158,255,.3)}
 .vtab .cnt{font-size:10px;padding:2px 6px;border-radius:10px;background:rgba(255,255,255,.15);font-family:var(--mono)}
 
-/* Card Grids for Trendy & Price Action */
+/* Card Grids for Trendy Stocks */
 .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:12px}
 .stk-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px;cursor:pointer;transition:.18s;position:relative;overflow:hidden}
 .stk-card:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.3)}
@@ -304,8 +320,17 @@ table.of tbody tr:hover{background:rgba(59,158,255,.06)}
 .adb-right{display:flex;align-items:center;gap:8px}
 .active-pulse{animation:panelPulse 0.9s ease-in-out}
 @keyframes panelPulse{0%{box-shadow:0 0 0px var(--blue);border-color:var(--line)}50%{box-shadow:0 0 20px rgba(59,158,255,.6);border-color:var(--blue)}100%{box-shadow:0 0 0px var(--blue);border-color:var(--line)}}
-.search-input{padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:var(--bg2);color:var(--text);font-size:11px;outline:none;transition:.15s;width:150px}
+.search-input{padding:5px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg2);color:var(--text);font-size:12px;outline:none;transition:.15s;width:240px}
 .search-input:focus{border-color:var(--blue);box-shadow:0 0 6px rgba(59,158,255,.3)}
+.search-wrap{position:relative}
+.search-suggest{position:absolute;top:calc(100% + 4px);left:0;right:0;min-width:260px;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:200;max-height:300px;overflow-y:auto;padding:4px}
+.search-suggest .ss-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;cursor:pointer;transition:.1s}
+.search-suggest .ss-item:hover,.search-suggest .ss-item.active{background:rgba(59,158,255,.12)}
+.search-suggest .ss-sym{font-weight:700;font-family:var(--mono);font-size:13px;min-width:62px}
+.search-suggest .ss-name{color:var(--muted);font-size:11px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.search-suggest .ss-px{font-family:var(--mono);font-size:12px;font-weight:600}
+.search-suggest .ss-hint{padding:6px 10px;font-size:10px;color:var(--dim);text-align:center}
+@media(max-width:600px){.search-input{width:150px}}
 
 /* Responsive & Sticky Right Inspector Column */
 @media(min-width:1101px){
@@ -349,7 +374,10 @@ table.of tbody tr:hover{background:rgba(59,158,255,.06)}
     <span class="adb-dir dir buy" id="adbDir">BUY</span>
   </div>
   <div class="adb-right">
-    <input type="text" id="symSearch" class="search-input" placeholder="🔍 Search symbol/name...">
+    <div class="search-wrap" style="position:relative">
+      <input type="text" id="symSearch" class="search-input" placeholder="🔍 Search symbol/name & press Enter…" autocomplete="off">
+      <div id="searchSuggest" class="search-suggest" style="display:none"></div>
+    </div>
     <button class="btn primary sm" onclick="jumpToDetail()">🎯 View Chart & Trade Levels</button>
   </div>
 </div>
@@ -359,7 +387,6 @@ table.of tbody tr:hover{background:rgba(59,158,255,.06)}
     <!-- View Navigation Bar -->
     <div class="view-nav-bar">
       <div class="vtab active" data-vtab="trendy">🔥 Trendy Stocks <span class="cnt" id="cntTrendy">0</span></div>
-      <div class="vtab" data-vtab="priceaction">⚡ Price Action Setups <span class="cnt" id="cntPA">0</span></div>
       <div class="vtab" data-vtab="screener">📊 Screener Table <span class="cnt" id="cntScr">0</span></div>
       <div class="vtab" data-vtab="picks">★ Top Picks</div>
       <div class="vtab" data-vtab="congress">🏛️ Congress Trades</div>
@@ -375,19 +402,6 @@ table.of tbody tr:hover{background:rgba(59,158,255,.06)}
         </div>
         <div class="pb">
           <div class="card-grid" id="trendyGrid"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- VIEW 2: Price Action Setups Grid -->
-    <div class="view-panel" id="viewPriceAction" style="display:none">
-      <div class="panel">
-        <div class="ph">
-          <span class="ic">⚡</span> Price Action Breakouts & Candlestick Patterns
-          <span class="badge">reversals · breakouts · EMAs</span>
-        </div>
-        <div class="pb">
-          <div class="card-grid" id="paGrid"></div>
         </div>
       </div>
     </div>
@@ -494,6 +508,19 @@ table.of tbody tr:hover{background:rgba(59,158,255,.06)}
         <button class="btn sm primary" id="btnAutoTrade" onclick="autoExecuteTrades()" style="margin-right:4px">⚡ Auto-Trade Positive Setups</button>
         <button class="btn sm" id="btnToggleBot" onclick="toggleAutoBot()" style="margin-right:4px">🤖 Auto-Bot: OFF</button>
         <button class="btn sm" id="btnReset">Reset Account</button>
+      </div>
+      <!-- Alpaca Connect Row -->
+      <div class="alpaca-row" id="alpacaRow">
+        <div class="alpaca-left">
+          <span class="alpaca-ic">🦙</span>
+          <span class="alpaca-label">Alpaca Paper Broker</span>
+          <span class="alpaca-status" id="alpacaStatus">Not connected — using local simulation</span>
+        </div>
+        <div class="alpaca-right" id="alpacaRight">
+          <input type="password" id="alpacaKey" class="alpaca-in" placeholder="API Key ID" autocomplete="off" spellcheck="false">
+          <input type="password" id="alpacaSecret" class="alpaca-in" placeholder="API Secret Key" autocomplete="off" spellcheck="false">
+          <button class="btn sm primary" id="btnAlpacaConnect" onclick="alpacaConnect()">Connect</button>
+        </div>
       </div>
       <div class="ps-top">
         <div class="ps-i"><div class="l">Equity</div><div class="v" id="psEquity">$10,000</div></div>
@@ -874,6 +901,162 @@ const YF = {
     return out;
   }
 };
+
+/* ====================================================================
+   ALPACA PAPER TRADING BROKER INTEGRATION
+   Connects to the Alpaca paper-trading API (paper-api.alpaca.markets)
+   using browser-side keys stored in localStorage. CORS is supported by
+   Alpaca (Access-Control-Allow-Origin: * + custom header allow-list),
+   so we can call the REST API directly from the dashboard. When keys
+   are NOT set, the dashboard falls back to the local simulated paper
+   account so it always works.
+   ==================================================================== */
+const ALPACA_KEY_STORE = 'chinna_alpaca_keys_v1';
+const ALPACA_BASE = 'https://paper-api.alpaca.markets/v2';
+let ALPACA = {
+  connected: false,
+  account: null,      // {equity, cash, buying_power, ...}
+  positions: [],      // array of Alpaca position objects
+  lastError: null,
+  lastSync: 0,
+};
+
+function alpacaLoadKeys(){
+  try{
+    const s = localStorage.getItem(ALPACA_KEY_STORE);
+    if(!s) return null;
+    const o = JSON.parse(s);
+    return (o && o.key && o.secret) ? o : null;
+  }catch(e){ return null; }
+}
+function alpacaSaveKeys(key, secret){
+  try{ localStorage.setItem(ALPACA_KEY_STORE, JSON.stringify({key, secret})); }catch(e){}
+}
+function alpacaClearKeys(){
+  try{ localStorage.removeItem(ALPACA_KEY_STORE); }catch(e){}
+}
+function alpacaHeaders(key, secret){
+  return {
+    'APCA-API-KEY-ID': key,
+    'APCA-API-SECRET-KEY': secret,
+    'Accept': 'application/json'
+  };
+}
+async function alpacaFetchAccount(key, secret){
+  const r = await fetch(ALPACA_BASE + '/account', { headers: alpacaHeaders(key, secret) });
+  if(!r.ok){ const t = await r.text().catch(()=> ''); throw new Error('Account '+r.status+' '+t.slice(0,120)); }
+  return await r.json();
+}
+async function alpacaFetchPositions(key, secret){
+  const r = await fetch(ALPACA_BASE + '/positions', { headers: alpacaHeaders(key, secret) });
+  if(!r.ok){ const t = await r.text().catch(()=> ''); throw new Error('Positions '+r.status+' '+t.slice(0,120)); }
+  return await r.json();
+}
+/* Pull account + positions from Alpaca and stash into ALPACA state.
+   Returns true on success, false on failure (sets lastError). */
+async function alpacaSync(){
+  const creds = alpacaLoadKeys();
+  if(!creds){ ALPACA.connected = false; return false; }
+  try{
+    const [acct, pos] = await Promise.all([
+      alpacaFetchAccount(creds.key, creds.secret),
+      alpacaFetchPositions(creds.key, creds.secret)
+    ]);
+    ALPACA.account = acct;
+    ALPACA.positions = Array.isArray(pos) ? pos : [];
+    ALPACA.connected = true;
+    ALPACA.lastError = null;
+    ALPACA.lastSync = Date.now();
+    // Register any Alpaca-held symbols that aren't in the universe yet
+    // so charts/detail work for them.
+    let added = false;
+    ALPACA.positions.forEach(p=>{
+      const sym = p.symbol;
+      if(sym && !UNI[sym]){
+        UNI[sym] = { risk:'med', sec:'Alpaca', vol:5e6, tr:0, name: sym+' (Alpaca position)' };
+        BARS[sym] = genBars(sym, 180);
+        added = true;
+      }
+    });
+    if(added){
+      KEYS.length = 0;
+      KEYS.push(...Object.keys(UNI));
+      reanalyseAll();
+    }
+    return true;
+  }catch(e){
+    ALPACA.connected = false;
+    ALPACA.lastError = e.message || String(e);
+    return false;
+  }
+}
+/* Connect handler wired to the UI button. Reads the inputs, persists
+   them, attempts an immediate sync, and refreshes the widget. */
+async function alpacaConnect(){
+  const k = (document.getElementById('alpacaKey').value||'').trim();
+  const s = (document.getElementById('alpacaSecret').value||'').trim();
+  if(!k || !s){ flashMsg('🦙 Enter Alpaca API key AND secret to connect'); return; }
+  alpacaSaveKeys(k, s);
+  flashMsg('🦙 Connecting to Alpaca paper broker…');
+  const ok = await alpacaSync();
+  if(ok){
+    flashMsg('🦙 Alpaca connected — live paper positions loaded!');
+    alpacaRenderConnected();
+    renderPaper(); renderKPIs();
+  }else{
+    flashMsg('🦙 Alpaca connection failed: ' + (ALPACA.lastError||'unknown error'));
+    alpacaRenderStatus();
+  }
+}
+/* Disconnect: clears keys + state, returns to local simulation. */
+function alpacaDisconnect(){
+  alpacaClearKeys();
+  ALPACA = { connected:false, account:null, positions:[], lastError:null, lastSync:0 };
+  alpacaRenderStatus();
+  renderPaper(); renderKPIs();
+  flashMsg('🦙 Disconnected from Alpaca — back to local simulation');
+}
+/* Update the Alpaca row UI based on connection state. */
+function alpacaRenderStatus(){
+  const status = document.getElementById('alpacaStatus');
+  const right = document.getElementById('alpacaRight');
+  const btn = document.getElementById('btnAlpacaConnect');
+  const keyIn = document.getElementById('alpacaKey');
+  const secIn = document.getElementById('alpacaSecret');
+  if(!status) return;
+  if(ALPACA.connected && ALPACA.account){
+    const eq = parseFloat(ALPACA.account.equity||0);
+    status.textContent = `Connected · paper equity $${eq.toLocaleString(undefined,{maximumFractionDigits:0})} · ${ALPACA.positions.length} position(s)`;
+    status.className = 'alpaca-status ok';
+    if(right) right.classList.add('connected');
+    if(keyIn) keyIn.classList.add('connected');
+    if(secIn) secIn.classList.add('connected');
+    if(btn){ btn.textContent = 'Disconnect'; btn.setAttribute('onclick','alpacaDisconnect()'); }
+  }else{
+    const hasKeys = !!alpacaLoadKeys();
+    if(hasKeys && ALPACA.lastError){
+      status.textContent = 'Connection error: ' + ALPACA.lastError.slice(0,60);
+      status.className = 'alpaca-status err';
+    }else{
+      status.textContent = 'Not connected — using local simulation';
+      status.className = 'alpaca-status';
+    }
+    if(right) right.classList.remove('connected');
+    if(keyIn) keyIn.classList.remove('connected');
+    if(secIn) secIn.classList.remove('connected');
+    if(btn){ btn.textContent = 'Connect'; btn.setAttribute('onclick','alpacaConnect()'); }
+  }
+}
+/* Shorthand used after a successful connect to repaint the row. */
+function alpacaRenderConnected(){ alpacaRenderStatus(); }
+/* Pre-fill the inputs if keys already saved. */
+function alpacaPrefillInputs(){
+  const creds = alpacaLoadKeys();
+  if(creds){
+    document.getElementById('alpacaKey').value = creds.key;
+    document.getElementById('alpacaSecret').value = creds.secret;
+  }
+}
 
 /* ====================================================================
    SIGNAL STABILITY — debounce / confirmation system (no false alarms)
@@ -1321,8 +1504,17 @@ function renderKPIs(){
   const avg = scores.length? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(0) : '—';
   const adv = KEYS.filter(s=>ANA[s].chgD>0).length;
   const dec = KEYS.filter(s=>ANA[s].chgD<0).length;
-  const openPnL = paperOpenPnL();
-  const eq = PAPER.account + PAPER.realized + openPnL;
+  // Use Alpaca live equity when connected, otherwise local sim
+  let openPnL, eq, eqSub;
+  if(ALPACA.connected && ALPACA.account){
+    eq = parseFloat(ALPACA.account.equity||0);
+    openPnL = ALPACA.positions.reduce((s,p)=>s+parseFloat(p.unrealized_pl||0),0);
+    eqSub = '🦙 Alpaca · '+(openPnL>=0?'+$':'-$')+Math.abs(openPnL).toFixed(0)+' open';
+  }else{
+    openPnL = paperOpenPnL();
+    eq = PAPER.account + PAPER.realized + openPnL;
+    eqSub = openPnL>=0?'+$'+openPnL.toFixed(0)+' open':'-$'+Math.abs(openPnL).toFixed(0)+' open';
+  }
   const setTxt = (id, txt, cls) => {
     const el = document.getElementById(id);
     if(el){
@@ -1337,7 +1529,7 @@ function renderKPIs(){
   setTxt('kBreadth', adv+'/'+dec);
   setTxt('kBreadthSub', dataMode==='live' ? 'adv / dec · LIVE' : 'adv / dec');
   setTxt('kEquity', '$'+eq.toLocaleString(undefined,{maximumFractionDigits:0}), 'val '+(openPnL>=0?'g':'r'));
-  setTxt('kEquitySub', openPnL>=0?'+$'+openPnL.toFixed(0)+' open':'-$'+Math.abs(openPnL).toFixed(0)+' open');
+  setTxt('kEquitySub', eqSub);
   setTxt('updTime', new Date().toLocaleTimeString());
   setTxt('picksBadge', dataMode==='live' ? 'LIVE · power+flow+setup' : 'power+flow+setup');
   setTxt('feedBadge', dataMode==='live' ? 'LIVE' : 'embedded');
@@ -1592,6 +1784,8 @@ function renderPicks(){
 
 /* View Navigation Tab Switcher */
 let currentViewTab = 'trendy';
+let searchActiveIdx = -1;
+let searchCurrentMatches = [];
 function switchViewTab(tabName){
   currentViewTab = tabName;
   document.querySelectorAll('.vtab').forEach(b => {
@@ -1606,7 +1800,6 @@ function switchViewTab(tabName){
 
 function renderAllViews(){
   renderTrendy();
-  renderPriceAction();
   renderScreener();
   renderPicks();
   renderCongress();
@@ -1662,56 +1855,6 @@ function renderTrendy(){
   }).join('');
 
   container.innerHTML = html || '<div class="m" style="padding:20px">No trendy stocks detected</div>';
-}
-
-/* Render Price Action Setups Grid */
-function renderPriceAction(){
-  const container = document.getElementById('paGrid');
-  if(!container) return;
-
-  let rows = KEYS.map(s => {
-    const a = ANA[s], st = STABLE[s] || 'watch';
-    const sv = SETUP[s] || { valid:false, score:0 };
-    const patterns = a.patterns || [];
-    const hasPatterns = patterns.length > 0;
-    const paScore = (sv.score * 0.5) + (hasPatterns ? 30 : 0) + (a.score * 0.2);
-    return { s, a, st, sv, patterns, paScore };
-  });
-  rows.sort((a,b) => b.paScore - a.paScore);
-
-  const activeSetups = rows.filter(r => r.sv.valid || r.patterns.length > 0);
-  const cntEl = document.getElementById('cntPA');
-  if(cntEl) cntEl.textContent = activeSetups.length;
-
-  const html = rows.map(r => {
-    const a = r.a, st = r.st, s = r.s, sv = r.sv;
-    const dc = st==='buy'?'buy':st==='sell'?'sell':'watch';
-    const name = UNI[s]?.name || '';
-    const patBadges = r.patterns.map(p => `<span class="pat-badge ${p.type==='bullish'?'bull':'bear'}">${p.label}</span>`).join(' ');
-
-    return `<div class="stk-card ${activeSym===s?'sel':''}" data-sym="${s}">
-      <div class="sc-top">
-        <span class="sc-sym">${s} ${sv.valid ? '<span class="setup-ok">✓ SETUP</span>' : ''}</span>
-        <span class="dir ${dc}">${st.toUpperCase()}</span>
-      </div>
-      <div class="sc-name">${name}</div>
-      <div class="sc-px-row">
-        <span class="sc-px">${fmtP(a.price)}</span>
-        <span class="sc-chg ${a.chgD>=0?'g':'r'}">${a.chgD>=0?'+':''}${a.chgD.toFixed(2)}%</span>
-      </div>
-      <div class="sc-metrics">
-        <div><div class="sc-met-lbl">Entry Price</div><div class="sc-met-val blue">${fmtP(a.entry)}</div></div>
-        <div><div class="sc-met-lbl">Stop Loss</div><div class="sc-met-val r">${fmtP(a.sl)}</div></div>
-        <div><div class="sc-met-lbl">Take Profit</div><div class="sc-met-val g">${fmtP(a.tp)}</div></div>
-        <div><div class="sc-met-lbl">Risk:Reward</div><div class="sc-met-val ${a.rr>=1.5?'g':'gold'}">${a.rr.toFixed(2)}</div></div>
-      </div>
-      <div class="sc-badge-row">
-        ${patBadges || '<span class="m" style="font-size:10px">EMA Confluence Breakout</span>'}
-      </div>
-    </div>`;
-  }).join('');
-
-  container.innerHTML = html;
 }
 
 function selectSym(sym){
@@ -2020,6 +2163,10 @@ async function tick(){
   }
   // Always refresh options flow + feed periodically
   if(tickCount % 6 === 0) genOptFlow();
+  // Refresh Alpaca paper positions every ~6 ticks (30s) when connected
+  if(ALPACA.connected && tickCount % 6 === 0){
+    alpacaSync().then(ok=>{ if(ok){ renderPaper(); renderKPIs(); } });
+  }
   // Throttled render — only if >1.5s since last render
   const now = Date.now();
   if(now - lastRenderMs > 1500){
@@ -2118,6 +2265,52 @@ function paperReset(){ PAPER={account:10000,realized:0,positions:[],history:[]};
 function flashMsg(msg){ const f=document.getElementById('flash'); f.textContent=msg; f.classList.add('show'); setTimeout(()=>f.classList.remove('show'),2500); }
 function fmtMoney(v){ const s=v>=0?'+':''; return s+'$'+Math.abs(v).toFixed(2); }
 function renderPaper(){
+  // --- Alpaca live mode ---
+  if(ALPACA.connected && ALPACA.account){
+    const acct = ALPACA.account;
+    const eq = parseFloat(acct.equity||0);
+    const lastEq = parseFloat(acct.last_equity||acct.equity||0);
+    const cash = parseFloat(acct.cash||0);
+    const openPnL = ALPACA.positions.reduce((s,p)=>{
+      return s + parseFloat(p.unrealized_pl||0);
+    },0);
+    const realized = (lastEq - eq) - openPnL; // day realized approx
+    document.getElementById('psEquity').textContent='$'+eq.toLocaleString(undefined,{maximumFractionDigits:2});
+    document.getElementById('psEquity').className='v '+(openPnL>=0?'g':'r');
+    document.getElementById('psOpenPnL').textContent=fmtMoney(openPnL);
+    document.getElementById('psOpenPnL').className='v '+(openPnL>=0?'g':'r');
+    document.getElementById('psRealized').textContent='$'+cash.toLocaleString(undefined,{maximumFractionDigits:2});
+    document.getElementById('psRealized').className='v';
+    document.getElementById('psRealized').previousElementSibling.textContent='Cash';
+    document.getElementById('paperBadge').textContent='$'+eq.toLocaleString(undefined,{maximumFractionDigits:0});
+    // Render Alpaca positions
+    const openHtml = ALPACA.positions.length ? ALPACA.positions.map(p=>{
+      const sym=p.symbol||'?';
+      const qty=parseFloat(p.qty||0);
+      const side=p.side||'long';
+      const entry=parseFloat(p.avg_entry_price||0);
+      const cur=parseFloat(p.current_price||entry);
+      const upl=parseFloat(p.unrealized_pl||0);
+      const uplPct=parseFloat(p.unrealized_plpc||0)*100;
+      const mv=parseFloat(p.market_value||0);
+      const posCls = side==='short' ? 'r' : 'g';
+      return `<div class="pos alpaca" onclick="selectSym('${sym}')" style="cursor:pointer">
+        <span class="sym">${sym}<span class="src">Alpaca</span></span>
+        <span class="qt ${posCls}">${side.toUpperCase()} ${qty} @ $${entry.toFixed(2)} → $${cur.toFixed(2)} · MV $${mv.toFixed(0)}</span>
+        <span class="pnl ${upl>=0?'g':'r'}">${fmtMoney(upl)} (${uplPct.toFixed(1)}%)</span>
+      </div>`;
+    }).join('') : '<div class="m" style="padding:6px;font-size:11px">No open Alpaca positions</div>';
+    document.getElementById('psOpen').innerHTML=openHtml;
+    // Hide the closed-trade-log section in Alpaca mode (we don't track closes client-side)
+    const histEl = document.getElementById('psHist');
+    if(histEl) histEl.innerHTML = '<div class="m" style="padding:6px;font-size:11px">Alpaca trade history available in your Alpaca dashboard</div>';
+    alpacaRenderStatus();
+    return;
+  }
+  // --- Local simulation mode (fallback) ---
+  // restore realized label if we switched back from Alpaca
+  const rl = document.getElementById('psRealized');
+  if(rl && rl.previousElementSibling) rl.previousElementSibling.textContent='Realized';
   const openPnL = paperOpenPnL();
   const eq = PAPER.account + PAPER.realized + openPnL;
   document.getElementById('psEquity').textContent='$'+eq.toLocaleString(undefined,{maximumFractionDigits:0});
@@ -2135,6 +2328,7 @@ function renderPaper(){
   document.getElementById('psOpen').innerHTML=openHtml;
   const histHtml = PAPER.history.length ? PAPER.history.map(h=>`<div class="hitem"><span class="sym">${h.sym}</span><span class="dt">${h.dir.toUpperCase()} ${h.qty} @ $${h.entry.toFixed(2)}→$${h.exit.toFixed(2)}</span><span class="pnl ${h.pnl>=0?'g':'r'}">${fmtMoney(h.pnl)}</span></div>`).join('') : '<div class="m" style="padding:6px;font-size:11px">No trade history</div>';
   document.getElementById('psHist').innerHTML=histHtml;
+  alpacaRenderStatus();
 }
 
 /* ====================================================================
@@ -2147,12 +2341,6 @@ function bindEvents(){
 
   const tg = document.getElementById('trendyGrid');
   if(tg) tg.addEventListener('click', e => {
-    const card = e.target.closest('.stk-card');
-    if(card && card.dataset.sym) selectSym(card.dataset.sym);
-  });
-
-  const pag = document.getElementById('paGrid');
-  if(pag) pag.addEventListener('click', e => {
     const card = e.target.closest('.stk-card');
     if(card && card.dataset.sym) selectSym(card.dataset.sym);
   });
@@ -2186,14 +2374,59 @@ function bindEvents(){
   if(br) br.addEventListener('click',()=>{ if(confirm('Reset paper trading account to $10,000?')) paperReset(); });
   const se = document.getElementById('symSearch');
   if(se){
-    se.addEventListener('input', () => renderScreener());
+    let searchDebounce = null;
+    se.addEventListener('input', () => {
+      clearTimeout(searchDebounce);
+      const q = se.value.trim();
+      if(!q){ hideSearchSuggest(); renderScreener(); return; }
+      // Filter the screener live so results are always visible
+      if(currentViewTab !== 'screener'){ switchViewTab('screener'); }
+      renderScreener();
+      searchDebounce = setTimeout(() => updateSearchSuggest(q), 180);
+    });
     se.addEventListener('keydown', async (e) => {
-      if(e.key !== 'Enter') return;
-      const q = se.value.trim().toUpperCase();
-      if(!q) return;
-      const localHit = KEYS.some(s => s === q || (UNI[s] && UNI[s].name && UNI[s].name.toUpperCase().includes(q)));
-      if(localHit) return; // already visible via the local filter, nothing to fetch
-      await searchAndAddSymbol(q);
+      const box = document.getElementById('searchSuggest');
+      const items = box ? box.querySelectorAll('.ss-item') : [];
+      if(e.key === 'ArrowDown' && items.length){
+        e.preventDefault();
+        searchActiveIdx = Math.min(items.length-1, searchActiveIdx+1);
+        highlightSearchItem(items, searchActiveIdx);
+      } else if(e.key === 'ArrowUp' && items.length){
+        e.preventDefault();
+        searchActiveIdx = Math.max(0, searchActiveIdx-1);
+        highlightSearchItem(items, searchActiveIdx);
+      } else if(e.key === 'Enter'){
+        e.preventDefault();
+        const q = se.value.trim().toUpperCase();
+        if(!q) return;
+        // If a suggestion is highlighted, pick it
+        if(searchActiveIdx >= 0 && searchCurrentMatches[searchActiveIdx]){
+          const hit = searchCurrentMatches[searchActiveIdx];
+          hideSearchSuggest();
+          se.value = hit.s;
+          await ensureSymbolAndView(hit.s);
+          return;
+        }
+        // Otherwise: pick best local match, else live-fetch
+        const localHit = bestLocalMatch(q);
+        if(localHit){
+          hideSearchSuggest();
+          se.value = localHit;
+          await ensureSymbolAndView(localHit);
+        } else {
+          hideSearchSuggest();
+          await searchAndAddSymbol(q);
+        }
+      } else if(e.key === 'Escape'){
+        hideSearchSuggest();
+      }
+    });
+    se.addEventListener('focus', () => {
+      const q = se.value.trim();
+      if(q) updateSearchSuggest(q);
+    });
+    document.addEventListener('click', (e) => {
+      if(!e.target.closest('.search-wrap')) hideSearchSuggest();
     });
   }
   window.addEventListener('resize',()=>{ if(chart && activeSym) drawChart(activeSym); });
@@ -2203,7 +2436,9 @@ function toggleLive(){
   LIVE = !LIVE;
   const dot=document.querySelector('.sess .dot');
   const lbl=document.getElementById('sessLbl');
-  if(LIVE){ dot.classList.remove('off'); }
+  if(dot){ dot.classList.toggle('off', !LIVE); }
+  if(lbl){ lbl.textContent = LIVE ? 'LIVE' : 'PAUSED'; }
+  if(LIVE){ tick(); } // immediately resume a tick when un-paused
 }
 
 /* ====================================================================
@@ -2226,6 +2461,97 @@ function addTrendingTickers(newSyms){
   // Rebuild KEYS to include new tickers
   KEYS.length = 0;
   KEYS.push(...Object.keys(UNI));
+}
+
+/* ====================================================================
+   SEARCH HELPERS — build a live suggestion dropdown, resolve best match,
+   and select + view a symbol (jump to chart & trade levels).
+   ==================================================================== */
+function bestLocalMatch(q){
+  q = q.toUpperCase();
+  // Exact symbol match first
+  if(UNI[q]) return q;
+  // Symbol prefix match
+  let prefix = KEYS.filter(s => s.startsWith(q));
+  if(prefix.length) return prefix[0];
+  // Name contains match
+  let nameHit = KEYS.find(s => (UNI[s] && UNI[s].name && UNI[s].name.toUpperCase().includes(q)));
+  return nameHit || null;
+}
+
+function buildSearchMatches(q){
+  q = q.toLowerCase();
+  return KEYS.map(s => {
+    const a = ANA[s];
+    const name = (UNI[s] && UNI[s].name) || '';
+    const score =
+      (s.toLowerCase() === q ? 100 : 0) +
+      (s.toLowerCase().startsWith(q) ? 40 : 0) +
+      (s.toLowerCase().includes(q) ? 20 : 0) +
+      (name.toLowerCase().includes(q) ? 15 : 0);
+    return { s, name, price: a ? a.price : 0, chg: a ? a.chgD : 0, score };
+  })
+  .filter(r => r.score > 0)
+  .sort((a,b) => b.score - a.score)
+  .slice(0, 8);
+}
+
+function updateSearchSuggest(q){
+  const box = document.getElementById('searchSuggest');
+  if(!box) return;
+  searchCurrentMatches = buildSearchMatches(q);
+  searchActiveIdx = -1;
+  if(searchCurrentMatches.length === 0){
+    box.innerHTML = `<div class="ss-hint">No local match — press <b>Enter</b> to search live for "${q.toUpperCase()}"</div>`;
+    box.style.display = 'block';
+    return;
+  }
+  box.innerHTML = searchCurrentMatches.map((m, i) => `
+    <div class="ss-item" data-sym="${m.s}" data-idx="${i}">
+      <span class="ss-sym">${m.s}</span>
+      <span class="ss-name">${m.name}</span>
+      <span class="ss-px ${m.chg>=0?'g':'r'}">${m.price ? fmtP(m.price) : ''}</span>
+    </div>`).join('') + `<div class="ss-hint">↑↓ to navigate · Enter to view · Esc to close</div>`;
+  box.style.display = 'block';
+  // click handlers
+  box.querySelectorAll('.ss-item').forEach(el => {
+    el.addEventListener('click', async () => {
+      const sym = el.dataset.sym;
+      hideSearchSuggest();
+      const se = document.getElementById('symSearch');
+      if(se) se.value = sym;
+      await ensureSymbolAndView(sym);
+    });
+  });
+}
+
+function highlightSearchItem(items, idx){
+  items.forEach((el,i) => el.classList.toggle('active', i === idx));
+  if(items[idx]) items[idx].scrollIntoView({ block:'nearest' });
+}
+
+function hideSearchSuggest(){
+  const box = document.getElementById('searchSuggest');
+  if(box) box.style.display = 'none';
+  searchActiveIdx = -1;
+}
+
+/* Select a symbol, switch to screener so it's visible, and view its chart. */
+async function ensureSymbolAndView(sym){
+  if(!sym) return;
+  if(!UNI[sym]){
+    // Not in universe — try a live fetch so it can be viewed
+    await searchAndAddSymbol(sym);
+    return;
+  }
+  // Make sure the screener shows it (clear the search box filter)
+  const se = document.getElementById('symSearch');
+  if(se) se.value = sym;
+  if(currentViewTab !== 'screener') switchViewTab('screener');
+  renderScreener();
+  selectSym(sym);
+  jumpToDetail();
+  flashMsg(`✓ Viewing ${sym}`);
 }
 
 /* ====================================================================
@@ -2278,6 +2604,15 @@ async function searchAndAddSymbol(rawQuery){
    ==================================================================== */
 async function init(){
   paperLoad();
+  // Alpaca: prefill saved keys + attempt auto-connect in the background
+  alpacaPrefillInputs();
+  alpacaRenderStatus();
+  if(alpacaLoadKeys()){
+    alpacaSync().then(ok=>{
+      renderPaper(); renderKPIs(); alpacaRenderStatus();
+      if(ok) flashMsg('🦙 Reconnected to Alpaca paper broker');
+    });
+  }
   // 1) Instant paint with embedded baseline data
   KEYS.forEach(sym=>{ BARS[sym] = genBars(sym, 180); });
   reanalyseAll();
@@ -2318,7 +2653,8 @@ async function init(){
   }catch(e){}
 
   // Auto-populate trades if account has no open positions
-  if(PAPER.positions.length === 0){
+  // (skip when Alpaca is connected — show real positions instead)
+  if(!ALPACA.connected && PAPER.positions.length === 0){
     autoExecuteTrades();
   }
 
