@@ -1,0 +1,6 @@
+{
+  "name": "Chinna Trading Scanner",
+  "description": "Institutional-grade trading scanner and terminal with technical indicators, market screener, paper trading, and real-time signals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -93,62 +93,85 @@ function detectCandlePatterns(bars) {
   if (!bars || bars.length < 3) return { patterns: [], score: 0 };
 
   const patterns = [];
+  let patternScore = 0;
+
   const c = parseFloat(bars[bars.length - 1].c);
   const o = parseFloat(bars[bars.length - 1].o);
   const h = parseFloat(bars[bars.length - 1].h);
   const l = parseFloat(bars[bars.length - 1].l);
   const body = Math.abs(c - o);
-  const range = h - l;
+  const range = (h - l) || 0.0001;
+  const upperShadow = h - Math.max(c, o);
+  const lowerShadow = Math.min(c, o) - l;
+
+  const isBullish = c > o;
+  const isBearish = c < o;
 
   // Previous candle
   const c1 = parseFloat(bars[bars.length - 2].c);
   const o1 = parseFloat(bars[bars.length - 2].o);
+  const h1 = parseFloat(bars[bars.length - 2].h);
+  const l1 = parseFloat(bars[bars.length - 2].l);
+  const prevIsBearish = c1 < o1;
+  const prevIsBullish = c1 > o1;
 
   // Two bars ago
   const c2 = bars.length >= 3 ? parseFloat(bars[bars.length - 3].c) : null;
   const o2 = bars.length >= 3 ? parseFloat(bars[bars.length - 3].o) : null;
 
-  // BULLISH PATTERNS
-  if (h - Math.max(c, o) < body && Math.min(c, o) - l > body) {
+  // BULLISH REVERSAL PATTERNS (occur after downtrend / bearish bar)
+  if (prevIsBearish && lowerShadow >= 1.8 * Math.max(body, range * 0.05) && upperShadow <= 0.6 * Math.max(body, range * 0.05)) {
     patterns.push('HAMMER');
+    patternScore += 20;
   }
-  if (h - Math.max(c, o) > body && Math.min(c, o) - l < body) {
+  if (prevIsBearish && upperShadow >= 1.8 * Math.max(body, range * 0.05) && lowerShadow <= 0.6 * Math.max(body, range * 0.05)) {
     patterns.push('INVERTED_HAMMER');
+    patternScore += 15;
   }
-  if (c > o && c1 < o1 && c > o1 && o < c1) {
+  if (prevIsBearish && isBullish && o <= c1 && c >= o1) {
     patterns.push('BULLISH_ENGULFING');
+    patternScore += 25;
   }
-  if (c2 && o2 && c2 < o2 && Math.abs(c1 - o1) <= 0.1 * (h - l) && c > o && c > (o2 + c2) / 2) {
+  if (c2 && o2 && c2 < o2 && Math.abs(c1 - o1) <= 0.3 * (h1 - l1) && isBullish && c > (o2 + c2) / 2) {
     patterns.push('MORNING_STAR');
+    patternScore += 30;
   }
-  if (c1 < o1 && c > o1 && c < o && (c > (o + c1) / 2)) {
+  if (prevIsBearish && isBullish && o <= c1 && c > (o1 + c1) / 2 && c < o1) {
     patterns.push('PIERCING_LINE');
+    patternScore += 20;
   }
-  if (c > o && c1 > o1 && c2 && o2 && c2 > o2 && c > c1 && c1 > c2) {
+  if (c2 && o2 && c2 > o2 && c1 > o1 && isBullish && c > c1 && c1 > c2) {
     patterns.push('THREE_WHITE_SOLDIERS');
+    patternScore += 25;
   }
 
-  // BEARISH PATTERNS
-  if (h - Math.max(c, o) < body && Math.min(c, o) - l > body) {
+  // BEARISH REVERSAL PATTERNS (occur after uptrend / bullish bar)
+  if (prevIsBullish && lowerShadow >= 1.8 * Math.max(body, range * 0.05) && upperShadow <= 0.6 * Math.max(body, range * 0.05)) {
     patterns.push('HANGING_MAN');
+    patternScore -= 20;
   }
-  if (h - Math.max(c, o) > body && Math.min(c, o) - l < body) {
+  if (prevIsBullish && upperShadow >= 1.8 * Math.max(body, range * 0.05) && lowerShadow <= 0.6 * Math.max(body, range * 0.05)) {
     patterns.push('SHOOTING_STAR');
+    patternScore -= 20;
   }
-  if (c < o && c1 > o1 && c < o1 && o > c1) {
+  if (prevIsBullish && isBearish && o >= c1 && c <= o1) {
     patterns.push('BEARISH_ENGULFING');
+    patternScore -= 25;
   }
-  if (c2 && o2 && c2 > o2 && Math.abs(c1 - o1) <= 0.1 * (h - l) && c < o && c < (o2 + c2) / 2) {
+  if (c2 && o2 && c2 > o2 && Math.abs(c1 - o1) <= 0.3 * (h1 - l1) && isBearish && c < (o2 + c2) / 2) {
     patterns.push('EVENING_STAR');
+    patternScore -= 30;
   }
-  if (c1 > o1 && c < o1 && c > o && (c < (o + c1) / 2)) {
+  if (prevIsBullish && isBearish && o >= c1 && c < (o1 + c1) / 2 && c > o1) {
     patterns.push('DARK_CLOUD_COVER');
+    patternScore -= 20;
   }
-  if (c < o && c1 < o1 && c2 && o2 && c2 < o2 && c < c1 && c1 < c2) {
+  if (c2 && o2 && c2 < o2 && c1 < o1 && isBearish && c < c1 && c1 < c2) {
     patterns.push('THREE_BLACK_CROWS');
+    patternScore -= 25;
   }
 
-  const score = patterns.length > 0 ? 60 : 0; // Strong confirmation if pattern detected
+  const score = Math.max(-60, Math.min(60, patternScore));
   return { patterns, score };
 }
 

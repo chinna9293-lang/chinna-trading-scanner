@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * 🎯 BACKTEST RUNNER - Compare Original vs Enhanced Scanner
  */
