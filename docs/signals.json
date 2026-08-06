@@ -1,6 +1,19 @@
 {
-  "timestamp": "2026-08-06T11:07:52.365Z",
-  "totalSignals": 0,
+  "timestamp": "2026-08-06T13:03:11.853Z",
+  "totalSignals": 1,
   "totalExecuted": 0,
-  "signals": []
+  "signals": [
+    {
+      "type": "VWAP_CROSS_UP",
+      "direction": "BULLISH",
+      "symbol": "COST",
+      "price": 904.4,
+      "vwap": "951.14",
+      "volRatio": "1.6",
+      "message": "🟢 COST BULLISH — VWAP cross up $951.14 | Vol 1.6x",
+      "strength": "MEDIUM",
+      "executed": false,
+      "error": "Order failed: 403"
+    }
+  ]
 }
