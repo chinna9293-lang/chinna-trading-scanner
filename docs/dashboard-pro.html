@@ -1926,19 +1926,21 @@ function selectSymbol(sym) {
 }
 
 // --- ALPACA PAPER TRADING INTEGRATION ---
+// IMPORTANT: this dashboard is static (GitHub Pages) and cannot run
+// serverless code itself. Alpaca calls are proxied through Vercel
+// functions (api/alpaca/account.js, api/alpaca/positions.js) that read
+// ALPACA_KEY / ALPACA_SECRET from server-side environment variables --
+// your Alpaca secret is never entered into or stored by the browser.
+//
+// Set this to your deployed Vercel URL, e.g. 'https://your-project.vercel.app'
+// Leave empty only if this dashboard itself is being served from that same
+// Vercel deployment (relative /api/... calls will then work).
+const ALPACA_API_BASE = '';
+
 let alpacaAccount = null;
 let alpacaPositions = [];
 let alpacaConnected = false;
 let alpacaKeyModalOpen = false;
-
-function getAlpacaHeaders() {
-  const key = localStorage.getItem('alpaca_key_id') || '';
-  const secret = localStorage.getItem('alpaca_secret_key') || '';
-  const headers = { 'Content-Type': 'application/json' };
-  if (key) headers['x-alpaca-key'] = key;
-  if (secret) headers['x-alpaca-secret'] = secret;
-  return headers;
-}
 
 async function fetchAlpacaData() {
   const container = document.getElementById('alpacaContainer');
@@ -1946,11 +1948,19 @@ async function fetchAlpacaData() {
     container.innerHTML = `<div style="text-align:center; padding:16px; color:var(--text-muted);">Syncing with Alpaca Broker API...</div>`;
   }
 
+  if (!ALPACA_API_BASE) {
+    alpacaConnected = false;
+    alpacaAccount = null;
+    alpacaPositions = [];
+    renderAlpacaPortfolio();
+    updateTopStatsWithAlpaca();
+    return;
+  }
+
   try {
-    const headers = getAlpacaHeaders();
     const [accRes, posRes] = await Promise.all([
-      fetch('/api/alpaca/account', { headers }),
-      fetch('/api/alpaca/positions', { headers })
+      fetch(`${ALPACA_API_BASE}/api/alpaca/account`),
+      fetch(`${ALPACA_API_BASE}/api/alpaca/positions`)
     ]);
 
     if (accRes.ok) {
@@ -2001,62 +2011,21 @@ function updateTopStatsWithAlpaca() {
 }
 
 function toggleAlpacaKeyModal() {
-  alpacaKeyModalOpen = !alpacaKeyModalOpen;
-  renderAlpacaPortfolio();
-}
-
-function saveAlpacaKeys() {
-  const k = document.getElementById('alpacaKeyInput') ? document.getElementById('alpacaKeyInput').value.trim() : '';
-  const s = document.getElementById('alpacaSecretInput') ? document.getElementById('alpacaSecretInput').value.trim() : '';
-  if (!k || !s) {
-    showToast("Please enter both API Key ID and Secret Key");
-    return;
-  }
-  localStorage.setItem('alpaca_key_id', k);
-  localStorage.setItem('alpaca_secret_key', s);
-  alpacaKeyModalOpen = false;
-  showToast("Alpaca API Keys saved. Connecting...");
   fetchAlpacaData();
-}
-
-function clearAlpacaKeys() {
-  localStorage.removeItem('alpaca_key_id');
-  localStorage.removeItem('alpaca_secret_key');
-  alpacaConnected = false;
-  alpacaAccount = null;
-  alpacaPositions = [];
-  alpacaKeyModalOpen = false;
-  showToast("Alpaca keys cleared");
-  renderAlpacaPortfolio();
-  updateTopStatsWithAlpaca();
 }
 
 function renderAlpacaPortfolio() {
   const container = document.getElementById('alpacaContainer');
   if (!container) return;
 
-  const currentKey = localStorage.getItem('alpaca_key_id') || '';
-
-  if (alpacaKeyModalOpen || (!alpacaConnected && !currentKey)) {
+  if (!ALPACA_API_BASE) {
     container.innerHTML = `
       <div style="background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px;">
-        <div style="font-weight:700; font-size:13px; margin-bottom:4px; color:var(--text-main);">🔑 Connect Alpaca Paper Account</div>
-        <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px; line-height:1.4;">
-          Enter your Alpaca Paper Trading API credentials below to view live paper positions and place orders.
-        </div>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <div>
-            <label style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">API Key ID</label>
-            <input type="text" id="alpacaKeyInput" value="${currentKey}" placeholder="PK..." style="width:100%; background:var(--bg-card); border:1px solid var(--border); color:var(--text-main); padding:6px 10px; border-radius:6px; font-family:var(--font-mono); font-size:12px; outline:none; margin-top:2px;" />
-          </div>
-          <div>
-            <label style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Secret Key</label>
-            <input type="password" id="alpacaSecretInput" placeholder="Secret Key..." style="width:100%; background:var(--bg-card); border:1px solid var(--border); color:var(--text-main); padding:6px 10px; border-radius:6px; font-family:var(--font-mono); font-size:12px; outline:none; margin-top:2px;" />
-          </div>
-          <div style="display:flex; gap:8px; margin-top:6px;">
-            <button class="btn btn-primary btn-sm" style="flex:1" onclick="saveAlpacaKeys()">Save & Connect</button>
-            ${currentKey ? `<button class="btn btn-red btn-sm" onclick="clearAlpacaKeys()">Disconnect</button>` : ''}
-          </div>
+        <div style="font-weight:700; font-size:13px; margin-bottom:4px; color:var(--text-main);">🔧 Alpaca Not Configured</div>
+        <div style="font-size:11px; color:var(--text-muted); line-height:1.4;">
+          This dashboard is static (GitHub Pages) and can't talk to Alpaca directly. Deploy the api/alpaca functions to Vercel,
+          set ALPACA_KEY / ALPACA_SECRET as server-side environment variables there, then set ALPACA_API_BASE
+          near the top of the Alpaca integration script to your Vercel deployment URL.
         </div>
       </div>
     `;
@@ -2067,8 +2036,8 @@ function renderAlpacaPortfolio() {
     container.innerHTML = `
       <div style="text-align:center; padding:16px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm);">
         <div style="font-weight:700; color:var(--red); margin-bottom:4px;">⚠️ Alpaca Connection Failed</div>
-        <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Unable to authorize with Alpaca Paper API. Check key permissions or environment configuration.</div>
-        <button class="btn btn-sm btn-primary" onclick="toggleAlpacaKeyModal()">Enter Alpaca Keys</button>
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Could not reach the Alpaca proxy at ${ALPACA_API_BASE}, or ALPACA_KEY/ALPACA_SECRET are missing/invalid in the Vercel project's environment variables.</div>
+        <button class="btn btn-sm btn-primary" onclick="fetchAlpacaData()">Retry</button>
       </div>
     `;
     return;
@@ -2140,11 +2109,15 @@ async function executeAlpacaTrade(sym, side) {
 
   showToast(`Submitting ${side} order on Alpaca for ${qty} shares of ${sym}...`);
 
+  if (!ALPACA_API_BASE) {
+    showToast(`❌ Alpaca not configured (see Alpaca panel)`);
+    return;
+  }
+
   try {
-    const headers = getAlpacaHeaders();
-    const res = await fetch('/api/alpaca/orders', {
+    const res = await fetch(`${ALPACA_API_BASE}/api/alpaca/orders`, {
       method: 'POST',
-      headers,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         symbol: sym,
         qty: qty,
@@ -2168,11 +2141,14 @@ async function executeAlpacaTrade(sym, side) {
 
 async function closeAlpacaPosition(sym) {
   showToast(`Closing Alpaca position for ${sym}...`);
+  if (!ALPACA_API_BASE) {
+    showToast(`❌ Alpaca not configured (see Alpaca panel)`);
+    return;
+  }
+
   try {
-    const headers = getAlpacaHeaders();
-    const res = await fetch(`/api/alpaca/positions/${sym}`, {
-      method: 'DELETE',
-      headers
+    const res = await fetch(`${ALPACA_API_BASE}/api/alpaca/positions/${sym}`, {
+      method: 'DELETE'
     });
     const data = await res.json();
     if (res.ok) {
