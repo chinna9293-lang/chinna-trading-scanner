@@ -735,6 +735,7 @@ table.pos-table td:first-child { text-align: left; }
 
 <div class="toast-msg" id="toast">Trade executed!</div>
 
+<script src="strategy.js"></script>
 <script>
 // --- STOCKS UNIVERSE ---
 const UNIVERSE = [
@@ -1520,131 +1521,73 @@ function generateSyntheticCandles(basePrice, days = 60) {
   return candles;
 }
 
-// Luxy UT GOD - UT-BOT Forecast Strategy Engine
-function calcIndicators(sym, price, changePercent) {
-  // 1. Core Volatility & ATR
-  const atr = +(price * 0.016).toFixed(2);
-  const rvol = +(1.0 + (Math.abs(changePercent) * 0.18) + (Math.sin(price * 1.2) * 0.22)).toFixed(2);
+// Luxy UT GOD - REAL confluence engine (see strategy.js). `strat` is the
+// object returned by evaluateStrategy(bars) -- every number here comes
+// from actual historical price/volume data, not simulated math.
+function calcIndicators(sym, strat, changePercent) {
+  const price = strat.price;
+  const {
+    signal, verdict, score, highConviction,
+    isUtBull, utTrailStop,
+    isStBull, superTrendVal,
+    isSbBull, swingHigh, swingLow, sbMid,
+    adxVal, isAdxTrending,
+    rsi, rvol,
+    confUt, confSt, confSb, confAdx, confMtf, confVol, confDiv,
+    atr, sl, tp1, tp2,
+  } = strat;
 
-  // 2. Luxy UT Bot Ratcheting Trailing Stop System
-  const baseKey = 1.5; // Day Trading default preset sensitivity
-  const er = Math.max(0.2, Math.min(0.95, 0.5 + (changePercent * 0.08))); // Kaufman Efficiency Ratio
-  const chopMult = 1.0 + (1.0 - er) * 1.1; // Smart Chop Filter
-  const adaptiveKey = baseKey * Math.max(0.8, Math.min(1.2, rvol));
-  const trailDist = +(atr * adaptiveKey * chopMult).toFixed(2);
+  const boundedAdx = adxVal;
+  const boundedRsi = rsi;
 
-  const isUtBull = changePercent >= 0 || (price % 2 === 0);
-  const utTrailStop = isUtBull ? +(price - trailDist).toFixed(2) : +(price + trailDist).toFixed(2);
-  const utAction = isUtBull 
-    ? `✅ GOOD TO ENTER (Trailing Stop @ $${utTrailStop})` 
-    : `🔴 BEARISH TREND (Trailing Stop @ $${utTrailStop})`;
+  const utAction = isUtBull
+    ? `✅ GOOD TO ENTER (Trailing Stop @ $${utTrailStop.toFixed(2)})`
+    : `🔴 BEARISH TREND (Trailing Stop @ $${utTrailStop.toFixed(2)})`;
   const utStatusClass = isUtBull ? 'good' : 'exit';
 
-  // 3. SuperTrend Engine (10, 3.0)
-  const stAtr = +(price * 0.018).toFixed(2);
-  const isStBull = isUtBull || changePercent >= -0.3;
-  const superTrendVal = isStBull ? +(price - 2.2 * stAtr).toFixed(2) : +(price + 2.2 * stAtr).toFixed(2);
-  const stDist = Math.abs(price - superTrendVal);
-  const stStrength = Math.min(100, Math.round((stDist / (stAtr || 1)) * 25));
-  const superTrendAction = isStBull 
-    ? `✅ ST BULLISH (Pivot Line @ $${superTrendVal})` 
-    : `🔴 ST BEARISH (Pivot Line @ $${superTrendVal})`;
+  const stStrength = Math.min(100, Math.round((Math.abs(price - superTrendVal) / (atr || 1)) * 25));
+  const superTrendAction = isStBull
+    ? `✅ ST BULLISH (Pivot Line @ $${superTrendVal.toFixed(2)})`
+    : `🔴 ST BEARISH (Pivot Line @ $${superTrendVal.toFixed(2)})`;
   const superTrendStatusClass = isStBull ? 'good' : 'exit';
 
-  // 4. Structure Breakdown Engine
-  const swingHigh = +(price * 1.018).toFixed(2);
-  const swingLow = +(price * 0.982).toFixed(2);
-  const sbMid = +((+swingHigh + +swingLow) / 2).toFixed(2);
-  const isSbBull = price >= sbMid;
-  const sbAction = isSbBull 
-    ? `✅ BULLISH RANGE (Above Midpoint $${sbMid})` 
-    : `🔴 BEARISH RANGE (Below Midpoint $${sbMid})`;
+  const sbAction = isSbBull
+    ? `✅ BULLISH RANGE (Above Midpoint $${sbMid.toFixed(2)})`
+    : `🔴 BEARISH RANGE (Below Midpoint $${sbMid.toFixed(2)})`;
   const sbStatusClass = isSbBull ? 'good' : 'exit';
 
-  // 5. ADX Regime (14)
-  const adxVal = +(20 + Math.abs(changePercent * 3.2) + (Math.cos(price) * 4)).toFixed(1);
-  const boundedAdx = Math.max(12, Math.min(65, adxVal));
-  const isAdxTrending = boundedAdx >= 20;
-  const adxAction = isAdxTrending 
-    ? `✅ TRENDING REGIME (ADX ${boundedAdx} >= 20)` 
-    : `🟡 CHOPPY REGIME (ADX ${boundedAdx} < 20)`;
+  const adxAction = isAdxTrending
+    ? `✅ TRENDING REGIME (ADX ${boundedAdx.toFixed(1)} >= 20)`
+    : `🟡 CHOPPY REGIME (ADX ${boundedAdx.toFixed(1)} < 20)`;
   const adxStatusClass = isAdxTrending ? 'good' : 'caution';
 
-  // 6. RSI (14) & Divergence Engine
-  const rsi = +(45 + (changePercent * 2.2) + (Math.sin(price) * 4)).toFixed(1);
-  const boundedRsi = Math.max(18, Math.min(88, rsi));
-  const hasBullDiv = boundedRsi < 42 && changePercent > -0.5;
-  const hasBearDiv = boundedRsi > 62 && changePercent < 0.5;
-
-  // 7. Luxy Confluence Scoring System (0 - 100)
-  let confUt = 26; // UT Bot direction (26/26)
-  let confSt = (isStBull === isUtBull) ? 17.7 : 4; // SuperTrend (17.7/21 when aligned, 4/21 ❌ when unaligned)
-  let confSb = (isSbBull === isUtBull) ? 17.6 : 4; // Structure (17.6/18 when aligned, 4/18 ❌ when unaligned)
-  let confAdx = isAdxTrending ? 13 : 4; // ADX Regime (13/13 when trending, 4/13 ❌ when choppy)
-  let confMtf = isUtBull ? 8 : 2; // MTF Align (8/8 when aligned, 2/8 ❌ when unaligned)
-  let confVol = rvol >= 1.5 ? 10 : (rvol >= 1.0 ? 6 : 3); // Volume (10/10 ✅, 6/10 🪙 for ~1.3x RVOL, 3/10 ❌)
-  let confDiv = (isUtBull && hasBullDiv) || (!isUtBull && hasBearDiv) ? 4 : 2; // Divergence (4/4 ✅, 2/4 —)
-
-  if (sym === 'MSFT') {
-    // Exact TradingView UT GOD MODE MSFT Day Trading preset from screenshot:
-    // TOTAL: 77/100 -> UT 26/26, SuperTrend 17.7/21 ✅, Structure 4/18 ❌, ADX 13/13 ✅, MTF 8/8 ✅, Volume 6/10 🪙 (1.3x), Divergence 2/4 (BEAR)
-    confUt = 26;
-    confSt = 17.7;
-    confSb = 4;
-    confAdx = 13;
-    confMtf = 8;
-    confVol = 6;
-    confDiv = 2;
-  }
-
-  let score = Math.round(confUt + confSt + confSb + confAdx + confMtf + confVol + confDiv);
-  score = Math.min(98, Math.max(15, score));
-
-  // 8. Signals & Verdict
-  let signal = 'WATCH';
-  let verdict = '🟡 WAIT / LOW CONFLUENCE';
-  let proReasoning = 'Luxy UT GOD is monitoring for trend confirmation. Wait for price to reclaim UT Trailing Stop level.';
-
+  let proReasoning;
   if (isUtBull) {
-    if (score >= 70) {
-      signal = 'BUY';
-      verdict = '🟢 LUX UT GOD BUY';
-      proReasoning = `Luxy UT GOD High-Conviction Bullish Signal (${score}% Confluence)! Price holds above UT Trailing Stop ($${utTrailStop}) with SuperTrend Bullish ($${superTrendVal}), ADX (${boundedAdx}) in trending regime, and high volume (${rvol}x RVOL).`;
-    } else {
-      signal = 'BUY';
-      verdict = '🟢 UT BOT BULLISH';
-      proReasoning = `Bullish trend active above UT Trailing Stop ($${utTrailStop}). Confluence score ${score}%. Risk managed with SL at $${(price - 1.5 * atr).toFixed(2)}.`;
-    }
+    proReasoning = highConviction
+      ? `Luxy UT GOD High-Conviction Bullish Signal (${score}% Confluence)! Price holds above UT Trailing Stop ($${utTrailStop.toFixed(2)}) with SuperTrend Bullish ($${superTrendVal.toFixed(2)}), ADX (${boundedAdx.toFixed(1)}) in trending regime, and ${rvol.toFixed(2)}x RVOL.`
+      : `Bullish trend active above UT Trailing Stop ($${utTrailStop.toFixed(2)}). Confluence score ${score}%. Risk managed with SL at $${sl.toFixed(2)}.`;
   } else {
-    if (score >= 70) {
-      signal = 'SELL';
-      verdict = '🔴 LUX UT GOD SELL';
-      proReasoning = `Luxy UT GOD High-Conviction Bearish Signal (${score}% Confluence)! Price broke below UT Trailing Stop ($${utTrailStop}) with SuperTrend Bearish ($${superTrendVal}) and selling volume expanding.`;
-    } else {
-      signal = 'SELL';
-      verdict = '🔴 UT BOT BEARISH';
-      proReasoning = `Bearish trend active below UT Trailing Stop ($${utTrailStop}). Confluence score ${score}%. Protection stop set at $${utTrailStop}.`;
-    }
+    proReasoning = highConviction
+      ? `Luxy UT GOD High-Conviction Bearish Signal (${score}% Confluence)! Price broke below UT Trailing Stop ($${utTrailStop.toFixed(2)}) with SuperTrend Bearish ($${superTrendVal.toFixed(2)}) and selling volume expanding.`
+      : `Bearish trend active below UT Trailing Stop ($${utTrailStop.toFixed(2)}). Confluence score ${score}%. Protection stop set at $${utTrailStop.toFixed(2)}.`;
   }
 
-  // 9. Trend Duration Forecast
+  // Trend duration is a rough heuristic (real backtesting would be needed
+  // for a precise figure) but is now at least derived from real ADX/RVOL.
   const predAvgBars = Math.round(8 + rvol * 3 + score * 0.08);
   const predMaxBars = Math.round(predAvgBars * 2.2);
   const predProb75 = Math.round(predAvgBars * 0.5);
   const predProb50 = Math.round(predAvgBars * 1.0);
   const predProb25 = Math.round(predAvgBars * 1.5);
 
-  // 10. Risk Execution Blueprint
   const entryPrice = price;
-  const sl = isUtBull ? +(price - 1.5 * atr).toFixed(2) : +(price + 1.5 * atr).toFixed(2);
-  const tp1 = isUtBull ? +(price + 1.5 * atr).toFixed(2) : +(price - 1.5 * atr).toFixed(2);
-  const tp2 = isUtBull ? +(price + 3.0 * atr).toFixed(2) : +(price - 3.0 * atr).toFixed(2);
   const tp3 = isUtBull ? +(price + 4.5 * atr).toFixed(2) : +(price - 4.5 * atr).toFixed(2);
   const rr = 2.0;
+  const alertRule = `Luxy UT GOD ${signal} Alert: Triggered at $${price.toFixed(2)} when price ${isUtBull ? 'crossed above' : 'crossed below'} UT Trailing Stop ($${utTrailStop.toFixed(2)}). SL: $${sl.toFixed(2)}, TP1: $${tp1.toFixed(2)}, TP2: $${tp2.toFixed(2)}.`;
 
-  const alertRule = `Luxy UT GOD ${signal} Alert: Triggered at $${price.toFixed(2)} when price ${isUtBull ? 'crossed above' : 'crossed below'} UT Trailing Stop ($${utTrailStop}). SL: $${sl}, TP1: $${tp1}, TP2: $${tp2}.`;
-
-  // 11. Unusual Options Volume & Sweep Radar Engine
+  // Unusual options volume/flow is still illustrative -- there is no free
+  // real-time options-flow data source wired in, so this section is not
+  // part of the real buy/sell decision above.
   const isHighVolTicker = ["NVDA", "TSLA", "AAPL", "AMD", "META", "AMZN", "MSFT", "MSTR", "PLTR", "COIN", "SMCI"].includes(sym);
   const charSum = sym.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
   const rawRatio = +((isHighVolTicker ? 2.2 : 1.1) + Math.abs(changePercent * 0.5) + (Math.sin(price + charSum) * 1.5)).toFixed(1);
@@ -1694,19 +1637,36 @@ const CORS_PROXIES = [
   url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`
 ];
 
+// Fetches ~6 months of REAL daily OHLCV bars (not just the current quote)
+// so evaluateStrategy() from strategy.js can compute real UT Bot /
+// SuperTrend / ADX / RSI values -- the same function trader.js,
+// scanner.js, and scalp-scanner.js use to decide their live trades.
 async function fetchQuoteViaChart(sym, attempt = 0) {
-  const target = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}`;
+  const target = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=6mo&interval=1d`;
   const proxied = CORS_PROXIES[attempt % CORS_PROXIES.length](target);
   try {
     const res = await fetch(proxied, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    const meta = json && json.chart && json.chart.result && json.chart.result[0] && json.chart.result[0].meta;
-    if (!meta || meta.regularMarketPrice === undefined) throw new Error('No price in response');
+    const result = json && json.chart && json.chart.result && json.chart.result[0];
+    const meta = result && result.meta;
+    const quote = result && result.indicators && result.indicators.quote && result.indicators.quote[0];
+    if (!meta || !quote || meta.regularMarketPrice === undefined) throw new Error('No data in response');
+
+    const bars = [];
+    for (let i = 0; i < (result.timestamp || []).length; i++) {
+      const o = quote.open[i], h = quote.high[i], l = quote.low[i], c = quote.close[i], v = quote.volume[i];
+      if (o == null || h == null || l == null || c == null) continue;
+      bars.push({ o, h, l, c, v: v || 0 });
+    }
+    // Make sure the most recent bar reflects the live quote price, not a
+    // possibly-stale/incomplete last daily bar.
+    if (bars.length) bars[bars.length - 1].c = meta.regularMarketPrice;
+
     const price = meta.regularMarketPrice;
     const prevClose = meta.previousClose || meta.chartPreviousClose || price;
     const chgPct = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
-    return { price, chgPct };
+    return { price, chgPct, bars };
   } catch (e) {
     if (attempt < CORS_PROXIES.length - 1) {
       return fetchQuoteViaChart(sym, attempt + 1);
@@ -1740,23 +1700,15 @@ async function fetchMarketData() {
     const results = await fetchQuotesLimited(UNIVERSE);
     results.forEach((result, i) => {
       const sym = UNIVERSE[i];
-      if (result.status === 'fulfilled') {
-        const { price, chgPct } = result.value;
-        DATA[sym] = calcIndicators(sym, price, +chgPct.toFixed(2));
-      }
+      if (result.status !== 'fulfilled') return; // leave last-known DATA[sym] as-is; retried next cycle
+      const { chgPct, bars } = result.value;
+      const strat = window.evaluateStrategy ? window.evaluateStrategy(bars) : null;
+      if (!strat) return; // not enough history yet for this symbol -- no fake fallback
+      DATA[sym] = calcIndicators(sym, strat, +chgPct.toFixed(2));
     });
   } catch (e) {
     // Fallback
   }
-
-  // Ensure all symbols have data
-  UNIVERSE.forEach(sym => {
-    if (!DATA[sym]) {
-      const price = getSimulatedPrice(sym);
-      const chgPct = +((Math.random() * 4 - 1.8)).toFixed(2);
-      DATA[sym] = calcIndicators(sym, price, chgPct);
-    }
-  });
 
   const now = new Date();
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -1764,18 +1716,6 @@ async function fetchMarketData() {
   if (timeEl) timeEl.textContent = `(${timeStr})`;
 
   renderAll();
-}
-
-function getSimulatedPrice(sym) {
-  const prices = {
-    AAPL: 228.50, NVDA: 128.40, TSLA: 248.30, MSFT: 499.78, AMZN: 188.20,
-    GOOGL: 178.80, META: 535.70, AMD: 142.10, NFLX: 680.50, PLTR: 32.50,
-    SOFI: 9.10, MSTR: 340.00, COIN: 220.00, HOOD: 24.50, SMCI: 52.00,
-    AVGO: 165.00, JPM: 212.00, LLY: 840.00, COST: 880.00, ORCL: 142.00,
-    CRM: 265.00, V: 282.00, MA: 465.00, BAC: 41.20, XOM: 118.50,
-    WMT: 76.20, IONQ: 9.20, BABA: 82.10
-  };
-  return prices[sym] || (100 + Math.random() * 100);
 }
 
 // --- RENDER LOGIC ---
@@ -1877,9 +1817,11 @@ function handleSearchKey(e) {
 async function fetchCustomTicker(sym) {
   showToast(`Searching live quote for ${sym}...`);
   try {
-    const { price, chgPct } = await fetchQuoteViaChart(sym);
+    const { chgPct, bars } = await fetchQuoteViaChart(sym);
+    const strat = evaluateStrategy(bars);
+    if (!strat) { showToast(`Not enough history for '${sym}' yet.`); return; }
     if (!UNIVERSE.includes(sym)) UNIVERSE.unshift(sym);
-    DATA[sym] = calcIndicators(sym, price, +chgPct.toFixed(2));
+    DATA[sym] = calcIndicators(sym, strat, +chgPct.toFixed(2));
     renderAll();
     selectSymbol(sym);
     showToast(`Loaded live quote for ${sym}!`);

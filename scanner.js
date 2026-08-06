@@ -1,9 +1,12 @@
 // Chinna Trading Scanner — Four-Gate Institutional Framework
 // G1: Regime (ADX ≥ 20 + Choppiness Index < 61.8 + ATR Percentile 25–80)
 // G2: Daily Trend (close > SMA50, SMA50 > SMA200)
-// G3: Entry Score ≥ 4/6 (Trend: EMA structure + slope + position | Momentum: MACD accel + RSI zone + volume)
+// G3: Luxy UT GOD confluence >= 70% (same real strategy.js engine used by
+//     the dashboard, trader.js, and scalp-scanner.js)
 // G4: Risk (daily loss limit ≤ 3 SL hits)
 // Exits: TP1 40% @ 2×ATR → TP2 40% @ 3.5×ATR → trail 20%
+
+import { evaluateStrategy } from './strategy.js';
 
 const NTFY    = process.env.NTFY_TOPIC      || 'chinna-trading-alerts';
 const ALP_KEY = process.env.ALPACA_KEY      || '';
@@ -262,90 +265,29 @@ function dailyGate(dailyBars) {
 // Momentum Score (0–3): MACD acceleration + RSI zone + volume expansion
 // Signal fires when combined score ≥ 4 AND a quality breakout is detected
 function entrySignal(bars) {
-  if (bars.length < 55) return null;
-  const n      = bars.length;
-  const closes = bars.map(b => b.c);
-  const highs  = bars.map(b => b.h);
-  const lows   = bars.map(b => b.l);
-  const vols   = bars.map(b => b.v || 0);
-  const last   = bars[n - 1];
-  const prev   = bars[n - 2];
+  // REAL "Luxy UT GOD" confluence strategy shared with the dashboard and
+  // every other trading bot in this repo (see strategy.js). Only fires on
+  // the same >=70% high-conviction threshold the dashboard uses for its
+  // LUX UT GOD BUY/SELL badges.
+  const strat = evaluateStrategy(bars);
+  if (!strat || !strat.highConviction) return null;
 
-  // EMA arrays for slope calculation
-  const e9Arr  = emaArray(closes, 9);
-  const e20Arr = emaArray(closes, 20);
-  const e50Arr = emaArray(closes, 50);
-  const e9     = e9Arr[e9Arr.length - 1];
-  const e20    = e20Arr[e20Arr.length - 1];
-  const e50    = e50Arr[e50Arr.length - 1];
-  const e20_3  = e20Arr[Math.max(0, e20Arr.length - 4)]; // EMA20 value 3 bars ago
-
-  // Swing levels (12-bar lookback, excluding current bar)
-  const swingH = Math.max(...highs.slice(n - 13, n - 1));
-  const swingL = Math.min(...lows.slice(n - 13, n - 1));
-
-  const atrVal = atrCalc(bars);
-  const rsi    = rsiCalc(closes);
-  const avgVol = smaCalc(vols, 20);
-  const { curr: macdCurr, prev: macdPrev } = macdHist(closes);
-
-  // ── LONG signal ──────────────────────────────────────────────────────────────
-  // Trend Score
-  const T1 = e20 > e50 ? 1 : 0;                     // EMA structure bullish
-  const T2 = e20 > e20_3 ? 1 : 0;                   // EMA20 slope rising
-  const T3 = last.c > e50 ? 1 : 0;                  // price above EMA50
-  const trendBull = T1 + T2 + T3;
-
-  // Momentum Score
-  const M1 = (macdCurr > 0 && macdCurr > macdPrev) ? 1 : 0;  // MACD histogram accelerating up
-  const M2 = (rsi > 52 && rsi < 70) ? 1 : 0;                  // RSI in momentum zone (not overbought)
-  const M3 = (avgVol > 0 && last.v > avgVol * 1.5) ? 1 : 0;  // institutional volume
-
-  const momentumBull = M1 + M2 + M3;
-  const scoreBull    = trendBull + momentumBull;
-
-  // Breakout quality (false breakout filter)
-  const bodyBull  = Math.abs(last.c - last.o) > 0.5 * atrVal;  // meaningful candle body
-  const closeBull = last.c > swingH;                             // closed through resistance
-  const volBull   = last.v > prev.v * 1.2;                      // expanding volume
-  const breakBull = bodyBull && closeBull && volBull && prev.c <= swingH; // first bar of break
-
-  if (scoreBull >= 4 && breakBull && e9 > e20) {
-    return {
-      side: 'buy', price: last.c, atr: atrVal, rsi, e9, e20, e50,
-      trendScore: trendBull, momentumScore: momentumBull, entryScore: scoreBull,
-      swingH, swingL, macdCurr,
-      T1, T2, T3, M1, M2, M3,
-    };
-  }
-
-  // ── SHORT signal ──────────────────────────────────────────────────────────────
-  const T1b = e20 < e50 ? 1 : 0;                    // EMA structure bearish
-  const T2b = e20 < e20_3 ? 1 : 0;                  // EMA20 slope falling
-  const T3b = last.c < e50 ? 1 : 0;                 // price below EMA50
-  const trendBear = T1b + T2b + T3b;
-
-  const M1b = (macdCurr < 0 && macdCurr < macdPrev) ? 1 : 0;  // MACD histogram accelerating down
-  const M2b = (rsi > 30 && rsi < 48) ? 1 : 0;                  // RSI in bearish zone
-  const momentumBear = M1b + M2b + M3;                           // M3 (volume) same for both
-
-  const scoreBear = trendBear + momentumBear;
-
-  const bodyBear  = Math.abs(last.c - last.o) > 0.5 * atrVal;
-  const closeBear = last.c < swingL;
-  const volBear   = last.v > prev.v * 1.2;
-  const breakBear = bodyBear && closeBear && volBear && prev.c >= swingL;
-
-  if (scoreBear >= 4 && breakBear && e9 < e20) {
-    return {
-      side: 'sell', price: last.c, atr: atrVal, rsi, e9, e20, e50,
-      trendScore: trendBear, momentumScore: momentumBear, entryScore: scoreBear,
-      swingH, swingL, macdCurr,
-      T1: T1b, T2: T2b, T3: T3b, M1: M1b, M2: M2b, M3,
-    };
-  }
-
-  return null;
+  return {
+    side: strat.signal === 'BUY' ? 'buy' : 'sell',
+    price: strat.price,
+    atr: strat.atr,
+    rsi: strat.rsi,
+    score: strat.score,
+    verdict: strat.verdict,
+    isUtBull: strat.isUtBull, utTrailStop: strat.utTrailStop,
+    isStBull: strat.isStBull, superTrendVal: strat.superTrendVal,
+    isSbBull: strat.isSbBull,
+    isAdxTrending: strat.isAdxTrending, adxVal: strat.adxVal,
+    rvol: strat.rvol,
+    confUt: strat.confUt, confSt: strat.confSt, confSb: strat.confSb,
+    confAdx: strat.confAdx, confMtf: strat.confMtf, confVol: strat.confVol, confDiv: strat.confDiv,
+    swingH: strat.swingHigh, swingL: strat.swingLow,
+  };
 }
 
 // ── GATE 4: Daily Loss Limit ───────────────────────────────────────────────────
@@ -878,16 +820,16 @@ async function main() {
       const tag    = cfg.risk === 'high' ? '⚠️ HIGH-RISK' : '✅ LOW-RISK';
       const sizeNote = sig.regime.sizeReduction < 1 ? ' (50% size — high vol)' : '';
 
-      console.log(`\n🚦 ${symbol} ${dir} @$${sig.price} | Score ${sig.entryScore}/6 | ATR $${sig.atr.toFixed(3)} | SL $${slPx} | TP1 $${tp1Px} | TP2 $${tp2Px}`);
+      console.log(`\n🚦 ${symbol} ${dir} @$${sig.price} | ${sig.verdict} ${sig.score}% | ATR $${sig.atr.toFixed(3)} | SL $${slPx} | TP1 $${tp1Px} | TP2 $${tp2Px}`);
 
       await notify(
         `${tag} ${dir} ${symbol} @ $${sig.price}`,
         `🚦 ALL 4 GATES PASSED\n\n` +
         `G1 Regime:  ADX ${sig.regime.adx} | CI ${sig.regime.ci} | ATR% ${sig.regime.atrPct.toFixed(0)}\n` +
         `G2 Daily:   ${sig.daily.bullish ? '📈' : '📉'} SMA50 $${sig.daily.sma50} | SMA200 $${sig.daily.sma200}\n` +
-        `G3 Score:   ${sig.entryScore}/6 (Trend ${sig.trendScore}/3 · Mom ${sig.momentumScore}/3)\n` +
-        `   Trend:  EMA-struct ${sig.T1 ? '✓' : '✗'} · Slope ${sig.T2 ? '✓' : '✗'} · Above-EMA50 ${sig.T3 ? '✓' : '✗'}\n` +
-        `   Mom:    MACD-accel ${sig.M1 ? '✓' : '✗'} · RSI ${Math.round(sig.rsi)} ${sig.M2 ? '✓' : '✗'} · Volume ${sig.M3 ? '✓' : '✗'}\n` +
+        `G3 Luxy UT GOD: ${sig.verdict} — ${sig.score}% confluence\n` +
+        `   UT Bot ${sig.isUtBull ? 'Bullish' : 'Bearish'} (stop $${sig.utTrailStop.toFixed(2)}) · SuperTrend ${sig.isStBull ? '✓' : '✗'} · Structure ${sig.isSbBull ? '✓' : '✗'}\n` +
+        `   ADX ${sig.adxVal.toFixed(1)} ${sig.isAdxTrending ? '✓ trending' : '✗ choppy'} · RSI ${Math.round(sig.rsi)} · RVOL ${sig.rvol.toFixed(2)}x\n` +
         `G4 Risk:    OK (${g4.slHits || 0}/${MAX_SL_DAY} SL hits today)\n\n` +
         `Entry:  $${sig.price}\n` +
         `SL:     $${slPx}  (−${slPct}% = ${ATR_SL}×ATR)\n` +

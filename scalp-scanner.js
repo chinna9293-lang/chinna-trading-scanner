@@ -7,6 +7,7 @@
 
 import https from 'https';
 import fs from 'fs';
+import { evaluateStrategy } from './strategy.js';
 
 const ALPACA_KEY = process.env.ALPACA_KEY;
 const ALPACA_SECRET = process.env.ALPACA_SECRET;
@@ -119,173 +120,37 @@ async function fetchQuote(symbol) {
 
 // 🎯 Detect scalp signals — bullish + bearish patterns
 function detectSignals(symbol, bars, quote) {
-  if (!bars || bars.length < 15) return [];
+  // REAL "Luxy UT GOD" confluence strategy shared with the dashboard,
+  // trader.js, and scanner.js (see strategy.js). Replaces the previous
+  // set of independent pattern signals (pivot bounce, VWAP cross, order
+  // flow, EMA cross, engulfing) with the one strategy used everywhere
+  // else in this project. Only fires on the same >=70% high-conviction
+  // threshold the dashboard shows as a LUX UT GOD BUY/SELL badge.
+  if (!bars || bars.length < 55) return [];
 
-  const signals = [];
-  const opens   = bars.map(b => parseFloat(b.o));
-  const closes  = bars.map(b => parseFloat(b.c));
-  const highs   = bars.map(b => parseFloat(b.h));
-  const lows    = bars.map(b => parseFloat(b.l));
-  const volumes = bars.map(b => parseFloat(b.v));
+  const parsedBars = bars.map(b => ({
+    o: parseFloat(b.o), h: parseFloat(b.h), l: parseFloat(b.l), c: parseFloat(b.c), v: parseFloat(b.v)
+  }));
+  const strat = evaluateStrategy(parsedBars);
+  if (!strat || !strat.highConviction) return [];
 
-  const n    = closes.length;
-  const cur  = closes[n - 1];
-  const prev = closes[n - 2];
-  const curO = opens[n - 1];
-  const prevO = opens[n - 2];
-  const curH = highs[n - 1];
-  const curL = lows[n - 1];
+  const currentPrice = parseFloat(quote?.bp || quote?.ap || strat.price);
+  const isBull = strat.signal === 'BUY';
 
-  const currentPrice = parseFloat(quote.bp || quote.ap || cur);
-  const avgVol = volumes.slice(-10).reduce((a, b) => a + b, 0) / 10;
-  const currentVol = volumes[n - 1];
-  const volRatio = avgVol > 0 ? currentVol / avgVol : 0;
-  const volumeSpike = volRatio > 1.5;
-
-  // Indicators
-  const vwap = calculateVWAP(bars);
-  const pivots = calculatePivots(opens[0], Math.max(...highs), Math.min(...lows), cur);
-  const orderFlow = calculateOrderFlow(bars);
-
-  // RSI
-  let rsi = 50;
-  if (n >= 15) {
-    const gains = [], losses = [];
-    for (let i = 1; i < Math.min(15, n); i++) {
-      const ch = closes[i] - closes[i - 1];
-      if (ch > 0) gains.push(ch); else losses.push(-ch);
-    }
-    const avgGain = gains.reduce((a, b) => a + b, 0) / 14 || 0.01;
-    const avgLoss = losses.reduce((a, b) => a + b, 0) / 14 || 0.01;
-    rsi = Math.round(100 - (100 / (1 + avgGain / avgLoss)));
-  }
-
-  // EMA9 / EMA21 cross
-  const ema9  = calculateEMACross(closes, 9);
-  const ema21 = calculateEMACross(closes, 21);
-
-  // ── BULLISH PATTERNS ──────────────────────────────────────────────────────
-
-  // 🟢 B1: Pivot S1 Bounce — price snaps off support with volume + oversold RSI
-  if (currentPrice > pivots.s1 && currentPrice < pivots.s1 + 0.15 && volumeSpike && rsi < 42) {
-    signals.push({
-      type: 'PIVOT_BOUNCE_BUY', direction: 'BULLISH',
-      symbol, price: currentPrice,
-      level: `S1 $${pivots.s1.toFixed(2)}`, rsi,
-      volRatio: volRatio.toFixed(1),
-      message: `🟢 ${symbol} BULLISH — S1 pivot bounce | RSI ${rsi} oversold | Vol ${volRatio.toFixed(1)}x`,
-      strength: 'HIGH'
-    });
-  }
-
-  // 🟢 B2: VWAP Cross Up — price closes above VWAP after being below
-  if (vwap && cur > vwap && prev <= vwap && volumeSpike) {
-    signals.push({
-      type: 'VWAP_CROSS_UP', direction: 'BULLISH',
-      symbol, price: currentPrice,
-      vwap: vwap.toFixed(2), volRatio: volRatio.toFixed(1),
-      message: `🟢 ${symbol} BULLISH — VWAP cross up $${vwap.toFixed(2)} | Vol ${volRatio.toFixed(1)}x`,
-      strength: 'MEDIUM'
-    });
-  }
-
-  // 🟢 B3: Order Flow Imbalance Buy — buyers dominating
-  if (orderFlow.imbalance > 35 && volumeSpike && rsi > 50) {
-    signals.push({
-      type: 'ORDER_FLOW_BUY', direction: 'BULLISH',
-      symbol, price: currentPrice,
-      imbalance: orderFlow.imbalance,
-      message: `🟢 ${symbol} BULLISH — Buy imbalance ${orderFlow.imbalance}% | Vol ${volRatio.toFixed(1)}x`,
-      strength: 'HIGH'
-    });
-  }
-
-  // 🟢 B4: EMA Bull Cross — EMA9 crosses above EMA21 (momentum shift up)
-  if (ema9.curr && ema21.curr && ema9.prev && ema21.prev &&
-      ema9.prev <= ema21.prev && ema9.curr > ema21.curr && volumeSpike) {
-    signals.push({
-      type: 'EMA_BULL_CROSS', direction: 'BULLISH',
-      symbol, price: currentPrice,
-      ema9: ema9.curr.toFixed(2), ema21: ema21.curr.toFixed(2),
-      message: `🟢 ${symbol} BULLISH — EMA9 crossed above EMA21 | Vol ${volRatio.toFixed(1)}x`,
-      strength: 'HIGH'
-    });
-  }
-
-  // 🟢 B5: Bullish Engulfing — current green candle fully engulfs prior red candle
-  const prevBearish = prevO > prev;           // prior candle was red
-  const curBullish  = cur > curO;             // current candle is green
-  const fullEngulf  = curO <= prev && cur >= prevO;  // body wraps prior body
-  if (prevBearish && curBullish && fullEngulf && volumeSpike && rsi < 55) {
-    signals.push({
-      type: 'BULLISH_ENGULFING', direction: 'BULLISH',
-      symbol, price: currentPrice, rsi,
-      message: `🟢 ${symbol} BULLISH — Engulfing candle at $${currentPrice.toFixed(2)} | RSI ${rsi} | Vol ${volRatio.toFixed(1)}x`,
-      strength: 'MEDIUM'
-    });
-  }
-
-  // ── BEARISH PATTERNS ──────────────────────────────────────────────────────
-
-  // 🔴 S1: Pivot R1 Resistance — price stalls at resistance + overbought
-  if (currentPrice > pivots.r1 - 0.15 && currentPrice < pivots.r1 + 0.05 && volumeSpike && rsi > 63) {
-    signals.push({
-      type: 'PIVOT_RESISTANCE_SELL', direction: 'BEARISH',
-      symbol, price: currentPrice,
-      level: `R1 $${pivots.r1.toFixed(2)}`, rsi,
-      message: `🔴 ${symbol} BEARISH — R1 pivot resistance | RSI ${rsi} overbought | Vol ${volRatio.toFixed(1)}x`,
-      strength: 'MEDIUM'
-    });
-  }
-
-  // 🔴 S2: VWAP Cross Down — price closes below VWAP after being above
-  if (vwap && cur < vwap && prev >= vwap && volumeSpike) {
-    signals.push({
-      type: 'VWAP_CROSS_DOWN', direction: 'BEARISH',
-      symbol, price: currentPrice,
-      vwap: vwap.toFixed(2), volRatio: volRatio.toFixed(1),
-      message: `🔴 ${symbol} BEARISH — VWAP cross down $${vwap.toFixed(2)} | Vol ${volRatio.toFixed(1)}x`,
-      strength: 'MEDIUM'
-    });
-  }
-
-  // 🔴 S3: Order Flow Imbalance Sell — sellers dominating
-  if (orderFlow.imbalance < -35 && volumeSpike && rsi < 50) {
-    signals.push({
-      type: 'ORDER_FLOW_SELL', direction: 'BEARISH',
-      symbol, price: currentPrice,
-      imbalance: orderFlow.imbalance,
-      message: `🔴 ${symbol} BEARISH — Sell imbalance ${Math.abs(orderFlow.imbalance)}% | Vol ${volRatio.toFixed(1)}x`,
-      strength: 'HIGH'
-    });
-  }
-
-  // 🔴 S4: EMA Bear Cross — EMA9 crosses below EMA21 (momentum shift down)
-  if (ema9.curr && ema21.curr && ema9.prev && ema21.prev &&
-      ema9.prev >= ema21.prev && ema9.curr < ema21.curr && volumeSpike) {
-    signals.push({
-      type: 'EMA_BEAR_CROSS', direction: 'BEARISH',
-      symbol, price: currentPrice,
-      ema9: ema9.curr.toFixed(2), ema21: ema21.curr.toFixed(2),
-      message: `🔴 ${symbol} BEARISH — EMA9 crossed below EMA21 | Vol ${volRatio.toFixed(1)}x`,
-      strength: 'HIGH'
-    });
-  }
-
-  // 🔴 S5: Bearish Engulfing — current red candle fully engulfs prior green candle
-  const prevBullish2 = prev > prevO;
-  const curBearish2  = curO > cur;
-  const fullEngulf2  = curO >= prev && cur <= prevO;
-  if (prevBullish2 && curBearish2 && fullEngulf2 && volumeSpike && rsi > 45) {
-    signals.push({
-      type: 'BEARISH_ENGULFING', direction: 'BEARISH',
-      symbol, price: currentPrice, rsi,
-      message: `🔴 ${symbol} BEARISH — Engulfing candle at $${currentPrice.toFixed(2)} | RSI ${rsi} | Vol ${volRatio.toFixed(1)}x`,
-      strength: 'MEDIUM'
-    });
-  }
-
-  return signals;
+  return [{
+    type: isBull ? 'UT_GOD_BUY' : 'UT_GOD_SELL',
+    direction: isBull ? 'BULLISH' : 'BEARISH',
+    symbol,
+    price: currentPrice,
+    score: strat.score,
+    verdict: strat.verdict,
+    rsi: Math.round(strat.rsi),
+    utTrailStop: strat.utTrailStop.toFixed(2),
+    superTrendVal: strat.superTrendVal.toFixed(2),
+    rvol: strat.rvol.toFixed(1),
+    message: `${isBull ? '🟢' : '🔴'} ${symbol} ${strat.verdict} — ${strat.score}% confluence | RSI ${Math.round(strat.rsi)} | RVOL ${strat.rvol.toFixed(1)}x`,
+    strength: strat.score >= 85 ? 'HIGH' : 'MEDIUM'
+  }];
 }
 
 // 💰 Get account balance for position sizing
@@ -429,7 +294,7 @@ async function runScan() {
   for (const symbol of STOCKS) {
     try {
       console.log(`  📊 Scanning ${symbol}...`);
-      const bars = await fetch1MinBars(symbol, 50);
+      const bars = await fetch1MinBars(symbol, 60); // >=55 needed by evaluateStrategy()
       const quote = await fetchQuote(symbol);
 
       if (!bars || bars.length < 5) {

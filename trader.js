@@ -1,5 +1,9 @@
 // Continuous Trader — Scan & Monitor every 30 seconds, 24/7
 // One unified service: Check positions OR scan for signals
+// Entry signal is the same Luxy UT GOD confluence engine used by the
+// dashboard, scanner.js, and scalp-scanner.js -- see strategy.js.
+
+import { evaluateStrategy } from './strategy.js';
 
 const NTFY    = process.env.NTFY_TOPIC      || 'chinna-trading-alerts';
 const ALP_KEY = process.env.ALPACA_KEY      || '';
@@ -158,52 +162,25 @@ async function getBars(symbol, limit = 60) {
 }
 
 function checkSignal(bars) {
-  if (bars.length < 21) return null;
+  // REAL "Luxy UT GOD" confluence strategy shared with the dashboard and
+  // scanner.js/scalp-scanner.js (see strategy.js). trader.js stays
+  // long-only (its bracket-order math below assumes stop < entry <
+  // target), so it only acts on high-conviction BUY signals; SELL
+  // signals are left to scanner.js, which can short.
+  const strat = evaluateStrategy(bars);
+  if (!strat || !strat.highConviction || strat.signal !== 'BUY') return null;
 
-  const closes = bars.map(b => b.c);
-  const highs = bars.map(b => b.h);
-  const lows = bars.map(b => b.l);
-  const volumes = bars.map(b => b.v);
-
-  const last = bars[bars.length - 1];
-  const prev = bars[bars.length - 2];
-
-  // ─ MOMENTUM: RSI > 60 (strong bullish momentum)
-  const rsi = rsiCalc(closes);
-  const momentum = rsi > 60;
-
-  // ─ SUPPORT & RESISTANCE (20-bar lookback)
-  const swingHigh = Math.max(...highs.slice(-20));
-  const swingLow = Math.min(...lows.slice(-20));
-  const resistance = swingHigh;
-  const support = swingLow;
-
-  // ─ BREAKOUT: Price breaks above resistance
-  const breakoutAbove = last.c > resistance && prev.c <= resistance;
-
-  // ─ VOLUME CONFIRMATION: Volume > 1.5x average
-  const avgVolume = volumes.slice(-20).reduce((a, b) => a + b, 0) / 20;
-  const volumeSpike = last.v > (avgVolume * 1.5);
-
-  // ─ ENTRY SIGNAL: Breakout + Momentum + Volume
-  if (breakoutAbove && momentum && volumeSpike) {
-    const entryPrice = last.c;
-    const stopLoss = entryPrice * (1 - 0.0133); // -1.33% = $2 on $150
-    const profitTarget = entryPrice * (1 + 0.025); // +2.5% = $3.75 on $150
-
-    return {
-      side: 'buy',
-      price: entryPrice,
-      stopLoss,
-      profitTarget,
-      rsi,
-      resistance,
-      support,
-      signalType: 'BREAKOUT + MOMENTUM + VOLUME'
-    };
-  }
-
-  return null;
+  return {
+    side: 'buy',
+    price: strat.price,
+    stopLoss: strat.sl,
+    profitTarget: strat.tp1,
+    atr: strat.atr,
+    rsi: strat.rsi,
+    resistance: strat.swingHigh,
+    support: strat.swingLow,
+    signalType: `${strat.verdict} (${strat.score}% Confluence)`
+  };
 }
 
 async function scanForSignal() {
