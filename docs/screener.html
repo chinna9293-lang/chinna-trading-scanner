@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Screener - EMA+MACD+RSI+SMA</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+  color: #e2e8f0;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 12px;
+}
+
+.header h1 {
+  font-size: 28px;
+  margin-bottom: 8px;
+  color: #6366f1;
+}
+
+.header p {
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+.screener-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(15, 20, 35, 0.8);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  margin-bottom: 20px;
+}
+
+.screener-table thead {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.2));
+  border-bottom: 2px solid rgba(99, 102, 241, 0.4);
+}
+
+.screener-table th {
+  padding: 14px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a5b4fc;
+}
+
+.screener-table td {
+  padding: 12px 14px;
+  text-align: center;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+  font-size: 13px;
+}
+
+.screener-table tbody tr:hover {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.stock-name {
+  text-align: left;
+  font-weight: 600;
+  color: #fff;
+  min-width: 100px;
+}
+
+.price {
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+.criteria {
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.bullish {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.bearish {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.neutral {
+  background: rgba(107, 114, 128, 0.2);
+  color: #cbd5e1;
+  border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.overall {
+  font-weight: 700;
+  min-width: 120px;
+}
+
+.signal-bullish {
+  background: rgba(34, 197, 94, 0.25);
+  color: #22c55e;
+  border: 2px solid rgba(34, 197, 94, 0.5);
+}
+
+.signal-bearish {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  border: 2px solid rgba(239, 68, 68, 0.5);
+}
+
+.signal-neutral {
+  background: rgba(107, 114, 128, 0.2);
+  color: #cbd5e1;
+  border: 2px solid rgba(107, 114, 128, 0.3);
+}
+
+.legend {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  margin: 30px 0;
+  padding: 20px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 10px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 2px solid;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #a5b4fc;
+  font-size: 16px;
+}
+
+.error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.criteria-name {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 768px) {
+  .screener-table { font-size: 11px; }
+  .screener-table th, .screener-table td { padding: 8px 6px; }
+  .legend { gap: 15px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>📊 Stock Screener</h1>
+    <p>Real-time Technical Analysis: EMA 8/21 | MACD | RSI 10-65 | SMA 50/200</p>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: rgba(34,197,94,0.2); border-color: #22c55e;"></div>
+      <span>✓ Bullish / Condition Met</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: rgba(239,68,68,0.2); border-color: #ef4444;"></div>
+      <span>✗ Bearish / Condition Failed</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: rgba(107,114,128,0.2); border-color: #8b8b8b;"></div>
+      <span>- Neutral / Data Loading</span>
+    </div>
+  </div>
+
+  <div id="screenerpop" class="loading">Loading stock data...</div>
+</div>
+
+<script>
+const STOCKS = ['GOOGL', 'MSFT', 'NVDA', 'TSLA', 'AMD', 'META', 'NFLX', 'QQQ', 'AAPL', 'SPY'];
+const ALP_KEY = localStorage.getItem('alpaca_key') || '';
+const ALP_SEC = localStorage.getItem('alpaca_secret') || '';
+const ALP_URL = 'https://paper-api.alpaca.markets';
+
+async function getBars(symbol) {
+  try {
+    const res = await fetch(`${ALP_URL}/v2/stocks/${symbol}/bars?timeframe=5m&limit=100`, {
+      headers: {
+        'APCA-API-KEY-ID': ALP_KEY,
+        'APCA-API-SECRET-KEY': ALP_SEC
+      }
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.bars || [];
+  } catch (e) {
+    console.error(`Bars error for ${symbol}:`, e);
+    return null;
+  }
+}
+
+async function getQuote(symbol) {
+  try {
+    const res = await fetch(`${ALP_URL}/v2/stocks/${symbol}/quotes/latest`, {
+      headers: {
+        'APCA-API-KEY-ID': ALP_KEY,
+        'APCA-API-SECRET-KEY': ALP_SEC
+      }
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.quote?.ap || null;
+  } catch (e) {
+    console.error(`Quote error for ${symbol}:`, e);
+    return null;
+  }
+}
+
+function analyzeStock(bars) {
+  if (!bars || bars.length < 50) return null;
+
+  const closes = bars.map(b => b.c);
+  const highs = bars.map(b => b.h);
+  const lows = bars.map(b => b.l);
+  const volumes = bars.map(b => b.v);
+
+  // EMA 8 & 21
+  const ema8 = calculateEMA(closes, 8);
+  const ema21 = calculateEMA(closes, 21);
+  const emaBullish = ema8 > ema21;
+
+  // SMA 50 & 200
+  const sma50 = closes.slice(-50).reduce((a, b) => a + b) / 50;
+  const sma200 = closes.slice(-200).reduce((a, b) => a + b) / closes.slice(-200).length;
+  const smaBullish = sma50 > sma200;
+  const priceBullish = closes[closes.length - 1] > sma200;
+
+  // RSI
+  const rsi = calculateRSI(closes, 14);
+  const rsiBullish = rsi >= 10 && rsi <= 65;
+
+  // MACD
+  const macd = calculateMACD(closes, 12, 26, 9);
+  const macdBullish = macd.hist > 0;
+
+  // Overall signal
+  const signals = [emaBullish, macdBullish, rsiBullish, priceBullish, smaBullish].filter(x => x).length;
+  const overallBullish = signals >= 4;
+
+  return {
+    ema: { bullish: emaBullish, value: `${ema8.toFixed(2)}/${ema21.toFixed(2)}` },
+    macd: { bullish: macdBullish, value: macd.hist.toFixed(2) },
+    rsi: { bullish: rsiBullish, value: rsi.toFixed(1) },
+    sma: { bullish: smaBullish && priceBullish, value: `P>${sma200.toFixed(0)} SMA50>200` },
+    overall: { bullish: overallBullish, signals: signals, count: 5 }
+  };
+}
+
+function calculateEMA(closes, len) {
+  if (closes.length < len) return closes[closes.length - 1];
+  const k = 2 / (len + 1);
+  let ema = closes[0];
+  for (let i = 1; i < closes.length; i++) {
+    ema = closes[i] * k + ema * (1 - k);
+  }
+  return ema;
+}
+
+function calculateRSI(closes, len) {
+  if (closes.length < len + 1) return 50;
+  let up = 0, dn = 0;
+  for (let i = closes.length - len; i < closes.length; i++) {
+    const delta = closes[i] - closes[i - 1];
+    if (delta > 0) up += delta;
+    else dn -= delta;
+  }
+  const rs = up / (dn || 1);
+  return 100 - (100 / (1 + rs));
+}
+
+function calculateMACD(closes, fast, slow, signal) {
+  const fastEMA = calculateEMA(closes, fast);
+  const slowEMA = calculateEMA(closes, slow);
+  const macdLine = fastEMA - slowEMA;
+  const signalLine = calculateEMA(closes.map((_, i) => {
+    const f = calculateEMA(closes.slice(0, i + 1), fast);
+    const s = calculateEMA(closes.slice(0, i + 1), slow);
+    return f - s;
+  }), signal);
+  return { line: macdLine, signal: signalLine, hist: macdLine - signalLine };
+}
+
+async function runScreener() {
+  const results = [];
+
+  for (const symbol of STOCKS) {
+    try {
+      const bars = await getBars(symbol);
+      const price = await getQuote(symbol);
+
+      if (!bars || !price) {
+        results.push({ symbol, error: true });
+        continue;
+      }
+
+      const analysis = analyzeStock(bars);
+      if (!analysis) {
+        results.push({ symbol, error: true });
+        continue;
+      }
+
+      results.push({
+        symbol,
+        price: price.toFixed(2),
+        ...analysis
+      });
+    } catch (e) {
+      console.error(`Error for ${symbol}:`, e);
+      results.push({ symbol, error: true });
+    }
+  }
+
+  renderTable(results);
+}
+
+function renderTable(results) {
+  const html = `
+    <table class="screener-table">
+      <thead>
+        <tr>
+          <th style="text-align: left;">Stock</th>
+          <th>Price</th>
+          <th>
+            <div class="criteria-name">EMA 8/21</div>
+            <div style="font-size: 11px; color: #cbd5e1;">Bullish</div>
+          </th>
+          <th>
+            <div class="criteria-name">MACD</div>
+            <div style="font-size: 11px; color: #cbd5e1;">Positive</div>
+          </th>
+          <th>
+            <div class="criteria-name">RSI</div>
+            <div style="font-size: 11px; color: #cbd5e1;">10-65</div>
+          </th>
+          <th>
+            <div class="criteria-name">SMA 50/200</div>
+            <div style="font-size: 11px; color: #cbd5e1;">Bullish</div>
+          </th>
+          <th style="min-width: 140px;">
+            <div class="criteria-name">Overall Signal</div>
+            <div style="font-size: 11px; color: #cbd5e1;">Criteria Met</div>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        ${results.map(r => `
+          <tr>
+            <td class="stock-name">${r.symbol}</td>
+            <td class="price">${r.error ? 'N/A' : '$' + r.price}</td>
+            <td><span class="criteria ${r.error ? 'neutral' : r.ema.bullish ? 'bullish' : 'bearish'}">${r.error ? '-' : (r.ema.bullish ? '✓' : '✗')}</span></td>
+            <td><span class="criteria ${r.error ? 'neutral' : r.macd.bullish ? 'bullish' : 'bearish'}">${r.error ? '-' : (r.macd.bullish ? '✓' : '✗')}</span></td>
+            <td><span class="criteria ${r.error ? 'neutral' : r.rsi.bullish ? 'bullish' : 'bearish'}">${r.error ? '-' : (r.rsi.bullish ? '✓' : '✗')}</span></td>
+            <td><span class="criteria ${r.error ? 'neutral' : r.sma.bullish ? 'bullish' : 'bearish'}">${r.error ? '-' : (r.sma.bullish ? '✓' : '✗')}</span></td>
+            <td class="overall"><span class="signal-${r.error ? 'neutral' : r.overall.bullish ? 'bullish' : 'bearish'}">${r.error ? 'Error' : (r.overall.bullish ? '🟢 BULLISH' : '🔴 BEARISH')} ${r.overall.signals}/${r.overall.count}</span></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+
+  document.getElementById('screenerpop').innerHTML = html;
+
+  // Auto-refresh every 30 seconds
+  setTimeout(runScreener, 30000);
+}
+
+// Start screener
+runScreener();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,23 @@
+name: Trading Scanner
+
+on:
+  schedule:
+    # Every hour, 24/7 — stocks auto-skip on weekends/off-hours inside scanner.js
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run Scanner
+        run: node scanner.js
+        env:
+          NTFY_TOPIC:        ${{ secrets.NTFY_TOPIC }}
+          ALPACA_KEY:        ${{ secrets.ALPACA_KEY }}
+          ALPACA_SECRET:     ${{ secrets.ALPACA_SECRET }}
+          ALPACA_BASE_URL:   ${{ secrets.ALPACA_BASE_URL }}

@@ -1,0 +1,116 @@
+//@version=6
+strategy("Screener: EMA+MACD+RSI+SMA", overlay=true, default_qty_type=strategy.fixed, default_qty_value=100)
+
+// INPUTS
+ema8_len = input(8, "EMA 8")
+ema21_len = input(21, "EMA 21")
+sma50_len = input(50, "SMA 50")
+sma200_len = input(200, "SMA 200")
+rsi_len = input(14, "RSI Length")
+macd_fast = input(12, "MACD Fast")
+macd_slow = input(26, "MACD Slow")
+macd_signal = input(9, "MACD Signal")
+
+// ═════════════════════════════════════════════════════════════════
+// INDICATORS
+// ═════════════════════════════════════════════════════════════════
+
+// EMA 8 & 21
+ema8 = ta.ema(close, ema8_len)
+ema21 = ta.ema(close, ema21_len)
+
+// SMA 50 & 200
+sma50 = ta.sma(close, sma50_len)
+sma200 = ta.sma(close, sma200_len)
+
+// RSI (10-65 zone)
+rsi = ta.rsi(close, rsi_len)
+rsi_zone = rsi >= 10 and rsi <= 65
+
+// MACD
+macd_line = ta.ema(close, macd_fast) - ta.ema(close, macd_slow)
+macd_signal_line = ta.ema(macd_line, macd_signal)
+macd_hist = macd_line - macd_signal_line
+macd_buy = macd_hist > 0 and macd_hist[1] <= 0
+macd_positive = macd_hist > 0
+
+// ═════════════════════════════════════════════════════════════════
+// SIGNALS
+// ═════════════════════════════════════════════════════════════════
+
+// BUY: All conditions aligned
+ema_bullish = ema8 > ema21 and ema8[1] <= ema21[1]
+sma_bullish = close > sma200
+sma50_cross = sma50 > sma200 and sma50[1] <= sma200[1]
+
+buy_signal = ema_bullish and macd_positive and rsi_zone and sma_bullish and sma50_cross
+
+// SELL: Exit conditions
+ema_bearish = ema8 < ema21 and ema8[1] >= ema21[1]
+macd_negative = macd_hist < 0
+price_below_sma200 = close < sma200
+
+sell_signal = ema_bearish or macd_negative or not rsi_zone or price_below_sma200
+
+// ═════════════════════════════════════════════════════════════════
+// POSITION TRACKING
+// ═════════════════════════════════════════════════════════════════
+
+in_position = strategy.opentrades > 0
+
+if buy_signal and not in_position
+    strategy.entry("LONG", strategy.long, comment="BUY: EMA+MACD+RSI+SMA")
+
+if sell_signal and in_position
+    strategy.close("LONG", comment="SELL")
+
+// ═════════════════════════════════════════════════════════════════
+// DISPLAY - Plot EMAs and SMAs
+// ═════════════════════════════════════════════════════════════════
+
+plot(ema8, "EMA 8", color=color.blue, linewidth=1)
+plot(ema21, "EMA 21", color=color.orange, linewidth=1)
+plot(sma50, "SMA 50", color=color.green, linewidth=2)
+plot(sma200, "SMA 200", color=color.red, linewidth=2)
+
+// ═════════════════════════════════════════════════════════════════
+// SIGNALS ON CHART
+// ═════════════════════════════════════════════════════════════════
+
+if buy_signal and not in_position
+    label.new(bar_index, low, text="BUY",
+              color=color.new(color.green, 0), textcolor=color.white,
+              style=label.style_label_up, size=size.large,
+              tooltip="EMA8>21 + MACD+ + RSI(10-65) + Price>SMA200 + SMA50>SMA200")
+
+if sell_signal and in_position
+    label.new(bar_index, high, text="SELL",
+              color=color.new(color.red, 0), textcolor=color.white,
+              style=label.style_label_down, size=size.large,
+              tooltip="EMA8<21 OR MACD- OR RSI out OR Price<SMA200")
+
+bgcolor(in_position ? color.new(color.green, 90) : na)
+
+// ═════════════════════════════════════════════════════════════════
+// STATUS TABLE
+// ═════════════════════════════════════════════════════════════════
+
+info = table.new(position.top_right, 2, 6, border_color=color.gray, border_width=1)
+
+table.cell(info, 0, 0, text="SCREENER", text_size=size.small, bgcolor=color.navy, text_color=color.white)
+table.cell(info, 1, 0, text=in_position ? "LONG" : "FLAT", text_size=size.small, bgcolor=in_position ? color.green : color.gray, text_color=color.white)
+
+table.cell(info, 0, 1, text="EMA 8 > 21", text_size=size.small)
+table.cell(info, 1, 1, text=ema8 > ema21 ? "✓" : "✗", text_size=size.small, bgcolor=ema8 > ema21 ? color.new(color.green, 80) : color.new(color.gray, 80))
+
+table.cell(info, 0, 2, text="MACD", text_size=size.small)
+table.cell(info, 1, 2, text=macd_positive ? "✓" : "✗", text_size=size.small, bgcolor=macd_positive ? color.new(color.green, 80) : color.new(color.gray, 80))
+
+table.cell(info, 0, 3, text="RSI 10-65", text_size=size.small)
+table.cell(info, 1, 3, text=str.tostring(rsi, "0.0"), text_size=size.small, bgcolor=rsi_zone ? color.new(color.green, 80) : color.new(color.gray, 80))
+
+table.cell(info, 0, 4, text="Price > SMA200", text_size=size.small)
+table.cell(info, 1, 4, text=sma_bullish ? "✓" : "✗", text_size=size.small, bgcolor=sma_bullish ? color.new(color.green, 80) : color.new(color.gray, 80))
+
+table.cell(info, 0, 5, text="SMA50 > SMA200", text_size=size.small)
+table.cell(info, 1, 5, text=sma50 > sma200 ? "✓" : "✗", text_size=size.small, bgcolor=sma50 > sma200 ? color.new(color.green, 80) : color.new(color.gray, 80))

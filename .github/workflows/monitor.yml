@@ -1,0 +1,23 @@
+name: 24/7 Trade Monitor
+
+on:
+  schedule:
+    # Every minute, 24/7 — continuous position monitoring
+    - cron: '* * * * *'
+  workflow_dispatch:
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Monitor Positions
+        run: timeout 50s node monitor.js || true
+        env:
+          NTFY_TOPIC:        ${{ secrets.NTFY_TOPIC }}
+          ALPACA_KEY:        ${{ secrets.ALPACA_KEY }}
+          ALPACA_SECRET:     ${{ secrets.ALPACA_SECRET }}
+          ALPACA_BASE_URL:   ${{ secrets.ALPACA_BASE_URL }}

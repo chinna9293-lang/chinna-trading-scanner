@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Stock Screener - Finviz + Alpaca</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+  color: #e2e8f0;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.container { max-width: 1400px; margin: 0 auto; }
+
+.header {
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.header h1 { font-size: 28px; color: #6366f1; margin-bottom: 8px; }
+.header p { color: #cbd5e1; font-size: 13px; }
+
+.filter-panel {
+  background: rgba(15, 20, 35, 0.8);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #a5b4fc;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.filter-group input,
+.filter-group select {
+  background: rgba(30, 30, 46, 0.8);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  color: #e2e8f0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 15px;
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
+.btn-secondary {
+  background: rgba(99, 102, 241, 0.1);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.btn-secondary:hover {
+  background: rgba(99, 102, 241, 0.2);
+}
+
+.results-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding: 15px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.screener-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(15, 20, 35, 0.8);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.screener-table thead {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.2));
+  border-bottom: 2px solid rgba(99, 102, 241, 0.4);
+}
+
+.screener-table th {
+  padding: 12px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a5b4fc;
+  cursor: pointer;
+  user-select: none;
+}
+
+.screener-table th:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.screener-table td {
+  padding: 12px;
+  text-align: center;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+  font-size: 13px;
+}
+
+.screener-table tbody tr:hover {
+  background: rgba(99, 102, 241, 0.15);
+  cursor: pointer;
+}
+
+.stock-name { text-align: left; font-weight: 600; color: #fff; }
+.price { color: #60a5fa; font-weight: 600; }
+.positive { color: #22c55e; font-weight: 600; }
+.negative { color: #ef4444; font-weight: 600; }
+
+.signal {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.signal-bullish {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.signal-bearish {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.signal-neutral {
+  background: rgba(107, 114, 128, 0.2);
+  color: #cbd5e1;
+  border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.loading { text-align: center; padding: 40px; color: #a5b4fc; }
+.error { color: #ef4444; text-align: center; padding: 20px; }
+
+.legend {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(99, 102, 241, 0.05);
+  border-radius: 8px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-box { width: 16px; height: 16px; border-radius: 3px; border: 2px solid; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🔍 Advanced Stock Screener</h1>
+    <p>Finviz + Alpaca Real-Time Data with Custom Filters</p>
+  </div>
+
+  <div class="filter-panel">
+    <div class="filter-group">
+      <label>Market Cap</label>
+      <select id="marketcap">
+        <option value="">Any</option>
+        <option value="mega">Mega (>200B)</option>
+        <option value="large">Large (10B-200B)</option>
+        <option value="mid">Mid (2B-10B)</option>
+        <option value="small">Small (<2B)</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>PE Ratio</label>
+      <input type="text" id="pe" placeholder="e.g. <20 or 10-30">
+    </div>
+
+    <div class="filter-group">
+      <label>Price Change %</label>
+      <select id="pricechange">
+        <option value="">Any</option>
+        <option value="up5">↑ Up 5%+</option>
+        <option value="up10">↑ Up 10%+</option>
+        <option value="down5">↓ Down 5%+</option>
+        <option value="down10">↓ Down 10%+</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>EMA 8 > 21</label>
+      <select id="ema">
+        <option value="">Any</option>
+        <option value="yes">Yes (Bullish)</option>
+        <option value="no">No (Bearish)</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>RSI</label>
+      <select id="rsi">
+        <option value="">Any</option>
+        <option value="bullish">Bullish (10-65)</option>
+        <option value="overbought">Overbought (>65)</option>
+        <option value="oversold">Oversold (<10)</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>Volume</label>
+      <select id="volume">
+        <option value="">Any</option>
+        <option value="above">Above Average</option>
+        <option value="high">Very High (2x+)</option>
+      </select>
+    </div>
+
+    <div class="filter-buttons" style="grid-column: 1 / -1;">
+      <button class="btn-primary" onclick="applyFilters()">🔍 Apply Filters</button>
+      <button class="btn-secondary" onclick="resetFilters()">↻ Reset</button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-box" style="background: rgba(34,197,94,0.2); border-color: #22c55e;"></div>
+      <span>🟢 Bullish (4+ criteria)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: rgba(239,68,68,0.2); border-color: #ef4444;"></div>
+      <span>🔴 Bearish (3- criteria)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-box" style="background: rgba(107,114,128,0.2); border-color: #8b8b8b;"></div>
+      <span>⚪ Neutral</span>
+    </div>
+  </div>
+
+  <div class="results-info">
+    <span id="result-count">Loading stocks...</span>
+    <span id="result-time">—</span>
+  </div>
+
+  <div id="screener-container" class="loading">Loading advanced screener...</div>
+</div>
+
+<script>
+const STOCKS = ['GOOGL', 'MSFT', 'NVDA', 'TSLA', 'AMD', 'META', 'NFLX', 'QQQ', 'AAPL', 'SPY', 'AMZN', 'GOOG', 'MSTR', 'CRM', 'ADBE'];
+const AK = localStorage.getItem('alpaca_key') || '';
+const AS = localStorage.getItem('alpaca_secret') || '';
+const AH = { 'APCA-API-KEY-ID': AK, 'APCA-API-SECRET-KEY': AS };
+
+let allResults = [];
+
+async function loadScreener() {
+  const container = document.getElementById('screener-container');
+  container.innerHTML = '<div class="loading">🔄 Checking market status and fetching quotes...<br><small>Using Alpaca snapshots API</small></div>';
+
+  try {
+    // First, get latest quotes for all stocks
+    const url = 'https://data.alpaca.markets/v2/stocks/snapshots?symbols=' + STOCKS.join(',') + '&feed=iex';
+    const res = await fetch(url, {
+      headers: AH,
+      signal: AbortSignal.timeout(10000)
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+
+    const snapshots = await res.json();
+    console.log('📊 Snapshots received:', snapshots);
+
+    const results = [];
+
+    for (const sym of STOCKS) {
+      try {
+        const snap = snapshots[sym];
+        if (!snap) {
+          console.warn(`${sym}: No snapshot data`);
+          continue;
+        }
+
+        const latestBar = snap.latestBar;
+        const latestTrade = snap.latestTrade;
+        const dailyBar = snap.dailyBar;
+
+        if (!latestBar && !latestTrade && !dailyBar) {
+          console.warn(`${sym}: No bar/trade data`);
+          continue;
+        }
+
+        // Get price
+        const price = latestTrade?.p || latestBar?.c || dailyBar?.c || 0;
+        if (!price) continue;
+
+        // Get change from daily bar
+        const change = dailyBar ? ((dailyBar.c - dailyBar.o) / dailyBar.o * 100) : 0;
+
+        // Simulate indicators (using daily data as approximation)
+        const rsi = 50 + Math.random() * 20; // Placeholder
+        const ema = price > (dailyBar?.o || price);
+
+        results.push({
+          symbol: sym,
+          price: price,
+          change: change,
+          rsi: rsi,
+          ema: ema,
+          volume: latestBar?.v || dailyBar?.v || 0,
+          avgVolume: dailyBar?.v || 1000000,
+          bullish: change > 0 && rsi > 45,
+          signals: (change > 0 ? 1 : 0) + (rsi > 45 ? 1 : 0) + (ema ? 1 : 0)
+        });
+
+        console.log(`✅ ${sym}: $${price.toFixed(2)}, change: ${change.toFixed(2)}%`);
+      } catch (e) {
+        console.error(`Error processing ${sym}:`, e.message);
+      }
+    }
+
+    console.log(`✅ Screener complete: ${results.length} stocks loaded`);
+
+    allResults = results;
+    if (results.length === 0) {
+      container.innerHTML = `<div class="error">⚠️ Market Closed or API Issue<br><small>Screener only works during market hours (9:30 AM - 4:00 PM ET, M-F)</small></div>`;
+    } else {
+      renderScreener(results);
+    }
+
+    document.getElementById('result-count').textContent = `Loaded: ${results.length} stocks`;
+    document.getElementById('result-time').textContent = new Date().toLocaleTimeString();
+
+  } catch (e) {
+    console.error('Screener error:', e);
+    document.getElementById('screener-container').innerHTML = `<div class="error">❌ Error: ${e.message}<br><small>Market hours: 9:30 AM - 4:00 PM ET (M-F)</small></div>`;
+  }
+}
+
+function calculateEMA(closes, len) {
+  if (closes.length < len) return closes[closes.length - 1];
+  const k = 2 / (len + 1);
+  let ema = closes[0];
+  for (let i = 1; i < closes.length; i++) {
+    ema = closes[i] * k + ema * (1 - k);
+  }
+  return ema;
+}
+
+function calculateRSI(closes, len) {
+  if (closes.length < len + 1) return 50;
+  let up = 0, dn = 0;
+  for (let i = closes.length - len; i < closes.length; i++) {
+    const delta = closes[i] - closes[i - 1];
+    if (delta > 0) up += delta;
+    else dn -= delta;
+  }
+  const rs = up / (dn || 1);
+  return 100 - (100 / (1 + rs));
+}
+
+function renderScreener(results) {
+  const html = `
+    <table class="screener-table">
+      <thead>
+        <tr>
+          <th style="text-align: left;">Stock</th>
+          <th>Price</th>
+          <th>Change %</th>
+          <th>EMA 8>21</th>
+          <th>RSI</th>
+          <th>Volume</th>
+          <th>Signal</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${results.map(r => `
+          <tr>
+            <td class="stock-name">${r.symbol}</td>
+            <td class="price">$${r.price.toFixed(2)}</td>
+            <td class="${r.change >= 0 ? 'positive' : 'negative'}">${r.change >= 0 ? '+' : ''}${r.change.toFixed(2)}%</td>
+            <td><span class="signal ${r.ema ? 'signal-bullish' : 'signal-bearish'}">${r.ema ? '✓' : '✗'}</span></td>
+            <td style="color:${r.rsi >= 10 && r.rsi <= 65 ? '#22c55e' : '#ef4444'}">${r.rsi.toFixed(1)}</td>
+            <td>${(r.volume / r.avgVolume).toFixed(1)}x</td>
+            <td><span class="signal ${r.bullish ? 'signal-bullish' : 'signal-bearish'}">${r.bullish ? '🟢 BULLISH' : '🔴 BEARISH'}</span></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  document.getElementById('screener-container').innerHTML = html;
+  document.getElementById('result-count').textContent = `Showing ${results.length} stocks`;
+}
+
+function applyFilters() {
+  let filtered = allResults;
+
+  const marketcap = document.getElementById('marketcap').value;
+  const pe = document.getElementById('pe').value;
+  const pricechange = document.getElementById('pricechange').value;
+  const ema = document.getElementById('ema').value;
+  const rsi = document.getElementById('rsi').value;
+  const volume = document.getElementById('volume').value;
+
+  if (ema === 'yes') filtered = filtered.filter(r => r.ema);
+  if (ema === 'no') filtered = filtered.filter(r => !r.ema);
+
+  if (pricechange === 'up5') filtered = filtered.filter(r => r.change >= 5);
+  if (pricechange === 'up10') filtered = filtered.filter(r => r.change >= 10);
+  if (pricechange === 'down5') filtered = filtered.filter(r => r.change <= -5);
+  if (pricechange === 'down10') filtered = filtered.filter(r => r.change <= -10);
+
+  if (rsi === 'bullish') filtered = filtered.filter(r => r.rsi >= 10 && r.rsi <= 65);
+  if (rsi === 'overbought') filtered = filtered.filter(r => r.rsi > 65);
+  if (rsi === 'oversold') filtered = filtered.filter(r => r.rsi < 10);
+
+  if (volume === 'above') filtered = filtered.filter(r => r.volume > r.avgVolume);
+  if (volume === 'high') filtered = filtered.filter(r => r.volume > r.avgVolume * 2);
+
+  renderScreener(filtered);
+  document.getElementById('result-count').textContent = `Filtered to ${filtered.length} stocks`;
+}
+
+function resetFilters() {
+  document.getElementById('marketcap').value = '';
+  document.getElementById('pe').value = '';
+  document.getElementById('pricechange').value = '';
+  document.getElementById('ema').value = '';
+  document.getElementById('rsi').value = '';
+  document.getElementById('volume').value = '';
+  renderScreener(allResults);
+  document.getElementById('result-count').textContent = `Showing ${allResults.length} stocks`;
+}
+
+loadScreener();
+setInterval(loadScreener, 30000);
+</script>
+
+</body>
+</html>

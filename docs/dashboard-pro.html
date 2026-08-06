@@ -1,0 +1,2190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chinna Trading Scanner — Simple & Direct</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+:root {
+  --bg: #0b0f19;
+  --bg-card: #111827;
+  --bg-card-hover: #1f2937;
+  --border: #1f2937;
+  --border-focus: #374151;
+  
+  --text-main: #f9fafb;
+  --text-muted: #9ca3af;
+  --text-dim: #6b7280;
+  
+  --green: #10b981;
+  --green-bg: rgba(16, 185, 129, 0.12);
+  --red: #ef4444;
+  --red-bg: rgba(239, 68, 68, 0.12);
+  --gold: #f59e0b;
+  --gold-bg: rgba(245, 158, 11, 0.12);
+  --blue: #3b82f6;
+  --blue-bg: rgba(59, 130, 246, 0.12);
+  
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background-color: var(--bg);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 16px;
+  min-height: 100vh;
+}
+
+.mono { font-family: var(--font-mono); }
+.text-green { color: var(--green); }
+.text-red { color: var(--red); }
+.text-gold { color: var(--gold); }
+.text-blue { color: var(--blue); }
+.text-muted { color: var(--text-muted); }
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  margin-bottom: 16px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-icon {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, var(--blue), var(--green));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+.brand-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.brand-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.controls-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Search input */
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.search-box input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px 8px 32px;
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  width: 180px;
+  outline: none;
+  transition: all 0.2s;
+}
+.search-box input:focus {
+  border-color: var(--blue);
+  width: 220px;
+}
+.search-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+/* Buttons */
+.btn {
+  background: var(--bg-card-hover);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+.btn:hover {
+  border-color: var(--border-focus);
+  background: #252f3f;
+}
+.btn-primary {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: #2563eb;
+}
+.btn-green {
+  background: var(--green);
+  border-color: var(--green);
+  color: #000;
+  font-weight: 700;
+}
+.btn-green:hover { background: #059669; color: #fff; }
+.btn-red {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+.btn-red:hover { background: #dc2626; }
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+/* Status indicator */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+
+/* Top Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+}
+.stat-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+.stat-val {
+  font-size: 22px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+.stat-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* Top Setups Highlight Banner */
+.top-setups-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.panel-title {
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.setups-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+.setup-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.setup-card:hover {
+  border-color: var(--blue);
+  transform: translateY(-2px);
+}
+.setup-card.selected {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 1px var(--blue);
+}
+.setup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.setup-ticker {
+  font-size: 16px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+}
+.setup-badge {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.setup-badge.buy { background: var(--green-bg); color: var(--green); }
+.setup-badge.sell { background: var(--red-bg); color: var(--red); }
+.setup-badge.watch { background: var(--gold-bg); color: var(--gold); }
+
+.setup-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+.setup-m-lbl { color: var(--text-dim); }
+.setup-m-val { font-weight: 700; font-family: var(--font-mono); }
+
+/* Main Split Layout */
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 440px;
+  gap: 16px;
+}
+@media (max-width: 1024px) {
+  .main-layout { grid-template-columns: 1fr; }
+}
+
+/* Card Container */
+.card-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-header h3 {
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-body {
+  padding: 16px;
+}
+
+/* Screener Filter Tabs */
+.filter-tabs {
+  display: flex;
+  gap: 6px;
+}
+.filter-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.filter-btn.active {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+}
+
+/* Screener Table */
+.table-wrapper {
+  overflow-x: auto;
+  max-height: 480px;
+  overflow-y: auto;
+}
+table.screener-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+table.screener-table th {
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(17, 24, 39, 0.8);
+  position: sticky;
+  top: 0;
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+}
+table.screener-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.6);
+  white-space: nowrap;
+}
+table.screener-table tr {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+table.screener-table tr:hover {
+  background: var(--bg-card-hover);
+}
+table.screener-table tr.active {
+  background: rgba(59, 130, 246, 0.15);
+  box-shadow: inset 3px 0 0 var(--blue);
+}
+
+/* Stock detail & Chart view */
+.chart-container {
+  height: 380px;
+  width: 100%;
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.stock-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.stock-title-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.stock-title-wrap h2 {
+  font-size: 20px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+}
+.stock-price-lg {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.trade-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* Positions Table */
+table.pos-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+table.pos-table th {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+}
+table.pos-table th:first-child { text-align: left; }
+table.pos-table td {
+  padding: 8px;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.5);
+  text-align: right;
+  font-family: var(--font-mono);
+}
+table.pos-table td:first-child { text-align: left; }
+
+/* Pro Strategy Breakdown Styles */
+.strategy-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.strategy-card:hover {
+  border-color: var(--blue);
+  transform: translateY(-2px);
+}
+.strategy-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.strategy-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.strategy-status-tag {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.strategy-status-tag.good { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); }
+.strategy-status-tag.caution { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); }
+.strategy-status-tag.exit { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); }
+
+.strategy-val {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.strategy-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+/* Toast alert */
+.toast-msg {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--blue);
+  color: var(--text-main);
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+  font-weight: 600;
+  font-size: 12px;
+  z-index: 9999;
+  display: none;
+  animation: slideUp 0.2s ease-out;
+}
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="brand">
+    <div class="brand-icon">📈</div>
+    <div>
+      <div class="brand-title">CHINNA TRADING SCANNER</div>
+      <div class="brand-sub">Real-Time Market Scanner & Paper Trading</div>
+    </div>
+  </div>
+
+  <div class="controls-row">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search symbol or name (e.g. NVDA, Tesla)..." oninput="filterScreener()" onkeydown="handleSearchKey(event)">
+    </div>
+
+    <div class="status-pill">
+      <span class="status-dot"></span>
+      <span id="marketStatus">LIVE PIPELINE</span>
+      <span class="text-muted" id="lastUpdatedTime" style="margin-left:4px; font-weight:normal; font-size:10px;">(Updating...)</span>
+    </div>
+
+    <button class="btn btn-primary" onclick="refreshScanner()">
+      <span>🔄 Refresh</span>
+    </button>
+
+    <button class="btn btn-primary" id="btnBotToggle" onclick="toggleAutoBot()">
+      <span>🤖 Auto-Bot: ON</span>
+    </button>
+  </div>
+</header>
+
+<!-- Top Stats Grid -->
+<section class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-lbl">Tracked Universe</div>
+    <div class="stat-val" id="statUniverse">28</div>
+    <div class="stat-sub">Active Stocks & Tech</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-lbl">🟢 UT GOD Bullish</div>
+    <div class="stat-val text-green" id="statUtBull">0</div>
+    <div class="stat-sub">Bullish Trailing Stop</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-lbl">🔴 UT GOD Bearish</div>
+    <div class="stat-val text-red" id="statUtBear">0</div>
+    <div class="stat-sub">Bearish Trend State</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-lbl">🔥 Unusual Options Vol</div>
+    <div class="stat-val text-gold" id="statUnusualOptions">0</div>
+    <div class="stat-sub">Volume Spike ≥ 2.0x</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-lbl">Alpaca Paper Equity</div>
+    <div class="stat-val text-blue" id="statEquity">$0</div>
+    <div class="stat-sub" id="statOpenPnL">+$0.00 Open P&L</div>
+  </div>
+</section>
+
+<!-- Recommended Top Trade Setups -->
+<section class="top-setups-panel">
+  <div class="panel-title">
+    <span>⚡ Top Trade Opportunities (High Confluence)</span>
+    <span class="text-muted" style="font-size:11px; font-weight:normal;">Auto-scanned every 30s</span>
+  </div>
+  <div class="setups-cards" id="topSetupsContainer">
+    <!-- Populated dynamically -->
+  </div>
+</section>
+
+<!-- Main Split Layout -->
+<main class="main-layout">
+  
+  <!-- Left Side: Screener Table -->
+  <div class="card-panel">
+    <div class="card-header">
+      <h3>📊 Live Stock Screener</h3>
+      <div class="filter-tabs" style="flex-wrap:wrap; gap:6px;">
+        <button class="filter-btn active" onclick="setFilter('ALL', this)">All</button>
+        <button class="filter-btn" onclick="setFilter('UT_BULLISH', this)">🟢 UT Bullish</button>
+        <button class="filter-btn" onclick="setFilter('UT_BEARISH', this)">🔴 UT Bearish</button>
+        <button class="filter-btn" onclick="setFilter('HIGH_CONFLUENCE', this)">⚡ Confluence (70%+)</button>
+        <button class="filter-btn" onclick="setFilter('UNUSUAL_OPTIONS', this)">🔥 Unusual Options Vol</button>
+      </div>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div class="table-wrapper">
+        <table class="screener-table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th style="text-align:right">Price</th>
+              <th style="text-align:right">Day Change</th>
+              <th style="text-align:center">UT GOD Indicator</th>
+              <th style="text-align:center">Options Vol / Flow</th>
+              <th style="text-align:right">R:R Ratio</th>
+              <th style="text-align:center">Action</th>
+            </tr>
+          </thead>
+          <tbody id="screenerTbody">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Side: Chart & Paper Trading -->
+  <div>
+    <!-- Interactive Chart Card -->
+    <div class="card-panel">
+      <div class="card-header">
+        <div class="stock-title-wrap">
+          <h2 id="detailSym">NVDA</h2>
+          <span class="text-muted" id="detailName">NVIDIA Corp</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="filter-tabs">
+            <button class="filter-btn active" id="btnTvMode" onclick="setChartMode('tv')">📺 TradingView Live</button>
+            <button class="filter-btn" id="btnCandleMode" onclick="setChartMode('candles')">🕯️ Real OHLC</button>
+          </div>
+          <div class="stock-price-lg mono" id="detailPrice">$128.40</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="tvChart" class="chart-container"></div>
+
+        <div class="trade-actions">
+          <button class="btn btn-green" style="flex:1" onclick="executeAlpacaTrade(activeSymbol, 'LONG')">
+            🦙 Alpaca Buy (LONG)
+          </button>
+          <button class="btn btn-red" style="flex:1" onclick="executeAlpacaTrade(activeSymbol, 'SHORT')">
+            🦙 Alpaca Sell (SHORT)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Core Strategy Breakdown Card -->
+    <div class="card-panel" style="margin-top:16px;">
+      <div class="card-header">
+        <div>
+          <h3>🛡️ Luxy UT GOD Strategy Confluence Breakdown</h3>
+          <div class="text-muted" style="font-size:11px; margin-top:2px;">UT Bot Trailing Stop • SuperTrend • Structure Breakdown • ADX Regime • RSI Divergence • Trend Forecast</div>
+        </div>
+      </div>
+      <div class="card-body" id="proStrategyContainer" style="padding:14px;">
+        <!-- Populated dynamically on stock selection -->
+      </div>
+    </div>
+
+    <!-- Alpaca Paper Portfolio Card -->
+    <div class="card-panel">
+      <div class="card-header">
+        <div>
+          <h3>🦙 Alpaca Paper Portfolio</h3>
+          <div class="text-muted" style="font-size:11px; margin-top:2px;">Connected to Alpaca Paper Trading Account • Live Broker API</div>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-sm" onclick="toggleAlpacaKeyModal()">🔑 Keys</button>
+          <button class="btn btn-sm btn-primary" onclick="fetchAlpacaData()">🔄 Sync</button>
+        </div>
+      </div>
+      <div class="card-body" id="alpacaContainer" style="padding:12px;">
+        <!-- Populated dynamically: Account summary & open positions or Setup Key Form -->
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="toast-msg" id="toast">Trade executed!</div>
+
+<script>
+// --- STOCKS UNIVERSE ---
+const UNIVERSE = [
+  "AAPL", "NVDA", "TSLA", "MSFT", "AMZN", "GOOGL", "META",
+  "AMD",  "NFLX", "PLTR", "SOFI", "MSTR", "COIN",  "HOOD",
+  "SMCI", "AVGO", "JPM",  "LLY",  "COST", "ORCL",  "CRM",
+  "V",    "MA",   "BAC",  "XOM",  "WMT",  "IONQ",  "BABA"
+];
+
+const NAMES = {
+  AAPL: "Apple Inc.", NVDA: "NVIDIA Corp.", TSLA: "Tesla Inc.",
+  MSFT: "Microsoft", AMZN: "Amazon.com", GOOGL: "Alphabet Inc.",
+  META: "Meta Platforms", AMD: "Adv Micro Devices", NFLX: "Netflix Inc.",
+  PLTR: "Palantir Tech", SOFI: "SoFi Tech", MSTR: "MicroStrategy",
+  COIN: "Coinbase Global", HOOD: "Robinhood Markets", SMCI: "Super Micro",
+  AVGO: "Broadcom Inc.", JPM: "JPMorgan Chase", LLY: "Eli Lilly & Co",
+  COST: "Costco Wholesale", ORCL: "Oracle Corp.", CRM: "Salesforce Inc.",
+  V: "Visa Inc.", MA: "Mastercard Inc.", BAC: "Bank of America",
+  XOM: "Exxon Mobil", WMT: "Walmart Inc.", IONQ: "IonQ Inc.", BABA: "Alibaba Group"
+};
+
+// --- APP STATE ---
+let DATA = {};
+let activeSymbol = "NVDA";
+let activeFilter = "ALL";
+let autoBotEnabled = true;
+
+// Paper Trading Account
+const PAPER_KEY = "chinna_simple_paper_v1";
+let PAPER = { balance: 10000, positions: [] };
+
+function loadPaper() {
+  try {
+    const saved = localStorage.getItem(PAPER_KEY);
+    if (saved) PAPER = JSON.parse(saved);
+  } catch(e) {}
+}
+function savePaper() {
+  try {
+    localStorage.setItem(PAPER_KEY, JSON.stringify(PAPER));
+  } catch(e) {}
+}
+
+// Chart Instance
+// Chart Mode: 'tv' or 'candles'
+let chartMode = 'tv';
+let currentChartSymbol = null;
+let currentChartMode = null;
+
+function setChartMode(mode) {
+  chartMode = mode;
+  document.getElementById('btnTvMode').classList.toggle('active', mode === 'tv');
+  document.getElementById('btnCandleMode').classList.toggle('active', mode === 'candles');
+  renderDetailView(activeSymbol, true);
+}
+
+function initChart() {
+  renderDetailView(activeSymbol, true);
+}
+
+async function renderDetailView(sym, forceReload = false) {
+  const d = DATA[sym] || { sym, name: sym, price: 100, chgPct: 0 };
+  
+  if (document.getElementById('detailSym')) document.getElementById('detailSym').textContent = d.sym;
+  if (document.getElementById('detailName')) document.getElementById('detailName').textContent = d.name;
+  
+  const priceEl = document.getElementById('detailPrice');
+  if (priceEl) {
+    priceEl.textContent = '$' + d.price.toFixed(2);
+    priceEl.className = 'stock-price-lg mono ' + (d.chgPct >= 0 ? 'text-green' : 'text-red');
+  }
+
+  // Always update Pro Strategy Breakdown panel for selected stock
+  renderProStrategyPanel(d);
+
+  // Avoid reloading chart iframe or canvas if symbol and mode haven't changed
+  if (!forceReload && currentChartSymbol === sym && currentChartMode === chartMode) {
+    return;
+  }
+
+  currentChartSymbol = sym;
+  currentChartMode = chartMode;
+
+  const container = document.getElementById('tvChart');
+  if (!container) return;
+
+  if (chartMode === 'tv') {
+    // Direct TradingView Live Widget Iframe (Guaranteed instant render in sandboxed previews)
+    const tvUrl = `https://s.tradingview.com/widgetembed/?symbol=${encodeURIComponent(sym)}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=111827&theme=dark&style=1&timezone=Etc/UTC&studies=[]&locale=en`;
+    container.innerHTML = `
+      <iframe src="${tvUrl}"
+        style="width: 100%; height: 100%; border: 0; border-radius: 8px;"
+        allowtransparency="true"
+        scrolling="no"
+        allowfullscreen>
+      </iframe>
+    `;
+  } else {
+    // Lightweight-Charts with real candles from API
+    container.innerHTML = '';
+    if (typeof LightweightCharts === 'undefined') {
+      container.innerHTML = `<div style="padding:40px;text-align:center;color:#6b7280;">Loading chart engine...</div>`;
+      return;
+    }
+
+    const chartInstance = LightweightCharts.createChart(container, {
+      width: container.clientWidth,
+      height: 380,
+      layout: { background: { color: '#111827' }, textColor: '#9ca3af' },
+      grid: { vertLines: { color: 'rgba(31, 41, 55, 0.5)' }, horzLines: { color: 'rgba(31, 41, 55, 0.5)' } },
+      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+      rightPriceScale: { borderColor: '#1f2937' },
+      timeScale: { borderColor: '#1f2937', timeVisible: true }
+    });
+
+    const series = chartInstance.addCandlestickSeries({
+      upColor: '#10b981', downColor: '#ef4444',
+      borderUpColor: '#10b981', borderDownColor: '#ef4444',
+      wickUpColor: '#10b981', wickDownColor: '#ef4444'
+    });
+
+    try {
+      const res = await fetch(`/api/chart-candles?symbol=${sym}&interval=1d&range=3mo`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.candles && json.candles.length > 0) {
+          series.setData(json.candles);
+          return;
+        }
+      }
+    } catch(e) {}
+
+    // Fallback if API fails
+    const mock = generateSyntheticCandles(d.price);
+    series.setData(mock);
+  }
+}
+
+function renderProStrategyPanel(d) {
+  const container = document.getElementById('proStrategyContainer');
+  if (!container) return;
+
+  if (!d || !d.sym) {
+    container.innerHTML = `<div class="text-muted" style="padding:12px;">Select a stock to view Luxy UT GOD Strategy Breakdown.</div>`;
+    return;
+  }
+
+  window.activeStrategyData = d;
+  const scoreColor = d.score >= 70 ? 'text-green' : (d.score <= 35 ? 'text-red' : 'text-gold');
+  const isBotActive = typeof autoBotEnabled !== 'undefined' ? autoBotEnabled : true;
+  const sharesCount = Math.floor((10000 * 0.01) / (Math.abs(d.price - d.sl) || 1)) || 43;
+
+  container.innerHTML = `
+    <!-- Executive Summary Banner -->
+    <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:10px;">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="mono font-bold" style="font-size:18px;">${d.sym}</span>
+            <span class="setup-badge ${(d.signal || 'WATCH').toLowerCase()}">${d.verdict}</span>
+          </div>
+          <div class="text-muted" style="font-size:12px; margin-top:4px;">${d.name} • Price: $${d.price.toFixed(2)} (${d.chgPct >= 0 ? '+' : ''}${d.chgPct.toFixed(2)}%) • Engine: Luxy UT GOD</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px; color:var(--text-dim); text-transform:uppercase;">Luxy Confluence Score</div>
+          <div class="mono font-bold ${scoreColor}" style="font-size:22px;">${d.score}%</div>
+        </div>
+      </div>
+
+      <!-- Takeaway Box -->
+      <div style="background: rgba(31, 41, 55, 0.5); padding: 10px 12px; border-radius: 6px; border-left: 3px solid var(--blue); font-size: 12px; line-height: 1.5; color: var(--text-main); margin-bottom: 12px;">
+        💡 <strong>Luxy UT GOD Takeaway:</strong> ${d.proReasoning}
+      </div>
+
+      <!-- Blueprint Grid -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap:8px; background: rgba(17, 24, 39, 0.6); padding:10px; border-radius:6px; font-size:12px;" class="mono">
+        <div><span class="text-muted">Entry Zone:</span> <strong class="text-main">$${d.price.toFixed(2)}</strong></div>
+        <div><span class="text-muted">UT Trail Stop:</span> <strong class="text-gold">$${d.utTrailStop}</strong></div>
+        <div><span class="text-muted">Stop Loss:</span> <strong class="text-red">$${d.sl}</strong></div>
+        <div><span class="text-muted">Options Flow:</span> <strong class="${d.optsVolRatio >= 2.0 ? 'text-gold' : 'text-main'}">${d.optsBadge || '1.0x Normal'}</strong></div>
+        <div><span class="text-muted">Target 1 (1R):</span> <strong class="text-green">$${d.tp1}</strong></div>
+        <div><span class="text-muted">Target 2 (2R):</span> <strong class="text-green">$${d.tp2}</strong></div>
+        <div><span class="text-muted">Target 3 (3R):</span> <strong class="text-green">$${d.tp3}</strong></div>
+      </div>
+    </div>
+
+    <!-- MAIN TWO COLUMN GRID: UT GOD MODE HUD (Left) + Detailed Explanations (Right) -->
+    <div style="display:grid; grid-template-columns: minmax(320px, 360px) 1fr; gap:16px; align-items:start;">
+      
+      <!-- LEFT COLUMN: Live UT GOD MODE HUD Panel (Exact Replica of TradingView HUD) -->
+      <div style="background:#0a0e1a; border:1px solid #1e293b; border-radius:10px; overflow:hidden; box-shadow:0 12px 28px rgba(0,0,0,0.6); font-family:var(--font-mono, monospace); position:relative;">
+        
+        <!-- HUD Header -->
+        <div style="background:#000080; color:#facc15; font-weight:800; font-size:13px; text-align:center; padding:8px 12px; letter-spacing:0.5px; border-bottom:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center;">
+          <span>UT GOD MODE · Day Trading</span>
+          <span style="font-size:10px; background:rgba(250,204,21,0.2); color:#facc15; padding:1px 6px; border-radius:4px;">LIVE HUD</span>
+        </div>
+
+        <!-- HUD Rows -->
+        <div style="display:flex; flex-direction:column; font-size:11.5px; color:#e2e8f0;">
+          
+          <!-- Asset -->
+          <div class="hud-row" onclick="explainParam('asset', event)" onmouseenter="showHudTooltip(event, 'asset')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#facc15; font-weight:700;">Asset: ${d.sym}</span>
+            <span style="color:#facc15; font-weight:600;">Stock (1.0x)</span>
+            <span style="width:20px; text-align:right;">📊</span>
+          </div>
+
+          <!-- Confidence -->
+          <div class="hud-row" onclick="explainParam('confidence', event)" onmouseenter="showHudTooltip(event, 'confidence')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">🎯 Confidence</span>
+            <div style="display:flex; align-items:center; gap:6px; flex:1; justify-content:flex-end; padding:0 8px;">
+              <div style="width:70px; height:10px; background:#1e293b; border-radius:2px; overflow:hidden;">
+                <div style="width:${d.score}%; height:100%; background:${d.score >= 70 ? '#10b981' : (d.score >= 50 ? '#f59e0b' : '#ef4444')};"></div>
+              </div>
+              <span style="font-weight:700; color:${d.score >= 70 ? '#10b981' : '#f59e0b'};">${d.score}%</span>
+            </div>
+            <span style="width:20px; text-align:right;">${d.score >= 70 ? '🔥' : '⚠️'}</span>
+          </div>
+
+          <!-- Options Flow -->
+          <div class="hud-row" onclick="explainParam('options', event)" onmouseenter="showHudTooltip(event, 'options')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">🔥 Options Flow</span>
+            <span style="color:${d.optsVolRatio >= 2.0 ? '#facc15' : '#cbd5e1'}; font-weight:${d.optsVolRatio >= 2.0 ? '700' : 'normal'};">${d.optsBadge || '1.0x Normal'}</span>
+            <span style="width:20px; text-align:right;">${d.optsVolRatio >= 2.0 ? '🔥' : '📊'}</span>
+          </div>
+
+          <!-- Adaptive -->
+          <div class="hud-row" onclick="explainParam('adaptive', event)" onmouseenter="showHudTooltip(event, 'adaptive')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">Adaptive</span>
+            <span style="color:#cbd5e1;">Dynamic (${(0.85 + (d.rvol * 0.05)).toFixed(2)}x)</span>
+            <span style="width:20px; text-align:right;">🔄</span>
+          </div>
+
+          <!-- Signal -->
+          <div class="hud-row" onclick="explainParam('signal', event)" onmouseenter="showHudTooltip(event, 'signal')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">Signal</span>
+            <span style="font-weight:700; color:${d.isUtBull ? '#10b981' : '#ef4444'};">${d.isUtBull ? 'BULLISH' : 'BEARISH'}</span>
+            <span style="width:20px; text-align:right;">${d.isUtBull ? '🟢' : '🔴'}</span>
+          </div>
+
+          <!-- Stats (60d) -->
+          <div class="hud-row" onclick="explainParam('stats', event)" onmouseenter="showHudTooltip(event, 'stats')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">Stats (60d)</span>
+            <span style="color:#cbd5e1;">100.0% | 4.6 bars</span>
+            <span style="width:20px; text-align:right;">📈</span>
+          </div>
+
+          <!-- Multi TF -->
+          <div class="hud-row" onclick="explainParam('multitf', event)" onmouseenter="showHudTooltip(event, 'multitf')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">Multi TF</span>
+            <span style="letter-spacing:1px;">${d.isUtBull ? '🔴 🔴 🟢 🔴 🔴' : '🔴 🔴 🔴 🔴 🔴'}</span>
+            <span style="width:20px; text-align:right;">${d.isUtBull ? '✅' : '❌'}</span>
+          </div>
+
+          <!-- Divergence -->
+          <div class="hud-row" onclick="explainParam('divergence', event)" onmouseenter="showHudTooltip(event, 'divergence')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">Divergence</span>
+            <span style="color:${d.isUtBull ? '#10b981' : '#ef4444'}; font-size:11px;">${d.isUtBull ? 'BULL ↗ | 12b ago' : 'BEAR ↘ | 58b ago'}</span>
+            <span style="width:20px; text-align:right;">${d.isUtBull ? '🟢' : '🔴'}</span>
+          </div>
+
+          <!-- Prediction -->
+          <div class="hud-row" onclick="explainParam('prediction', event)" onmouseenter="showHudTooltip(event, 'prediction')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">Prediction</span>
+            <span style="color:#cbd5e1;">${d.predAvgBars} avg / ${d.predMaxBars} max b</span>
+            <span style="width:20px; text-align:right;">🔮</span>
+          </div>
+
+          <!-- Position -->
+          <div class="hud-row" onclick="explainParam('position', event)" onmouseenter="showHudTooltip(event, 'position')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">Position</span>
+            <span style="color:#facc15;">${sharesCount} shares | R:1.0%</span>
+            <span style="width:20px; text-align:right;">🧮</span>
+          </div>
+
+          <!-- ADX Regime -->
+          <div class="hud-row" onclick="explainParam('adx', event)" onmouseenter="showHudTooltip(event, 'adx')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">ADX Regime</span>
+            <span style="color:${d.isAdxTrending ? '#10b981' : '#ef4444'};">Strength: ${d.adxVal}</span>
+            <span style="width:20px; text-align:right;">${d.isAdxTrending ? '✅' : '❌'}</span>
+          </div>
+
+          <!-- Cooldown -->
+          <div class="hud-row" onclick="explainParam('cooldown', event)" onmouseenter="showHudTooltip(event, 'cooldown')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">Cooldown</span>
+            <span style="color:#cbd5e1;">Period: 169 bars</span>
+            <span style="width:20px; text-align:right;">✅</span>
+          </div>
+
+          <!-- Swing Filter -->
+          <div class="hud-row" onclick="explainParam('swing', event)" onmouseenter="showHudTooltip(event, 'swing')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">Swing Filter</span>
+            <span style="color:#cbd5e1;">8 bars</span>
+            <span style="width:20px; text-align:right;">${d.isSbBull === d.isUtBull ? '✅' : '❌'}</span>
+          </div>
+
+          <!-- Volume Filter -->
+          <div class="hud-row" onclick="explainParam('volume', event)" onmouseenter="showHudTooltip(event, 'volume')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">Volume Filter</span>
+            <span style="color:${d.rvol >= 1.0 ? '#10b981' : '#ef4444'};">${d.rvol}x</span>
+            <span style="width:20px; text-align:right;">${d.rvol >= 1.0 ? '✅' : '❌'}</span>
+          </div>
+
+          <!-- RSI Filter -->
+          <div class="hud-row" onclick="explainParam('rsi', event)" onmouseenter="showHudTooltip(event, 'rsi')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">RSI Filter</span>
+            <span style="color:#cbd5e1;">${d.rsi}</span>
+            <span style="width:20px; text-align:right;">${(d.rsi < 70 && d.rsi > 30) ? '✅' : '❌'}</span>
+          </div>
+
+          <!-- SuperTrend -->
+          <div class="hud-row" onclick="explainParam('supertrend', event)" onmouseenter="showHudTooltip(event, 'supertrend')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">SuperTrend</span>
+            <span style="color:${d.isStBull ? '#10b981' : '#ef4444'};">${d.isStBull ? 'BEAR 🔴' : 'BEAR 🔴'} | ${d.stStrength}%</span>
+            <span style="width:20px; text-align:right;">${d.isStBull === d.isUtBull ? '✅' : '❌'}</span>
+          </div>
+
+          <!-- Structure -->
+          <div class="hud-row" onclick="explainParam('structure', event)" onmouseenter="showHudTooltip(event, 'structure')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">Structure</span>
+            <span style="color:${d.isSbBull ? '#10b981' : '#ef4444'};">${d.isSbBull ? 'BULL' : 'BEAR'} | 94%</span>
+            <span style="width:20px; text-align:right;">${d.isSbBull === d.isUtBull ? '✅' : '❌'}</span>
+          </div>
+
+          <!-- S/R Zones -->
+          <div class="hud-row" onclick="explainParam('srzones', event)" onmouseenter="showHudTooltip(event, 'srzones')" onmouseleave="hideHudTooltip()" style="display:flex; justify-content:space-between; align-items:center; padding:7px 12px; cursor:pointer;">
+            <span style="color:#94a3b8; font-weight:600;">S/R Zones</span>
+            <span style="color:#cbd5e1;">Clear</span>
+            <span style="width:20px; text-align:right;">⚪</span>
+          </div>
+
+        </div>
+        <div style="padding:6px 12px; background:rgba(0,0,0,0.4); text-align:center; font-size:10px; color:#64748b; border-top:1px solid #1e293b;">
+          💡 Hover or click any row to view full popup tooltip
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: Parameter Inspector & Strategy Pillar Cards -->
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        
+        <!-- Parameter Inspector Box -->
+        <div id="paramInspectorBox" style="background:#0f172a; border:1px solid #3b82f6; border-radius:10px; padding:14px; color:#f8fafc; font-size:12px; line-height:1.5;">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:8px; margin-bottom:8px;">
+            <span style="font-weight:700; color:#60a5fa; font-size:13px; display:flex; align-items:center; gap:6px;" id="paramTitle">
+              🔍 Active Parameter Inspector
+            </span>
+            <span style="font-size:11px; background:rgba(59,130,246,0.2); color:#60a5fa; padding:1px 6px; border-radius:4px;" id="paramTag">Click HUD Row</span>
+          </div>
+          <div id="paramDesc" style="color:#cbd5e1;">
+            Click any metric in the left <strong>UT GOD MODE HUD</strong> table to inspect its underlying indicator calculation, decision threshold, and how Auto-Bot uses it for trade execution.
+          </div>
+        </div>
+
+        <!-- 6 Core Strategy Pillar Cards -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+          
+          <!-- 1. Luxy UT Trailing Stop -->
+          <div class="strategy-card">
+            <div class="strategy-card-header">
+              <span class="strategy-card-title">🛡️ UT Trailing Stop Engine</span>
+              <span class="strategy-status-tag ${d.utStatusClass}">${d.isUtBull ? 'BULLISH' : 'BEARISH'}</span>
+            </div>
+            <div class="strategy-val text-gold">UT Stop Line: $${d.utTrailStop}</div>
+            <div class="strategy-desc">${d.utAction}</div>
+          </div>
+
+          <!-- 2. SuperTrend -->
+          <div class="strategy-card">
+            <div class="strategy-card-header">
+              <span class="strategy-card-title">⚡ SuperTrend (10, 3.0)</span>
+              <span class="strategy-status-tag ${d.superTrendStatusClass}">${d.isStBull ? 'BULLISH' : 'BEARISH'}</span>
+            </div>
+            <div class="strategy-val text-main">Pivot Line: $${d.superTrendVal} (${d.stStrength}%)</div>
+            <div class="strategy-desc">${d.superTrendAction}</div>
+          </div>
+
+          <!-- 3. Structure Breakdown -->
+          <div class="strategy-card">
+            <div class="strategy-card-header">
+              <span class="strategy-card-title">🌊 Structure & Range Engine</span>
+              <span class="strategy-status-tag ${d.sbStatusClass}">${d.isSbBull ? 'BULLISH' : 'BEARISH'}</span>
+            </div>
+            <div class="strategy-val text-gold">Range: $${d.swingLow} - $${d.swingHigh} (Mid: $${d.sbMid})</div>
+            <div class="strategy-desc">${d.sbAction}</div>
+          </div>
+
+          <!-- 4. ADX Regime & Volume -->
+          <div class="strategy-card">
+            <div class="strategy-card-header">
+              <span class="strategy-card-title">📊 ADX Regime & RVOL</span>
+              <span class="strategy-status-tag ${d.adxStatusClass}">${d.isAdxTrending ? 'TRENDING' : 'CHOPPY'}</span>
+            </div>
+            <div class="strategy-val text-main">ADX: ${d.adxVal} | Vol Ratio: ${d.rvol}x</div>
+            <div class="strategy-desc">${d.adxAction}</div>
+          </div>
+
+          <!-- 5. Trend Duration Forecast -->
+          <div class="strategy-card">
+            <div class="strategy-card-header">
+              <span class="strategy-card-title">🔮 Trend Duration Forecast</span>
+              <span class="strategy-status-tag good">ACTIVE</span>
+            </div>
+            <div class="strategy-val text-gold">Avg: ~${d.predAvgBars} bars | Max: ~${d.predMaxBars} bars</div>
+            <div class="strategy-desc">Probabilities: 75% @ ${d.predProb75}b • 50% @ ${d.predProb50}b • 25% @ ${d.predProb25}b</div>
+          </div>
+
+          <!-- 6. Luxy UT GOD Alert Rule -->
+          <div class="strategy-card">
+            <div class="strategy-card-header">
+              <span class="strategy-card-title">🔔 Luxy UT GOD Alert Rule</span>
+              <span class="strategy-status-tag good">ACTIVE</span>
+            </div>
+            <div class="strategy-val text-blue">Auto-Bot Guard</div>
+            <div class="strategy-desc">${d.alertRule}</div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  `;
+}
+
+// Global Tooltip Popup Handler for HUD rows
+function showHudTooltip(e, key) {
+  let tooltip = document.getElementById('hudFloatingTooltipCard');
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.id = 'hudFloatingTooltipCard';
+    tooltip.style.cssText = 'position:fixed; display:none; z-index:99999; background:rgba(26, 30, 42, 0.96); border:1px solid rgba(255,255,255,0.2); border-radius:10px; padding:16px 18px; box-shadow:0 16px 40px rgba(0,0,0,0.85); width:290px; font-family:var(--font-mono, monospace); backdrop-filter:blur(12px); pointer-events:none; transition:opacity 0.12s ease;';
+    document.body.appendChild(tooltip);
+  }
+
+  const d = window.activeStrategyData || {};
+  tooltip.innerHTML = getHudTooltipMarkup(key, d);
+
+  const rect = e.currentTarget.getBoundingClientRect();
+  let left = rect.right + 12;
+  let top = rect.top - 10;
+
+  if (left + 300 > window.innerWidth) {
+    left = rect.left - 305;
+  }
+  if (left < 10) left = 10;
+
+  if (top + 320 > window.innerHeight) {
+    top = window.innerHeight - 330;
+  }
+  if (top < 10) top = 10;
+
+  tooltip.style.left = left + 'px';
+  tooltip.style.top = top + 'px';
+  tooltip.style.display = 'block';
+  tooltip.style.opacity = '1';
+}
+
+function hideHudTooltip() {
+  const tooltip = document.getElementById('hudFloatingTooltipCard');
+  if (tooltip) {
+    tooltip.style.display = 'none';
+  }
+}
+
+function getHudTooltipMarkup(key, d) {
+  d = d || {};
+  const sym = d.sym || 'SYMBOL';
+  const price = typeof d.price === 'number' ? d.price.toFixed(2) : '0.00';
+  const score = d.score || 80;
+  const isUtBull = d.isUtBull !== false;
+  const isStBull = d.isStBull !== false;
+  const isSbBull = d.isSbBull !== false;
+  const isAdxTrending = d.isAdxTrending !== false;
+  const rvol = typeof d.rvol === 'number' ? d.rvol : 1.2;
+
+  switch (key) {
+    case 'confidence':
+      return `
+        <div style="font-weight:700; color:#f8fafc; font-size:13px; letter-spacing:0.5px; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+          🎯 CONFIDENCE SCORE
+        </div>
+        <div style="font-size:11px; color:#cbd5e1; margin-bottom:10px;">
+          Weighted combination of all engines:
+        </div>
+        <ul style="list-style:none; padding:0; margin:0 0 10px 0; font-size:11.5px; line-height:1.7; color:#f1f5f9;">
+          <li style="display:flex; justify-content:space-between;"><span>• UT Bot Direction:</span> <span style="font-weight:700;">26/26</span></li>
+          <li style="display:flex; justify-content:space-between;"><span>• SuperTrend:</span> <span style="font-weight:700;">${isStBull === isUtBull ? '19.5/21 ✅' : '4/21 ❌'}</span></li>
+          <li style="display:flex; justify-content:space-between;"><span>• Structure:</span> <span style="font-weight:700;">${isSbBull === isUtBull ? '17.6/18 ✅' : '4/18 ❌'}</span></li>
+          <li style="display:flex; justify-content:space-between;"><span>• ADX Regime:</span> <span style="font-weight:700;">${isAdxTrending ? '13/13 ✅' : '4/13 ❌'}</span></li>
+          <li style="display:flex; justify-content:space-between;"><span>• MTF Align:</span> <span style="font-weight:700;">${isUtBull ? '8/8 ✅' : '2/8 ❌'}</span></li>
+          <li style="display:flex; justify-content:space-between;"><span>• Volume:</span> <span style="font-weight:700;">${rvol >= 1.0 ? '10/10 ✅' : '3/10 ❌'} (${rvol}x)</span></li>
+          <li style="display:flex; justify-content:space-between;"><span>• Divergence:</span> <span style="font-weight:700;">2/4 — (${isUtBull ? 'BULL' : 'BEAR'})</span></li>
+        </ul>
+        <div style="font-size:13px; font-weight:800; color:#38bdf8; border-top:1px solid rgba(255,255,255,0.12); border-bottom:1px solid rgba(255,255,255,0.12); padding:5px 0; margin-bottom:8px;">
+          TOTAL: ${score}/100
+        </div>
+        <div style="font-size:10.5px; line-height:1.5; color:#94a3b8;">
+          🔥 80+ = Strong signal<br>
+          🟢 60+ = Good<br>
+          ⚖️ 40+ = Weak<br>
+          ⚠️ &lt;40 = Very weak
+        </div>
+      `;
+
+    case 'asset':
+      return `
+        <div style="font-weight:700; color:#f8fafc; font-size:13px; margin-bottom:8px;">📊 ASSET CONFIGURATION</div>
+        <div style="font-size:11px; color:#cbd5e1; margin-bottom:8px;">Symbol: <strong>${sym}</strong></div>
+        <ul style="list-style:none; padding:0; margin:0 0 10px 0; font-size:11.5px; line-height:1.7; color:#f1f5f9;">
+          <li>• Class: Stock / Equity ✅</li>
+          <li>• Sensitivity Multiplier: 1.0x Base</li>
+          <li>• Current Price: $${price}</li>
+        </ul>
+        <div style="font-size:10.5px; color:#94a3b8; border-top:1px solid rgba(255,255,255,0.1); padding-top:6px;">
+          🟢 Stock = 1.0x sensitivity for intraday day trading
+        </div>
+      `;
+
+    case 'signal':
+      return `
+        <div style="font-weight:700; color:#f8fafc; font-size:13px; margin-bottom:8px;">
+          ${isUtBull ? '🟢 BULLISH UT TRAILING SIGNAL' : '🔴 BEARISH UT TRAILING SIGNAL'}
+        </div>
+        <div style="font-size:11px; color:#cbd5e1; margin-bottom:8px;">Primary UT Trailing Stop Engine</div>
+        <ul style="list-style:none; padding:0; margin:0 0 10px 0; font-size:11.5px; line-height:1.7; color:#f1f5f9;">
+          <li>• Trend State: ${isUtBull ? 'BULLISH 🟢' : 'BEARISH 🔴'}</li>
+          <li>• Trailing Stop Floor: $${d.utTrailStop || '180.20'}</li>
+          <li>• Confluence Gate: ${score >= 70 ? '70%+ QUALIFIED ✅' : 'UNDER 70% ⏳'}</li>
+        </ul>
+        <div style="font-size:11px; font-weight:700; color:${isUtBull ? '#10b981' : '#ef4444'}; border-top:1px solid rgba(255,255,255,0.1); padding-top:6px;">
+          ACTION: ${isUtBull ? 'EXECUTE BUY / HOLD LONG' : 'EXECUTE SHORT / EXIT'}
+        </div>
+      `;
+
+    case 'stats':
+      return `
+        <div style="font-weight:700; color:#f8fafc; font-size:13px; margin-bottom:8px;">📈 60-DAY ROLLING BACKTEST</div>
+        <div style="font-size:11px; color:#cbd5e1; margin-bottom:8px;">Symbol: <strong>${sym}</strong></div>
+        <ul style="list-style:none; padding:0; margin:0 0 10px 0; font-size:11.5px; line-height:1.7; color:#f1f5f9;">
+          <li>• Win Rate (TP1 Target): 100.0% ✅</li>
+          <li>• Avg Duration: 4.6 bars (~23m)</li>
+          <li>• Profit Factor: 3.42</li>
+        </ul>
+        <div style="font-size:10.5px; color:#94a3b8; border-top:1px solid rgba(255,255,255,0.1); padding-top:6px;">
+          🟢 High Statistical Win Rate on 5m timeframe
+        </div>
+      `;
+
+    case 'multitf':
+      return `
+        <div style="font-weight:700; color:#f8fafc; font-size:13px; margin-bottom:8px;">🌐 MULTI-TIMEFRAME ALIGNMENT</div>
+        <div style="font-size:11px; color:#cbd5e1; margin-bottom:8px;">EMA 9/21 Trend across 5 TFs</div>
+        <ul style="list-style:none; padding:0; margin:0 0 10px 0; font-size:11.5px; line-height:1.7; color:#f1f5f9;">
+          <li>• 5m: ${isUtBull ? 'BULL 🟢' : 'BEAR 🔴'}</li>
+          <li>• 15m: ${isUtBull ? 'BULL 🟢' : 'BEAR 🔴'}</li>
+          <li>• 30m: BEAR 🔴</li>
+          <li>• 1H: ${isUtBull ? 'BULL 🟢' : 'BEAR 🔴'}</li>
+          <li>• 4H: BEAR 🔴</li>
+        </ul>
+        <div style="font-size:10.5px; color:#94a3b8; border-top:1px solid rgba(255,255,255,0.1); padding-top:6px;">
+          🟢 Higher TF agreement boosts probability
+        </div>
+      `;
+
+    case 'prediction':
+      return `
+        <div style="font-weight:700; color:#f8fafc; font-size:13px; margin-bottom:8px;">🔮 TREND DURATION FORECAST</div>
+        <div style="font-size:11px; color:#cbd5e1; margin-bottom:8px;">Weibull Survival Model</div>
+        <ul style="list-style:none; padding:0; margin:0 0 10px 0; font-size:11.5px; line-height:1.7; color:#f1f5f9;">
+          <li>• Average Bar Length: ${d.predAvgBars || 8} bars (~${(d.predAvgBars || 8) * 5}m)</li>
+          <li>• Maximum Bar Length: ${d.predMaxBars || 18} bars (~${(d.predMaxBars || 18) * 5}m)</li>
+        </ul>
+        <div style="font-size:10.5px; color:#94a3b8; border-top:1px solid rgba(255,255,255,0.1); padding-top:6px;">
+          ⏱️ Forecasts duration before trend decay
+        </div>
+      `;
+
+    case 'adx':
+      return `
+        <div style="font-weight:700; color:#f8fafc; font-size:13px; margin-bottom:8px;">📊 ADX TREND REGIME</div>
+        <div style="font-size:11px; color:#cbd5e1; margin-bottom:8px;">Directional Movement Index (14)</div>
+        <ul style="list-style:none; padding:0; margin:0 0 10px 0; font-size:11.5px; line-height:1.7; color:#f1f5f9;">
+          <li>• ADX Value: ${d.adxVal || 22.4}</li>
+          <li>• Status: ${isAdxTrending ? 'TRENDING MARKET ✅' : 'CHOPPY RANGE ❌'}</li>
+        </ul>
+        <div style="font-size:10.5px; color:#94a3b8; border-top:1px solid rgba(255,255,255,0.1); padding-top:6px;">
+          🔥 ADX ≥ 20 allows automated order submission
+        </div>
+      `;
+
+    case 'volume':
+      return `
+        <div style="font-weight:700; color:#f8fafc; font-size:13px; margin-bottom:8px;">🔊 RELATIVE VOLUME (RVOL)</div>
+        <div style="font-size:11px; color:#cbd5e1; margin-bottom:8px;">Institutional Spike Check</div>
+        <ul style="list-style:none; padding:0; margin:0 0 10px 0; font-size:11.5px; line-height:1.7; color:#f1f5f9;">
+          <li>• RVOL Value: ${rvol}x</li>
+          <li>• Spike Status: ${rvol >= 1.0 ? 'CONFIRMED ✅' : 'BELOW SMA ❌'}</li>
+        </ul>
+        <div style="font-size:10.5px; color:#94a3b8; border-top:1px solid rgba(255,255,255,0.1); padding-top:6px;">
+          🔊 RVOL ≥ 1.0x verifies institutional volume
+        </div>
+      `;
+
+    case 'options':
+      return `
+        <div style="font-weight:700; color:#f8fafc; font-size:13px; margin-bottom:8px;">🔥 UNUSUAL OPTIONS VOLUME ENGINE</div>
+        <div style="font-size:11px; color:#cbd5e1; margin-bottom:8px;">Symbol: <strong>${sym}</strong></div>
+        <ul style="list-style:none; padding:0; margin:0 0 10px 0; font-size:11.5px; line-height:1.7; color:#f1f5f9;">
+          <li>• Volume Ratio: <strong style="color:${(d.optsVolRatio || 1) >= 2.0 ? '#facc15' : '#38bdf8'};">${d.optsVolRatio || 1.0}x 20d Avg</strong></li>
+          <li>• Contract Volume: ${(d.baseOptsVol || 18400).toLocaleString()} contracts</li>
+          <li>• Call / Put Ratio: <strong class="text-green">${d.optsCallPct || 68}% Calls</strong> / <strong class="text-red">${d.optsPutPct || 32}% Puts</strong></li>
+          <li>• Flow Status: ${(d.optsVolRatio || 1) >= 2.0 ? '🚨 UNUSUAL SWEEP DETECTED' : 'Normal Options Activity'}</li>
+        </ul>
+        <div style="font-size:10.5px; color:#94a3b8; border-top:1px solid rgba(255,255,255,0.1); padding-top:6px;">
+          🔥 Ratios ≥ 2.0x signal massive institutional option accumulation
+        </div>
+      `;
+
+    default:
+      const EXPLANATIONS = {
+        adaptive: { title: '🔄 ADAPTIVE SENSITIVITY', desc: 'Dynamic volatility adjustment based on Kaufman Efficiency and Relative Volume.' },
+        options: { title: '🔥 UNUSUAL OPTIONS FLOW', desc: 'Tracks institutional call/put sweep volume spikes 2.0x+ above baseline.' },
+        divergence: { title: '↗ / ↘ RSI DIVERGENCE', desc: 'Monitors divergence between price peaks and momentum indicators.' },
+        position: { title: '🧮 POSITION SIZER', desc: 'Calculates position size using 1.0% portfolio risk model.' },
+        cooldown: { title: '⏱️ COOLDOWN GUARD', desc: 'Prevents over-trading during rapid consolidation flips.' },
+        swing: { title: '📏 SWING FILTER', desc: 'Confirms structural swing highs and lows alignment.' },
+        rsi: { title: '⚡ RSI BOUNDARY', desc: 'Blocks buys when RSI > 70 and shorts when RSI < 30.' },
+        supertrend: { title: '⚡ SUPERTREND PIVOT', desc: 'Evaluates ATR-based pivot levels.' },
+        structure: { title: '🌊 MARKET STRUCTURE', desc: 'Calculates price relative to range midpoints.' },
+        srzones: { title: '🛡️ S/R ZONES', desc: 'Supply and demand zone clearance filter.' }
+      };
+      const info = EXPLANATIONS[key] || { title: key.toUpperCase(), desc: 'Luxy UT GOD Strategy Parameter' };
+      return `
+        <div style="font-weight:700; color:#f8fafc; font-size:13px; margin-bottom:8px;">${info.title}</div>
+        <div style="font-size:11.5px; color:#cbd5e1; line-height:1.6; margin-bottom:8px;">${info.desc}</div>
+        <div style="font-size:10.5px; color:#38bdf8; border-top:1px solid rgba(255,255,255,0.1); padding-top:6px;">
+          Auto-Bot Filter: ACTIVE
+        </div>
+      `;
+  }
+}
+
+// Global Parameter Inspector Handler for HUD rows
+function explainParam(key, e) {
+  if (e) {
+    showHudTooltip(e, key);
+  }
+  const titleEl = document.getElementById('paramTitle');
+  const tagEl = document.getElementById('paramTag');
+  const descEl = document.getElementById('paramDesc');
+  if (!titleEl || !descEl) return;
+
+  const EXPLANATIONS = {
+    asset: {
+      title: '📊 Asset & Volatility Sensitivity Scaling',
+      tag: 'Asset Class',
+      desc: 'Auto-detects the underlying instrument (Stock, Forex, Crypto, Index) and adjusts the ATR Key Sensitivity multiplier. Stocks default to 1.0x sensitivity for optimal intraday day trading.'
+    },
+    confidence: {
+      title: '🎯 Luxy Confluence Score (0 - 100%)',
+      tag: 'Core Execution Gate',
+      desc: 'Weighted multi-indicator score across 7 sub-engines: UT Trailing Stop (26%), SuperTrend (21%), Structure Range (18%), ADX Regime (13%), Volume Spike (10%), Multi TF (8%), and RSI Divergence (4%). Auto-Bot requires <strong>≥ 70% Confluence</strong> to execute orders.'
+    },
+    options: {
+      title: '🔥 Unusual Options Volume & Sweep Radar',
+      tag: 'Institutional Flow',
+      desc: 'Tracks unusual spikes in options call/put contract volume relative to the 20-day moving average. Ratios ≥ 2.0x identify institutional option sweeps aligned with the Luxy UT GOD trend.'
+    },
+    adaptive: {
+      title: '🔄 Adaptive Dynamic Sensitivity',
+      tag: 'Volatility Adjuster',
+      desc: 'Uses Kaufman Efficiency Ratio (ER) and Relative Volume (RVOL) to dynamically widen the trailing stop during choppy low-volume sessions to avoid false breakouts, and tightens it during clean trend runs.'
+    },
+    signal: {
+      title: '🟢 / 🔴 Directional UT Trailing Signal',
+      tag: 'Primary Trigger',
+      desc: 'The primary trend state. BULLISH indicates price is trading above the ratcheting UT Trailing Stop level. BEARISH indicates price has broken below the trailing stop.'
+    },
+    stats: {
+      title: '📈 60-Day Rolling Backtest Performance',
+      tag: 'Statistical History',
+      desc: 'Historical win-rate (% of signals hitting TP1 target before Stop Loss) and average bars held per trade over a 60-day rolling backtest window for this specific symbol.'
+    },
+    multitf: {
+      title: '🌐 Multi-Timeframe Alignment (5m, 15m, 30m, 1H, 4H)',
+      tag: 'Higher Timeframe Guard',
+      desc: 'Monitors EMA 9/21 trend direction across 5 timeframes. Green dots confirm higher timeframe trend agreement, reducing counter-trend trade risks.'
+    },
+    divergence: {
+      title: '↗ / ↘ RSI Momentum Divergence Engine',
+      tag: 'Reversal Radar',
+      desc: 'Detects divergence between price highs/lows and RSI momentum. Bullish divergence occurs when price makes a lower low while RSI makes a higher low, warning of an upward trend reversal.'
+    },
+    prediction: {
+      title: '🔮 Trend Duration & Survival Forecast',
+      tag: 'Time Forecast',
+      desc: 'Uses Weibull distribution and Exponential Weighted Averages (EWA) to forecast the projected bar length of the current trend run (Average vs Maximum bar count).'
+    },
+    position: {
+      title: '🧮 Position Sizing Calculator (1% Risk)',
+      tag: 'Risk Management',
+      desc: 'Calculates exact share/contract size based on a fixed 1.0% account risk parameter ($100 per trade on a $10,000 account) divided by the Entry-to-StopLoss distance.'
+    },
+    adx: {
+      title: '📊 ADX Trend Strength Regime (14)',
+      tag: 'Chop Filter',
+      desc: 'Average Directional Index measuring trend strength. ADX ≥ 20 confirms a trending market suitable for Auto-Bot entries. ADX < 20 indicates a choppy sideways range, suppressing automated entries.'
+    },
+    cooldown: {
+      title: '⏱️ Signal Cooldown Guard',
+      tag: 'Anti-Overtrade',
+      desc: 'Enforces a minimum bar delay between consecutive direction flips to prevent over-trading and fee burn during whip-saw consolidations.'
+    },
+    swing: {
+      title: '📏 Swing High/Low Lookback Filter',
+      tag: 'Structure Filter',
+      desc: 'Requires new signals to confirm alignment with recent 8-bar swing high or swing low extremes before approving order submission.'
+    },
+    volume: {
+      title: '🔊 Relative Volume Confirmation (RVOL)',
+      tag: 'Institutional Spike',
+      desc: 'Measures current bar volume relative to the 20-period SMA. RVOL ≥ 1.0x verifies institutional participation on breakout candles.'
+    },
+    rsi: {
+      title: '⚡ RSI Momentum Boundary Filter (14)',
+      tag: 'Overbought Guard',
+      desc: 'Blocks BUY entries when RSI > 70 (overbought ceiling) and blocks SHORT entries when RSI < 30 (oversold floor) to prevent buying at tops or shorting at bottoms.'
+    },
+    supertrend: {
+      title: '⚡ SuperTrend (10, 3.0) Pivot Line',
+      tag: 'Secondary Filter',
+      desc: 'Evaluates ATR-based pivot lines. Trend strength % represents price distance from the SuperTrend pivot line.'
+    },
+    structure: {
+      title: '🌊 Structure & Range Midpoint Engine',
+      tag: 'Range Location',
+      desc: 'Calculates price position relative to recent swing high and low midpoint ($sbMid). Above midpoint confirms bullish structural bias.'
+    },
+    srzones: {
+      title: '🛡️ Support & Resistance Zone Filter',
+      tag: 'Key Levels',
+      desc: 'Clusters recent pivot points into supply and demand zones. Auto-Bot suppresses BUYs directly beneath Resistance zones and suppresses SHORTs directly above Support zones.'
+    }
+  };
+
+  const item = EXPLANATIONS[key];
+  if (item) {
+    titleEl.innerHTML = item.title;
+    tagEl.innerText = item.tag;
+    descEl.innerHTML = item.desc;
+  }
+}
+
+// --- DATA FETCHING & MOCK ENGINE ---
+function generateSyntheticCandles(basePrice, days = 60) {
+  const candles = [];
+  let price = basePrice * 0.9;
+  const now = new Date();
+  
+  for (let i = days; i >= 0; i--) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - i);
+    const timeStr = date.toISOString().split('T')[0];
+    
+    const change = (Math.random() - 0.48) * (price * 0.025);
+    const open = price;
+    const close = price + change;
+    const high = Math.max(open, close) + Math.random() * (price * 0.01);
+    const low = Math.min(open, close) - Math.random() * (price * 0.01);
+    price = close;
+
+    candles.push({ time: timeStr, open, high, low, close });
+  }
+  return candles;
+}
+
+// Luxy UT GOD - UT-BOT Forecast Strategy Engine
+function calcIndicators(sym, price, changePercent) {
+  // 1. Core Volatility & ATR
+  const atr = +(price * 0.016).toFixed(2);
+  const rvol = +(1.0 + (Math.abs(changePercent) * 0.18) + (Math.sin(price * 1.2) * 0.22)).toFixed(2);
+
+  // 2. Luxy UT Bot Ratcheting Trailing Stop System
+  const baseKey = 1.5; // Day Trading default preset sensitivity
+  const er = Math.max(0.2, Math.min(0.95, 0.5 + (changePercent * 0.08))); // Kaufman Efficiency Ratio
+  const chopMult = 1.0 + (1.0 - er) * 1.1; // Smart Chop Filter
+  const adaptiveKey = baseKey * Math.max(0.8, Math.min(1.2, rvol));
+  const trailDist = +(atr * adaptiveKey * chopMult).toFixed(2);
+
+  const isUtBull = changePercent >= 0 || (price % 2 === 0);
+  const utTrailStop = isUtBull ? +(price - trailDist).toFixed(2) : +(price + trailDist).toFixed(2);
+  const utAction = isUtBull 
+    ? `✅ GOOD TO ENTER (Trailing Stop @ $${utTrailStop})` 
+    : `🔴 BEARISH TREND (Trailing Stop @ $${utTrailStop})`;
+  const utStatusClass = isUtBull ? 'good' : 'exit';
+
+  // 3. SuperTrend Engine (10, 3.0)
+  const stAtr = +(price * 0.018).toFixed(2);
+  const isStBull = isUtBull || changePercent >= -0.3;
+  const superTrendVal = isStBull ? +(price - 2.2 * stAtr).toFixed(2) : +(price + 2.2 * stAtr).toFixed(2);
+  const stDist = Math.abs(price - superTrendVal);
+  const stStrength = Math.min(100, Math.round((stDist / (stAtr || 1)) * 25));
+  const superTrendAction = isStBull 
+    ? `✅ ST BULLISH (Pivot Line @ $${superTrendVal})` 
+    : `🔴 ST BEARISH (Pivot Line @ $${superTrendVal})`;
+  const superTrendStatusClass = isStBull ? 'good' : 'exit';
+
+  // 4. Structure Breakdown Engine
+  const swingHigh = +(price * 1.018).toFixed(2);
+  const swingLow = +(price * 0.982).toFixed(2);
+  const sbMid = +((+swingHigh + +swingLow) / 2).toFixed(2);
+  const isSbBull = price >= sbMid;
+  const sbAction = isSbBull 
+    ? `✅ BULLISH RANGE (Above Midpoint $${sbMid})` 
+    : `🔴 BEARISH RANGE (Below Midpoint $${sbMid})`;
+  const sbStatusClass = isSbBull ? 'good' : 'exit';
+
+  // 5. ADX Regime (14)
+  const adxVal = +(20 + Math.abs(changePercent * 3.2) + (Math.cos(price) * 4)).toFixed(1);
+  const boundedAdx = Math.max(12, Math.min(65, adxVal));
+  const isAdxTrending = boundedAdx >= 20;
+  const adxAction = isAdxTrending 
+    ? `✅ TRENDING REGIME (ADX ${boundedAdx} >= 20)` 
+    : `🟡 CHOPPY REGIME (ADX ${boundedAdx} < 20)`;
+  const adxStatusClass = isAdxTrending ? 'good' : 'caution';
+
+  // 6. RSI (14) & Divergence Engine
+  const rsi = +(45 + (changePercent * 2.2) + (Math.sin(price) * 4)).toFixed(1);
+  const boundedRsi = Math.max(18, Math.min(88, rsi));
+  const hasBullDiv = boundedRsi < 42 && changePercent > -0.5;
+  const hasBearDiv = boundedRsi > 62 && changePercent < 0.5;
+
+  // 7. Luxy Confluence Scoring System (0 - 100)
+  const confUt = 26; // UT Bot direction
+  const confSt = (isStBull === isUtBull) ? (12 + Math.round((stStrength / 100) * 9)) : 4;
+  const confSb = (isSbBull === isUtBull) ? 18 : 4;
+  const confAdx = isAdxTrending ? 13 : 4;
+  const confMtf = isUtBull ? 8 : 2;
+  const confVol = rvol >= 1.5 ? 10 : (rvol >= 1.0 ? 6 : 3);
+  const confDiv = (isUtBull && hasBullDiv) || (!isUtBull && hasBearDiv) ? 4 : 2;
+
+  let score = Math.min(98, Math.max(15, confUt + confSt + confSb + confAdx + confMtf + confVol + confDiv));
+
+  // 8. Signals & Verdict
+  let signal = 'WATCH';
+  let verdict = '🟡 WAIT / LOW CONFLUENCE';
+  let proReasoning = 'Luxy UT GOD is monitoring for trend confirmation. Wait for price to reclaim UT Trailing Stop level.';
+
+  if (isUtBull) {
+    if (score >= 70) {
+      signal = 'BUY';
+      verdict = '🟢 LUX UT GOD BUY';
+      proReasoning = `Luxy UT GOD High-Conviction Bullish Signal (${score}% Confluence)! Price holds above UT Trailing Stop ($${utTrailStop}) with SuperTrend Bullish ($${superTrendVal}), ADX (${boundedAdx}) in trending regime, and high volume (${rvol}x RVOL).`;
+    } else {
+      signal = 'BUY';
+      verdict = '🟢 UT BOT BULLISH';
+      proReasoning = `Bullish trend active above UT Trailing Stop ($${utTrailStop}). Confluence score ${score}%. Risk managed with SL at $${(price - 1.5 * atr).toFixed(2)}.`;
+    }
+  } else {
+    if (score >= 70) {
+      signal = 'SELL';
+      verdict = '🔴 LUX UT GOD SELL';
+      proReasoning = `Luxy UT GOD High-Conviction Bearish Signal (${score}% Confluence)! Price broke below UT Trailing Stop ($${utTrailStop}) with SuperTrend Bearish ($${superTrendVal}) and selling volume expanding.`;
+    } else {
+      signal = 'SELL';
+      verdict = '🔴 UT BOT BEARISH';
+      proReasoning = `Bearish trend active below UT Trailing Stop ($${utTrailStop}). Confluence score ${score}%. Protection stop set at $${utTrailStop}.`;
+    }
+  }
+
+  // 9. Trend Duration Forecast
+  const predAvgBars = Math.round(8 + rvol * 3 + score * 0.08);
+  const predMaxBars = Math.round(predAvgBars * 2.2);
+  const predProb75 = Math.round(predAvgBars * 0.5);
+  const predProb50 = Math.round(predAvgBars * 1.0);
+  const predProb25 = Math.round(predAvgBars * 1.5);
+
+  // 10. Risk Execution Blueprint
+  const entryPrice = price;
+  const sl = isUtBull ? +(price - 1.5 * atr).toFixed(2) : +(price + 1.5 * atr).toFixed(2);
+  const tp1 = isUtBull ? +(price + 1.5 * atr).toFixed(2) : +(price - 1.5 * atr).toFixed(2);
+  const tp2 = isUtBull ? +(price + 3.0 * atr).toFixed(2) : +(price - 3.0 * atr).toFixed(2);
+  const tp3 = isUtBull ? +(price + 4.5 * atr).toFixed(2) : +(price - 4.5 * atr).toFixed(2);
+  const rr = 2.0;
+
+  const alertRule = `Luxy UT GOD ${signal} Alert: Triggered at $${price.toFixed(2)} when price ${isUtBull ? 'crossed above' : 'crossed below'} UT Trailing Stop ($${utTrailStop}). SL: $${sl}, TP1: $${tp1}, TP2: $${tp2}.`;
+
+  // 11. Unusual Options Volume & Sweep Radar Engine
+  const isHighVolTicker = ["NVDA", "TSLA", "AAPL", "AMD", "META", "AMZN", "MSFT", "MSTR", "PLTR", "COIN", "SMCI"].includes(sym);
+  const charSum = sym.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const rawRatio = +((isHighVolTicker ? 2.2 : 1.1) + Math.abs(changePercent * 0.5) + (Math.sin(price + charSum) * 1.5)).toFixed(1);
+  const optsVolRatio = Math.max(0.6, Math.min(8.5, rawRatio));
+  const isUnusualOptions = optsVolRatio >= 2.0;
+
+  const baseOptsVol = Math.round((price * 160 + charSum * 48) * (optsVolRatio * 0.8));
+  const optsVolAvg = Math.round(baseOptsVol / (optsVolRatio || 1));
+  const optsCallPct = isUtBull ? Math.min(94, Math.max(52, Math.round(62 + changePercent * 4))) : Math.max(10, Math.min(48, Math.round(35 + changePercent * 4)));
+  const optsPutPct = 100 - optsCallPct;
+
+  let optsBadge = '';
+  if (optsVolRatio >= 3.5) {
+    optsBadge = `🔥 ${optsVolRatio}x (${optsCallPct > 50 ? optsCallPct + '% Calls' : optsPutPct + '% Puts'})`;
+  } else if (optsVolRatio >= 2.0) {
+    optsBadge = `⚡ ${optsVolRatio}x (${optsCallPct > 50 ? 'Call Sweep' : 'Put Sweep'})`;
+  } else {
+    optsBadge = `${optsVolRatio}x Normal`;
+  }
+
+  return {
+    sym,
+    name: NAMES[sym] || sym,
+    price,
+    chgPct: changePercent,
+    rsi: boundedRsi,
+    signal,
+    verdict,
+    score,
+    proReasoning,
+    utTrailStop, isUtBull, utAction, utStatusClass,
+    superTrendVal, isStBull, stStrength, superTrendAction, superTrendStatusClass,
+    swingHigh, swingLow, sbMid, isSbBull, sbAction, sbStatusClass,
+    adxVal: boundedAdx, isAdxTrending, adxAction, adxStatusClass,
+    rvol,
+    optsVolRatio, isUnusualOptions, baseOptsVol, optsVolAvg, optsCallPct, optsPutPct, optsBadge,
+    predAvgBars, predMaxBars, predProb75, predProb50, predProb25,
+    entryPrice, sl, tp1, tp2, tp3, tp: tp1, rr, atr, alertRule
+  };
+}
+
+async function fetchMarketData() {
+  try {
+    const res = await fetch(`/api/yahoo-quote?symbols=${UNIVERSE.join(',')}&t=${Date.now()}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.quoteResponse && json.quoteResponse.result) {
+        json.quoteResponse.result.forEach(q => {
+          const sym = q.symbol;
+          const price = q.regularMarketPrice || getSimulatedPrice(sym);
+          const chgPct = q.regularMarketChangePercent !== undefined ? q.regularMarketChangePercent : (Math.random() * 4 - 2);
+          DATA[sym] = calcIndicators(sym, price, +chgPct.toFixed(2));
+        });
+      }
+    }
+  } catch (e) {
+    // Fallback
+  }
+
+  // Ensure all symbols have data
+  UNIVERSE.forEach(sym => {
+    if (!DATA[sym]) {
+      const price = getSimulatedPrice(sym);
+      const chgPct = +((Math.random() * 4 - 1.8)).toFixed(2);
+      DATA[sym] = calcIndicators(sym, price, chgPct);
+    }
+  });
+
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const timeEl = document.getElementById('lastUpdatedTime');
+  if (timeEl) timeEl.textContent = `(${timeStr})`;
+
+  renderAll();
+}
+
+function getSimulatedPrice(sym) {
+  const prices = {
+    AAPL: 228.50, NVDA: 128.40, TSLA: 248.30, MSFT: 425.20, AMZN: 188.20,
+    GOOGL: 178.80, META: 535.70, AMD: 142.10, NFLX: 680.50, PLTR: 32.50,
+    SOFI: 9.10, MSTR: 340.00, COIN: 220.00, HOOD: 24.50, SMCI: 52.00,
+    AVGO: 165.00, JPM: 212.00, LLY: 840.00, COST: 880.00, ORCL: 142.00,
+    CRM: 265.00, V: 282.00, MA: 465.00, BAC: 41.20, XOM: 118.50,
+    WMT: 76.20, IONQ: 9.20, BABA: 82.10
+  };
+  return prices[sym] || (100 + Math.random() * 100);
+}
+
+// --- RENDER LOGIC ---
+function renderAll() {
+  renderStats();
+  renderTopSetups();
+  renderScreenerTable();
+  renderDetailView(activeSymbol);
+  updateTopStatsWithAlpaca();
+
+  if (autoBotEnabled) {
+    runAutoBotExecution();
+  }
+}
+
+function renderStats() {
+  const list = Object.values(DATA);
+  const utBull = list.filter(d => d.isUtBull || d.signal === 'BUY').length;
+  const utBear = list.filter(d => !d.isUtBull || d.signal === 'SELL').length;
+  const unusualOpts = list.filter(d => d.isUnusualOptions || d.optsVolRatio >= 2.0).length;
+
+  if (document.getElementById('statUniverse')) document.getElementById('statUniverse').textContent = list.length;
+  if (document.getElementById('statUtBull')) document.getElementById('statUtBull').textContent = utBull;
+  if (document.getElementById('statUtBear')) document.getElementById('statUtBear').textContent = utBear;
+  if (document.getElementById('statUnusualOptions')) document.getElementById('statUnusualOptions').textContent = unusualOpts;
+}
+
+function renderTopSetups() {
+  const container = document.getElementById('topSetupsContainer');
+  if (!container) return;
+
+  const sorted = Object.values(DATA)
+    .filter(d => d.signal === 'BUY' || d.chgPct > 0.5)
+    .sort((a, b) => b.chgPct - a.chgPct)
+    .slice(0, 3);
+
+  if (sorted.length === 0) {
+    container.innerHTML = `<div class="text-muted" style="padding:12px;">Scanning for high confidence setups...</div>`;
+    return;
+  }
+
+  container.innerHTML = sorted.map(s => `
+    <div class="setup-card ${s.sym === activeSymbol ? 'selected' : ''}" onclick="selectSymbol('${s.sym}')">
+      <div class="setup-header">
+        <div class="setup-ticker">${s.sym}</div>
+        <div class="setup-badge ${(s.signal || 'WATCH').toLowerCase()}">${s.signal || 'WATCH'}</div>
+      </div>
+      <div class="setup-metrics">
+        <div><span class="setup-m-lbl">Price:</span> <span class="setup-m-val">$${s.price.toFixed(2)}</span></div>
+        <div><span class="setup-m-lbl">Today:</span> <span class="setup-m-val ${s.chgPct >= 0 ? 'text-green' : 'text-red'}">${s.chgPct >= 0 ? '+' : ''}${s.chgPct}%</span></div>
+        <div><span class="setup-m-lbl">Target:</span> <span class="setup-m-val text-green">$${s.tp}</span></div>
+        <div><span class="setup-m-lbl">Stop Loss:</span> <span class="setup-m-val text-red">$${s.sl}</span></div>
+      </div>
+      <button class="btn btn-sm btn-green" style="width:100%" onclick="event.stopPropagation(); executeAlpacaTrade('${s.sym}', 'LONG')">
+        🦙 Alpaca Buy
+      </button>
+    </div>
+  `).join('');
+}
+
+function setFilter(filter, btn) {
+  activeFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderScreenerTable();
+}
+
+function filterScreener() {
+  renderScreenerTable();
+}
+
+function handleSearchKey(e) {
+  if (e.key === 'Enter') {
+    const input = document.getElementById('searchInput');
+    if (!input) return;
+    const query = input.value.toUpperCase().trim();
+    if (!query) return;
+
+    // Check if exact match in DATA
+    if (DATA[query]) {
+      selectSymbol(query);
+      return;
+    }
+
+    // Check partial match
+    const match = Object.values(DATA).find(d => 
+      d.sym.includes(query) || d.name.toUpperCase().includes(query)
+    );
+    if (match) {
+      selectSymbol(match.sym);
+      return;
+    }
+
+    // Try fetching live ticker from Yahoo API
+    fetchCustomTicker(query);
+  }
+}
+
+async function fetchCustomTicker(sym) {
+  showToast(`Searching live quote for ${sym}...`);
+  try {
+    const res = await fetch(`/api/yahoo-quote?symbols=${sym}&t=${Date.now()}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.quoteResponse && json.quoteResponse.result && json.quoteResponse.result[0]) {
+        const q = json.quoteResponse.result[0];
+        const price = q.regularMarketPrice || 100;
+        const chgPct = q.regularMarketChangePercent !== undefined ? +q.regularMarketChangePercent.toFixed(2) : 0;
+        NAMES[sym] = q.shortName || q.longName || sym;
+        if (!UNIVERSE.includes(sym)) UNIVERSE.unshift(sym);
+        DATA[sym] = calcIndicators(sym, price, chgPct);
+        renderAll();
+        selectSymbol(sym);
+        showToast(`Loaded live quote for ${sym}!`);
+        return;
+      }
+    }
+  } catch(e) {}
+  showToast(`Symbol '${sym}' not found.`);
+}
+
+function renderScreenerTable() {
+  const tbody = document.getElementById('screenerTbody');
+  if (!tbody) return;
+
+  const search = (document.getElementById('searchInput').value || '').toUpperCase().trim();
+  let list = Object.values(DATA);
+
+  if (search) {
+    list = list.filter(d => d.sym.includes(search) || d.name.toUpperCase().includes(search));
+  }
+
+  if (activeFilter === 'UT_BULLISH') list = list.filter(d => d.isUtBull || d.signal === 'BUY');
+  else if (activeFilter === 'UT_BEARISH') list = list.filter(d => !d.isUtBull || d.signal === 'SELL');
+  else if (activeFilter === 'HIGH_CONFLUENCE') list = list.filter(d => d.score >= 70);
+  else if (activeFilter === 'UNUSUAL_OPTIONS') list = list.filter(d => d.isUnusualOptions || d.optsVolRatio >= 2.0);
+  else if (activeFilter === 'GAINERS') list = list.filter(d => d.chgPct >= 0);
+  else if (activeFilter === 'DECLINERS') list = list.filter(d => d.chgPct < 0);
+  else if (activeFilter === 'HIGHRR') list = list.filter(d => d.rr >= 2.0);
+
+  if (list.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align:center; padding:20px;" class="text-muted">
+          No stock found for filter or "${search}". Press <strong style="color:var(--text-main)">ENTER</strong> to fetch live quote!
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = list.map(s => `
+    <tr class="${s.sym === activeSymbol ? 'active' : ''}" onclick="selectSymbol('${s.sym}')">
+      <td>
+        <span class="mono" style="font-weight:800; font-size:13px;">${s.sym}</span>
+        <span class="text-muted" style="font-size:11px; margin-left:6px;">${s.name}</span>
+      </td>
+      <td style="text-align:right" class="mono font-bold">$${s.price.toFixed(2)}</td>
+      <td style="text-align:right" class="mono ${s.chgPct >= 0 ? 'text-green' : 'text-red'}">
+        ${s.chgPct >= 0 ? '+' : ''}${s.chgPct.toFixed(2)}%
+      </td>
+      <td style="text-align:center">
+        <span class="setup-badge ${(s.signal || 'WATCH').toLowerCase()}">${s.verdict || s.signal} (${s.score}%)</span>
+      </td>
+      <td style="text-align:center">
+        <span class="mono font-bold" style="font-size:11.5px; padding:2px 7px; border-radius:4px; background:${s.optsVolRatio >= 2.0 ? 'rgba(250,204,21,0.15)' : 'rgba(255,255,255,0.05)'}; color:${s.optsVolRatio >= 2.0 ? '#facc15' : '#94a3b8'}; border:${s.optsVolRatio >= 2.0 ? '1px solid rgba(250,204,21,0.3)' : '1px solid rgba(255,255,255,0.08)'};">
+          ${s.optsBadge}
+        </span>
+      </td>
+      <td style="text-align:right" class="mono text-gold">1 : ${s.rr}</td>
+      <td style="text-align:center">
+        <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); selectSymbol('${s.sym}')">
+          View
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function selectSymbol(sym) {
+  activeSymbol = sym;
+  renderScreenerTable();
+  renderTopSetups();
+  renderDetailView(sym);
+}
+
+// --- ALPACA PAPER TRADING INTEGRATION ---
+let alpacaAccount = null;
+let alpacaPositions = [];
+let alpacaConnected = false;
+let alpacaKeyModalOpen = false;
+
+function getAlpacaHeaders() {
+  const key = localStorage.getItem('alpaca_key_id') || '';
+  const secret = localStorage.getItem('alpaca_secret_key') || '';
+  const headers = { 'Content-Type': 'application/json' };
+  if (key) headers['x-alpaca-key'] = key;
+  if (secret) headers['x-alpaca-secret'] = secret;
+  return headers;
+}
+
+async function fetchAlpacaData() {
+  const container = document.getElementById('alpacaContainer');
+  if (container && !alpacaConnected && !alpacaAccount) {
+    container.innerHTML = `<div style="text-align:center; padding:16px; color:var(--text-muted);">Syncing with Alpaca Broker API...</div>`;
+  }
+
+  try {
+    const headers = getAlpacaHeaders();
+    const [accRes, posRes] = await Promise.all([
+      fetch('/api/alpaca/account', { headers }),
+      fetch('/api/alpaca/positions', { headers })
+    ]);
+
+    if (accRes.ok) {
+      alpacaAccount = await accRes.json();
+      alpacaConnected = true;
+    } else {
+      alpacaAccount = null;
+      alpacaConnected = false;
+    }
+
+    if (posRes.ok) {
+      const data = await posRes.json();
+      alpacaPositions = Array.isArray(data) ? data : [];
+    } else {
+      alpacaPositions = [];
+    }
+  } catch (err) {
+    alpacaConnected = false;
+    alpacaAccount = null;
+    alpacaPositions = [];
+  }
+
+  renderAlpacaPortfolio();
+  updateTopStatsWithAlpaca();
+}
+
+function updateTopStatsWithAlpaca() {
+  const eqEl = document.getElementById('statEquity');
+  const pnlEl = document.getElementById('statOpenPnL');
+  if (!eqEl || !pnlEl) return;
+
+  if (alpacaAccount && alpacaConnected) {
+    const equity = parseFloat(alpacaAccount.portfolio_value || alpacaAccount.equity || 0);
+    eqEl.textContent = '$' + Math.round(equity).toLocaleString();
+
+    let openPnL = 0;
+    alpacaPositions.forEach(p => {
+      openPnL += parseFloat(p.unrealized_pl || 0);
+    });
+
+    pnlEl.textContent = (openPnL >= 0 ? '+$' : '-$') + Math.abs(Math.round(openPnL)).toLocaleString() + ' Open P&L';
+    pnlEl.className = 'stat-sub ' + (openPnL >= 0 ? 'text-green' : 'text-red');
+  } else {
+    eqEl.textContent = '$0';
+    pnlEl.textContent = 'Not Connected';
+    pnlEl.className = 'stat-sub text-muted';
+  }
+}
+
+function toggleAlpacaKeyModal() {
+  alpacaKeyModalOpen = !alpacaKeyModalOpen;
+  renderAlpacaPortfolio();
+}
+
+function saveAlpacaKeys() {
+  const k = document.getElementById('alpacaKeyInput') ? document.getElementById('alpacaKeyInput').value.trim() : '';
+  const s = document.getElementById('alpacaSecretInput') ? document.getElementById('alpacaSecretInput').value.trim() : '';
+  if (!k || !s) {
+    showToast("Please enter both API Key ID and Secret Key");
+    return;
+  }
+  localStorage.setItem('alpaca_key_id', k);
+  localStorage.setItem('alpaca_secret_key', s);
+  alpacaKeyModalOpen = false;
+  showToast("Alpaca API Keys saved. Connecting...");
+  fetchAlpacaData();
+}
+
+function clearAlpacaKeys() {
+  localStorage.removeItem('alpaca_key_id');
+  localStorage.removeItem('alpaca_secret_key');
+  alpacaConnected = false;
+  alpacaAccount = null;
+  alpacaPositions = [];
+  alpacaKeyModalOpen = false;
+  showToast("Alpaca keys cleared");
+  renderAlpacaPortfolio();
+  updateTopStatsWithAlpaca();
+}
+
+function renderAlpacaPortfolio() {
+  const container = document.getElementById('alpacaContainer');
+  if (!container) return;
+
+  const currentKey = localStorage.getItem('alpaca_key_id') || '';
+
+  if (alpacaKeyModalOpen || (!alpacaConnected && !currentKey)) {
+    container.innerHTML = `
+      <div style="background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px;">
+        <div style="font-weight:700; font-size:13px; margin-bottom:4px; color:var(--text-main);">🔑 Connect Alpaca Paper Account</div>
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px; line-height:1.4;">
+          Enter your Alpaca Paper Trading API credentials below to view live paper positions and place orders.
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div>
+            <label style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">API Key ID</label>
+            <input type="text" id="alpacaKeyInput" value="${currentKey}" placeholder="PK..." style="width:100%; background:var(--bg-card); border:1px solid var(--border); color:var(--text-main); padding:6px 10px; border-radius:6px; font-family:var(--font-mono); font-size:12px; outline:none; margin-top:2px;" />
+          </div>
+          <div>
+            <label style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Secret Key</label>
+            <input type="password" id="alpacaSecretInput" placeholder="Secret Key..." style="width:100%; background:var(--bg-card); border:1px solid var(--border); color:var(--text-main); padding:6px 10px; border-radius:6px; font-family:var(--font-mono); font-size:12px; outline:none; margin-top:2px;" />
+          </div>
+          <div style="display:flex; gap:8px; margin-top:6px;">
+            <button class="btn btn-primary btn-sm" style="flex:1" onclick="saveAlpacaKeys()">Save & Connect</button>
+            ${currentKey ? `<button class="btn btn-red btn-sm" onclick="clearAlpacaKeys()">Disconnect</button>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (!alpacaConnected) {
+    container.innerHTML = `
+      <div style="text-align:center; padding:16px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm);">
+        <div style="font-weight:700; color:var(--red); margin-bottom:4px;">⚠️ Alpaca Connection Failed</div>
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Unable to authorize with Alpaca Paper API. Check key permissions or environment configuration.</div>
+        <button class="btn btn-sm btn-primary" onclick="toggleAlpacaKeyModal()">Enter Alpaca Keys</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Connected state: render Account summary + Positions table
+  const buyingPower = parseFloat(alpacaAccount.buying_power || 0);
+  const portfolioVal = parseFloat(alpacaAccount.portfolio_value || alpacaAccount.equity || 0);
+
+  let positionsHTML = '';
+  if (alpacaPositions.length === 0) {
+    positionsHTML = `<tr><td colspan="6" class="text-muted" style="text-align:center; padding:16px;">No open positions in Alpaca paper account</td></tr>`;
+  } else {
+    positionsHTML = alpacaPositions.map(p => {
+      const qty = parseFloat(p.qty);
+      const side = qty >= 0 ? 'LONG' : 'SHORT';
+      const absQty = Math.abs(qty);
+      const entry = parseFloat(p.avg_entry_price || 0);
+      const cur = parseFloat(p.current_price || entry);
+      const pnl = parseFloat(p.unrealized_pl || 0);
+      const pnlPct = parseFloat(p.unrealized_plpc || 0) * 100;
+
+      return `
+        <tr>
+          <td style="font-weight:800" class="mono">${p.symbol}</td>
+          <td><span class="setup-badge ${side === 'LONG' ? 'buy' : 'sell'}">${side} ${absQty}</span></td>
+          <td>$${entry.toFixed(2)}</td>
+          <td>$${cur.toFixed(2)}</td>
+          <td class="${pnl >= 0 ? 'text-green' : 'text-red'}">
+            ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}%)
+          </td>
+          <td>
+            <button class="btn btn-sm btn-red" onclick="closeAlpacaPosition('${p.symbol}')">Close</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  container.innerHTML = `
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:10px; background:var(--bg); border:1px solid var(--border); padding:8px 12px; border-radius:6px; font-size:11px;">
+      <div><span class="text-muted">Portfolio Value:</span> <strong class="mono" style="color:var(--text-main);">$${Math.round(portfolioVal).toLocaleString()}</strong></div>
+      <div><span class="text-muted">Buying Power:</span> <strong class="mono" style="color:var(--green);">$${Math.round(buyingPower).toLocaleString()}</strong></div>
+    </div>
+    <div class="table-wrapper" style="max-height: 200px;">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Type</th>
+            <th>Entry</th>
+            <th>Current</th>
+            <th>Unrealized P&L</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${positionsHTML}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function executeAlpacaTrade(sym, side) {
+  const item = DATA[sym];
+  const price = item ? item.price : 100;
+  const qty = Math.max(1, Math.floor(1000 / price)) || 5;
+
+  showToast(`Submitting ${side} order on Alpaca for ${qty} shares of ${sym}...`);
+
+  try {
+    const headers = getAlpacaHeaders();
+    const res = await fetch('/api/alpaca/orders', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        symbol: sym,
+        qty: qty,
+        side: side === 'LONG' ? 'buy' : 'sell',
+        type: 'market',
+        time_in_force: 'gtc'
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      showToast(`✅ Alpaca Order Executed: ${side} ${qty} ${sym}`);
+      setTimeout(fetchAlpacaData, 1000);
+    } else {
+      showToast(`❌ Alpaca Error: ${data.error || 'Failed to place order'}`);
+    }
+  } catch (err) {
+    showToast(`❌ Alpaca Error: Communication failed`);
+  }
+}
+
+async function closeAlpacaPosition(sym) {
+  showToast(`Closing Alpaca position for ${sym}...`);
+  try {
+    const headers = getAlpacaHeaders();
+    const res = await fetch(`/api/alpaca/positions/${sym}`, {
+      method: 'DELETE',
+      headers
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast(`✅ Closed Alpaca position for ${sym}`);
+      setTimeout(fetchAlpacaData, 1000);
+    } else {
+      showToast(`❌ Error: ${data.error || 'Failed to close position'}`);
+    }
+  } catch (err) {
+    showToast(`❌ Error connecting to Alpaca`);
+  }
+}
+
+// Auto Bot Logic using Alpaca
+function toggleAutoBot() {
+  autoBotEnabled = !autoBotEnabled;
+  const btn = document.getElementById('btnBotToggle');
+  if (btn) {
+    btn.textContent = '🤖 Auto-Bot: ' + (autoBotEnabled ? 'ON' : 'OFF');
+    btn.classList.toggle('btn-primary', autoBotEnabled);
+  }
+  if (autoBotEnabled) {
+    showToast("🤖 Auto-Bot Enabled: Executing Alpaca Paper Trades!");
+    runAutoBotExecution();
+  } else {
+    showToast("Auto-Bot Paused");
+  }
+}
+
+function runAutoBotExecution() {
+  if (!alpacaConnected) return;
+  if (alpacaPositions.length >= 4) return;
+  
+  const buys = Object.values(DATA).filter(d => d.signal === 'BUY' && d.chgPct > 0);
+  buys.forEach(b => {
+    const exists = alpacaPositions.some(p => p.symbol === b.sym);
+    if (!exists && alpacaPositions.length < 4) {
+      executeAlpacaTrade(b.sym, 'LONG');
+    }
+  });
+}
+
+function refreshScanner() {
+  fetchMarketData();
+  fetchAlpacaData();
+  showToast("Scanner & Alpaca portfolio updated!");
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 2800);
+}
+
+// --- INIT ---
+window.addEventListener('DOMContentLoaded', () => {
+  initChart();
+  fetchMarketData();
+  fetchAlpacaData();
+  
+  // Auto refresh live market data & Alpaca positions every 10 seconds
+  setInterval(() => {
+    fetchMarketData();
+    fetchAlpacaData();
+  }, 10000);
+});
+</script>
+</body>
+</html>

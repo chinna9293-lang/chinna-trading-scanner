@@ -1,0 +1,93 @@
+//@version=5
+strategy("Scalping: Momentum + Support/Resistance Breakout", overlay=true, default_qty_type=strategy.fixed, default_qty_value=1)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SCALPING STRATEGY: Momentum + Support/Resistance Breakout + Volume
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// INPUT PARAMETERS
+rsi_length = input(14, "RSI Length")
+rsi_threshold = input(60, "RSI Momentum Threshold")
+sr_lookback = input(20, "Support/Resistance Lookback")
+volume_mult = input(1.5, "Volume Multiplier (vs avg)")
+profit_target_percent = input(2.5, "Profit Target %")
+stop_loss_percent = input(1.33, "Stop Loss %")
+max_hold_minutes = input(30, "Max Hold Time (minutes)")
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CORE INDICATORS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// RSI for momentum
+rsi = ta.rsi(close, rsi_length)
+rsi_bullish = rsi > rsi_threshold
+
+// Support & Resistance
+swing_high = ta.highest(high, sr_lookback)
+swing_low = ta.lowest(low, sr_lookback)
+resistance = swing_high[1]
+support = swing_low[1]
+
+// Volume confirmation
+avg_volume = ta.sma(volume, 20)
+volume_spike = volume > (avg_volume * volume_mult)
+
+// Breakout detection
+breakout_above = close > resistance and close[1] <= resistance
+breakdown_below = close < support and close[1] >= support
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENTRY SIGNALS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// LONG: Breakout above resistance + momentum + volume
+long_signal = breakout_above and rsi_bullish and volume_spike
+
+// SHORT: Breakdown below support + momentum + volume (optional)
+short_signal = breakdown_below and (rsi < (100 - rsi_threshold)) and volume_spike
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXIT SIGNALS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Calculate entry price (would be current price at signal)
+entry_price = strategy.position_avg_price
+
+// Profit & Loss targets
+profit_target = entry_price * (1 + profit_target_percent / 100)
+stop_loss = entry_price * (1 - stop_loss_percent / 100)
+
+// Time-based exit (30 minutes max)
+bars_since_entry = bar_index - strategy.opentrades.entry_bar_index(0)
+time_exit = bars_since_entry > (max_hold_minutes / timeframe.in_minutes()) and strategy.opentrades > 0
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXECUTE TRADES
+// ─────────────────────────────────────────────────────────────────────────────
+
+// LONG entry
+if long_signal and strategy.opentrades == 0
+    strategy.entry("LONG", strategy.long, comment="BREAKOUT BUY")
+
+// LONG exit: profit target OR time exit
+if strategy.position_size > 0
+    strategy.exit("EXIT LONG", "LONG", limit=profit_target, stop=stop_loss, comment="Target/SL/Time")
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VISUALIZATION
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Draw support & resistance
+plot(resistance, "Resistance", color=color.red, linewidth=1, style=plot.style_dashed)
+plot(support, "Support", color=color.green, linewidth=1, style=plot.style_dashed)
+
+// Draw RSI indicator
+hline(rsi_threshold, "RSI Threshold", color=color.orange, linestyle=hline.style_dashed)
+
+// Mark entry signals
+plotshape(long_signal, title="BUY Signal", style=shape.labelup, location=location.belowbar, color=color.green, size=size.small)
+plotshape(short_signal, title="SELL Signal", style=shape.labeldown, location=location.abovebar, color=color.red, size=size.small)
+
+// Alert on signal
+alertcondition(long_signal, title="SCALP BUY SIGNAL", message="Breakout + Momentum + Volume - LONG")
+alertcondition(short_signal, title="SCALP SELL SIGNAL", message="Breakdown + Momentum + Volume - SHORT")

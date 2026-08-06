@@ -1,0 +1,6 @@
+{
+  "name": "Chinna Trading Scanner",
+  "description": "Simple, real-time stock scanner & paper trading portal with live technical signals and interactive charts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
