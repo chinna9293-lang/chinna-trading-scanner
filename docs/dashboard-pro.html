@@ -300,23 +300,11 @@ body {
 .setup-m-lbl { color: var(--text-dim); }
 .setup-m-val { font-weight: 700; font-family: var(--font-mono); }
 
-/* Main Split Layout: Left Screener Sidebar (380px), Right Main Workspace (1fr) */
+/* Main Layout: single full-width column. The screener no longer shares
+   a row with a fixed-width side panel, which is what caused the table
+   to need horizontal scrolling -- it now gets the full page width. */
 .main-layout {
-  display: grid;
-  grid-template-columns: 380px 1fr;
-  gap: 20px;
-  align-items: start;
-}
-@media (max-width: 1280px) {
-  .main-layout {
-    grid-template-columns: 320px 1fr;
-    gap: 16px;
-  }
-}
-@media (max-width: 992px) {
-  .main-layout {
-    grid-template-columns: 1fr;
-  }
+  display: block;
 }
 
 /* Pro Strategy HUD & Breakdown Grid */
@@ -577,7 +565,7 @@ table.pos-table td:first-child { text-align: left; }
   <div class="brand">
     <div class="brand-icon">📈</div>
     <div>
-      <div class="brand-title">CHINNA TRADING SCANNER</div>
+      <div class="brand-title">SCANNER</div>
       <div class="brand-sub">Real-Time Market Scanner & Paper Trading</div>
     </div>
   </div>
@@ -644,10 +632,9 @@ table.pos-table td:first-child { text-align: left; }
   </div>
 </section>
 
-<!-- Main Split Layout -->
+<!-- Screener: full width, no side column, so the table fits without horizontal scroll -->
 <main class="main-layout">
-  
-  <!-- Left Side: Screener Table -->
+
   <div class="card-panel">
     <div class="card-header">
       <h3>📊 Live Stock Screener</h3>
@@ -681,8 +668,8 @@ table.pos-table td:first-child { text-align: left; }
     </div>
   </div>
 
-  <!-- Right Side: Chart & Paper Trading -->
-  <div>
+  <!-- Stock Detail: hidden until a stock row is clicked, closeable -->
+  <div id="stockDetailSection" style="display:none; margin-top:16px;">
     <!-- Interactive Chart Card -->
     <div class="card-panel">
       <div class="card-header">
@@ -696,6 +683,7 @@ table.pos-table td:first-child { text-align: left; }
             <button class="filter-btn" id="btnCandleMode" onclick="setChartMode('candles')">🕯️ Real OHLC</button>
           </div>
           <div class="stock-price-lg mono" id="detailPrice">$128.40</div>
+          <button class="btn btn-sm" onclick="closeStockDetail()" title="Close">✕ Close</button>
         </div>
       </div>
       <div class="card-body">
@@ -724,22 +712,22 @@ table.pos-table td:first-child { text-align: left; }
         <!-- Populated dynamically on stock selection -->
       </div>
     </div>
+  </div>
 
-    <!-- Alpaca Paper Portfolio Card -->
-    <div class="card-panel">
-      <div class="card-header">
-        <div>
-          <h3>🦙 Alpaca Paper Portfolio</h3>
-          <div class="text-muted" style="font-size:11px; margin-top:2px;">Connected to Alpaca Paper Trading Account • Live Broker API</div>
-        </div>
-        <div style="display:flex; gap:6px;">
-          <button class="btn btn-sm" onclick="toggleAlpacaKeyModal()">🔑 Keys</button>
-          <button class="btn btn-sm btn-primary" onclick="fetchAlpacaData()">🔄 Sync</button>
-        </div>
+  <!-- Alpaca Paper Portfolio Card: always visible, not tied to a selected stock -->
+  <div class="card-panel" style="margin-top:16px;">
+    <div class="card-header">
+      <div>
+        <h3>🦙 Alpaca Paper Portfolio</h3>
+        <div class="text-muted" style="font-size:11px; margin-top:2px;">Connected to Alpaca Paper Trading Account • Live Broker API</div>
       </div>
-      <div class="card-body" id="alpacaContainer" style="padding:12px;">
-        <!-- Populated dynamically: Account summary & open positions or Setup Key Form -->
+      <div style="display:flex; gap:6px;">
+        <button class="btn btn-sm" onclick="toggleAlpacaKeyModal()">🔑 Keys</button>
+        <button class="btn btn-sm btn-primary" onclick="fetchAlpacaData()">🔄 Sync</button>
       </div>
+    </div>
+    <div class="card-body" id="alpacaContainer" style="padding:12px;">
+      <!-- Populated dynamically: Account summary & open positions or Setup Key Form -->
     </div>
   </div>
 
@@ -1963,6 +1951,18 @@ function selectSymbol(sym) {
   renderScreenerTable();
   renderTopSetups();
   renderDetailView(sym);
+  const detailSection = document.getElementById('stockDetailSection');
+  if (detailSection) {
+    detailSection.style.display = 'block';
+    detailSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function closeStockDetail() {
+  const detailSection = document.getElementById('stockDetailSection');
+  if (detailSection) detailSection.style.display = 'none';
+  activeSymbol = null;
+  renderScreenerTable();
 }
 
 // --- ALPACA PAPER TRADING INTEGRATION ---
