@@ -387,6 +387,12 @@ body {
   max-height: 480px;
   overflow-y: auto;
 }
+/* Watchlist / screener panel: taller viewport-relative scroll area
+   instead of a fixed 480px box, so more symbols are visible at once. */
+.card-panel .table-wrapper {
+  max-height: calc(100vh - 260px);
+  min-height: 420px;
+}
 table.screener-table {
   width: 100%;
   border-collapse: collapse;
@@ -1693,23 +1699,57 @@ function calcIndicators(sym, price, changePercent) {
   };
 }
 
-async function fetchQuoteViaChart(sym) {
+// Public CORS proxies occasionally rate-limit or time out under load,
+// so we try a couple and only give up after both fail.
+const CORS_PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`
+];
+
+async function fetchQuoteViaChart(sym, attempt = 0) {
   const target = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}`;
-  const proxied = `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`;
-  const res = await fetch(proxied, { signal: AbortSignal.timeout(8000) });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
-  const meta = json && json.chart && json.chart.result && json.chart.result[0] && json.chart.result[0].meta;
-  if (!meta || meta.regularMarketPrice === undefined) throw new Error('No price in response');
-  const price = meta.regularMarketPrice;
-  const prevClose = meta.previousClose || meta.chartPreviousClose || price;
-  const chgPct = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
-  return { price, chgPct };
+  const proxied = CORS_PROXIES[attempt % CORS_PROXIES.length](target);
+  try {
+    const res = await fetch(proxied, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const meta = json && json.chart && json.chart.result && json.chart.result[0] && json.chart.result[0].meta;
+    if (!meta || meta.regularMarketPrice === undefined) throw new Error('No price in response');
+    const price = meta.regularMarketPrice;
+    const prevClose = meta.previousClose || meta.chartPreviousClose || price;
+    const chgPct = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
+    return { price, chgPct };
+  } catch (e) {
+    if (attempt < CORS_PROXIES.length - 1) {
+      return fetchQuoteViaChart(sym, attempt + 1);
+    }
+    throw e;
+  }
+}
+
+// Fetch with limited concurrency so we don't slam the free CORS proxy
+// with dozens of simultaneous requests (which causes random failures
+// that silently fall back to fake prices).
+async function fetchQuotesLimited(symbols, concurrency = 6) {
+  const results = new Array(symbols.length);
+  let idx = 0;
+  async function worker() {
+    while (idx < symbols.length) {
+      const i = idx++;
+      try {
+        results[i] = { status: 'fulfilled', value: await fetchQuoteViaChart(symbols[i]) };
+      } catch (e) {
+        results[i] = { status: 'rejected', reason: e };
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, symbols.length) }, worker));
+  return results;
 }
 
 async function fetchMarketData() {
   try {
-    const results = await Promise.allSettled(UNIVERSE.map(sym => fetchQuoteViaChart(sym)));
+    const results = await fetchQuotesLimited(UNIVERSE);
     results.forEach((result, i) => {
       const sym = UNIVERSE[i];
       if (result.status === 'fulfilled') {
@@ -1935,7 +1975,7 @@ function selectSymbol(sym) {
 // Set this to your deployed Vercel URL, e.g. 'https://your-project.vercel.app'
 // Leave empty only if this dashboard itself is being served from that same
 // Vercel deployment (relative /api/... calls will then work).
-const ALPACA_API_BASE = '';
+const ALPACA_API_BASE = 'https://vercel-webhook-sigma-rose.vercel.app';
 
 let alpacaAccount = null;
 let alpacaPositions = [];
