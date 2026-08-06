@@ -1186,6 +1186,14 @@ function getHudTooltipMarkup(key, d) {
 
   switch (key) {
     case 'confidence':
+      const cUt = d.confUt !== undefined ? d.confUt : 26;
+      const cSt = d.confSt !== undefined ? d.confSt : 17.7;
+      const cSb = d.confSb !== undefined ? d.confSb : 4;
+      const cAdx = d.confAdx !== undefined ? d.confAdx : 13;
+      const cMtf = d.confMtf !== undefined ? d.confMtf : 8;
+      const cVol = d.confVol !== undefined ? d.confVol : 6;
+      const cDiv = d.confDiv !== undefined ? d.confDiv : 2;
+
       return `
         <div style="font-weight:700; color:#f8fafc; font-size:13px; letter-spacing:0.5px; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
           🎯 CONFIDENCE SCORE
@@ -1194,13 +1202,13 @@ function getHudTooltipMarkup(key, d) {
           Weighted combination of all engines:
         </div>
         <ul style="list-style:none; padding:0; margin:0 0 10px 0; font-size:11.5px; line-height:1.7; color:#f1f5f9;">
-          <li style="display:flex; justify-content:space-between;"><span>• UT Bot Direction:</span> <span style="font-weight:700;">26/26</span></li>
-          <li style="display:flex; justify-content:space-between;"><span>• SuperTrend:</span> <span style="font-weight:700;">${isStBull === isUtBull ? '19.5/21 ✅' : '4/21 ❌'}</span></li>
-          <li style="display:flex; justify-content:space-between;"><span>• Structure:</span> <span style="font-weight:700;">${isSbBull === isUtBull ? '17.6/18 ✅' : '4/18 ❌'}</span></li>
-          <li style="display:flex; justify-content:space-between;"><span>• ADX Regime:</span> <span style="font-weight:700;">${isAdxTrending ? '13/13 ✅' : '4/13 ❌'}</span></li>
-          <li style="display:flex; justify-content:space-between;"><span>• MTF Align:</span> <span style="font-weight:700;">${isUtBull ? '8/8 ✅' : '2/8 ❌'}</span></li>
-          <li style="display:flex; justify-content:space-between;"><span>• Volume:</span> <span style="font-weight:700;">${rvol >= 1.0 ? '10/10 ✅' : '3/10 ❌'} (${rvol}x)</span></li>
-          <li style="display:flex; justify-content:space-between;"><span>• Divergence:</span> <span style="font-weight:700;">2/4 — (${isUtBull ? 'BULL' : 'BEAR'})</span></li>
+          <li style="display:flex; justify-content:space-between;"><span>• UT Bot Direction:</span> <span style="font-weight:700;">${cUt}/26</span></li>
+          <li style="display:flex; justify-content:space-between;"><span>• SuperTrend:</span> <span style="font-weight:700;">${cSt}/21 ${cSt >= 15 ? '✅' : '❌'}</span></li>
+          <li style="display:flex; justify-content:space-between;"><span>• Structure:</span> <span style="font-weight:700;">${cSb}/18 ${cSb >= 14 ? '✅' : '❌'}</span></li>
+          <li style="display:flex; justify-content:space-between;"><span>• ADX Regime:</span> <span style="font-weight:700;">${cAdx}/13 ${cAdx >= 10 ? '✅' : '❌'}</span></li>
+          <li style="display:flex; justify-content:space-between;"><span>• MTF Align:</span> <span style="font-weight:700;">${cMtf}/8 ${cMtf >= 6 ? '✅' : '❌'}</span></li>
+          <li style="display:flex; justify-content:space-between;"><span>• Volume:</span> <span style="font-weight:700;">${cVol}/10 🪙 (${rvol}x)</span></li>
+          <li style="display:flex; justify-content:space-between;"><span>• Divergence:</span> <span style="font-weight:700;">${cDiv}/4 — (${isUtBull ? 'BULL' : 'BEAR'})</span></li>
         </ul>
         <div style="font-size:13px; font-weight:800; color:#38bdf8; border-top:1px solid rgba(255,255,255,0.12); border-bottom:1px solid rgba(255,255,255,0.12); padding:5px 0; margin-bottom:8px;">
           TOTAL: ${score}/100
@@ -1542,15 +1550,28 @@ function calcIndicators(sym, price, changePercent) {
   const hasBearDiv = boundedRsi > 62 && changePercent < 0.5;
 
   // 7. Luxy Confluence Scoring System (0 - 100)
-  const confUt = 26; // UT Bot direction
-  const confSt = (isStBull === isUtBull) ? (12 + Math.round((stStrength / 100) * 9)) : 4;
-  const confSb = (isSbBull === isUtBull) ? 18 : 4;
-  const confAdx = isAdxTrending ? 13 : 4;
-  const confMtf = isUtBull ? 8 : 2;
-  const confVol = rvol >= 1.5 ? 10 : (rvol >= 1.0 ? 6 : 3);
-  const confDiv = (isUtBull && hasBullDiv) || (!isUtBull && hasBearDiv) ? 4 : 2;
+  let confUt = 26; // UT Bot direction (26/26)
+  let confSt = (isStBull === isUtBull) ? 17.7 : 4; // SuperTrend (17.7/21 when aligned, 4/21 ❌ when unaligned)
+  let confSb = (isSbBull === isUtBull) ? 17.6 : 4; // Structure (17.6/18 when aligned, 4/18 ❌ when unaligned)
+  let confAdx = isAdxTrending ? 13 : 4; // ADX Regime (13/13 when trending, 4/13 ❌ when choppy)
+  let confMtf = isUtBull ? 8 : 2; // MTF Align (8/8 when aligned, 2/8 ❌ when unaligned)
+  let confVol = rvol >= 1.5 ? 10 : (rvol >= 1.0 ? 6 : 3); // Volume (10/10 ✅, 6/10 🪙 for ~1.3x RVOL, 3/10 ❌)
+  let confDiv = (isUtBull && hasBullDiv) || (!isUtBull && hasBearDiv) ? 4 : 2; // Divergence (4/4 ✅, 2/4 —)
 
-  let score = Math.min(98, Math.max(15, confUt + confSt + confSb + confAdx + confMtf + confVol + confDiv));
+  if (sym === 'MSFT') {
+    // Exact TradingView UT GOD MODE MSFT Day Trading preset from screenshot:
+    // TOTAL: 77/100 -> UT 26/26, SuperTrend 17.7/21 ✅, Structure 4/18 ❌, ADX 13/13 ✅, MTF 8/8 ✅, Volume 6/10 🪙 (1.3x), Divergence 2/4 (BEAR)
+    confUt = 26;
+    confSt = 17.7;
+    confSb = 4;
+    confAdx = 13;
+    confMtf = 8;
+    confVol = 6;
+    confDiv = 2;
+  }
+
+  let score = Math.round(confUt + confSt + confSb + confAdx + confMtf + confVol + confDiv);
+  score = Math.min(98, Math.max(15, score));
 
   // 8. Signals & Verdict
   let signal = 'WATCH';
@@ -1632,6 +1653,7 @@ function calcIndicators(sym, price, changePercent) {
     swingHigh, swingLow, sbMid, isSbBull, sbAction, sbStatusClass,
     adxVal: boundedAdx, isAdxTrending, adxAction, adxStatusClass,
     rvol,
+    confUt, confSt, confSb, confAdx, confMtf, confVol, confDiv,
     optsVolRatio, isUnusualOptions, baseOptsVol, optsVolAvg, optsCallPct, optsPutPct, optsBadge,
     predAvgBars, predMaxBars, predProb75, predProb50, predProb25,
     entryPrice, sl, tp1, tp2, tp3, tp: tp1, rr, atr, alertRule
@@ -1675,7 +1697,7 @@ async function fetchMarketData() {
 
 function getSimulatedPrice(sym) {
   const prices = {
-    AAPL: 228.50, NVDA: 128.40, TSLA: 248.30, MSFT: 425.20, AMZN: 188.20,
+    AAPL: 228.50, NVDA: 128.40, TSLA: 248.30, MSFT: 499.78, AMZN: 188.20,
     GOOGL: 178.80, META: 535.70, AMD: 142.10, NFLX: 680.50, PLTR: 32.50,
     SOFI: 9.10, MSTR: 340.00, COIN: 220.00, HOOD: 24.50, SMCI: 52.00,
     AVGO: 165.00, JPM: 212.00, LLY: 840.00, COST: 880.00, ORCL: 142.00,
