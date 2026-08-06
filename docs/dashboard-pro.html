@@ -1693,20 +1693,30 @@ function calcIndicators(sym, price, changePercent) {
   };
 }
 
+async function fetchQuoteViaChart(sym) {
+  const target = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}`;
+  const proxied = `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`;
+  const res = await fetch(proxied, { signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  const meta = json && json.chart && json.chart.result && json.chart.result[0] && json.chart.result[0].meta;
+  if (!meta || meta.regularMarketPrice === undefined) throw new Error('No price in response');
+  const price = meta.regularMarketPrice;
+  const prevClose = meta.previousClose || meta.chartPreviousClose || price;
+  const chgPct = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
+  return { price, chgPct };
+}
+
 async function fetchMarketData() {
   try {
-    const res = await fetch(`/api/yahoo-quote?symbols=${UNIVERSE.join(',')}&t=${Date.now()}`);
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.quoteResponse && json.quoteResponse.result) {
-        json.quoteResponse.result.forEach(q => {
-          const sym = q.symbol;
-          const price = q.postMarketPrice || q.preMarketPrice || q.regularMarketPrice || getSimulatedPrice(sym);
-          const chgPct = q.regularMarketChangePercent !== undefined ? q.regularMarketChangePercent : (Math.random() * 4 - 2);
-          DATA[sym] = calcIndicators(sym, price, +chgPct.toFixed(2));
-        });
+    const results = await Promise.allSettled(UNIVERSE.map(sym => fetchQuoteViaChart(sym)));
+    results.forEach((result, i) => {
+      const sym = UNIVERSE[i];
+      if (result.status === 'fulfilled') {
+        const { price, chgPct } = result.value;
+        DATA[sym] = calcIndicators(sym, price, +chgPct.toFixed(2));
       }
-    }
+    });
   } catch (e) {
     // Fallback
   }
@@ -1839,22 +1849,13 @@ function handleSearchKey(e) {
 async function fetchCustomTicker(sym) {
   showToast(`Searching live quote for ${sym}...`);
   try {
-    const res = await fetch(`/api/yahoo-quote?symbols=${sym}&t=${Date.now()}`);
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.quoteResponse && json.quoteResponse.result && json.quoteResponse.result[0]) {
-        const q = json.quoteResponse.result[0];
-        const price = q.regularMarketPrice || 100;
-        const chgPct = q.regularMarketChangePercent !== undefined ? +q.regularMarketChangePercent.toFixed(2) : 0;
-        NAMES[sym] = q.shortName || q.longName || sym;
-        if (!UNIVERSE.includes(sym)) UNIVERSE.unshift(sym);
-        DATA[sym] = calcIndicators(sym, price, chgPct);
-        renderAll();
-        selectSymbol(sym);
-        showToast(`Loaded live quote for ${sym}!`);
-        return;
-      }
-    }
+    const { price, chgPct } = await fetchQuoteViaChart(sym);
+    if (!UNIVERSE.includes(sym)) UNIVERSE.unshift(sym);
+    DATA[sym] = calcIndicators(sym, price, +chgPct.toFixed(2));
+    renderAll();
+    selectSymbol(sym);
+    showToast(`Loaded live quote for ${sym}!`);
+    return;
   } catch(e) {}
   showToast(`Symbol '${sym}' not found.`);
 }
