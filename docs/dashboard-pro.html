@@ -300,14 +300,36 @@ body {
 .setup-m-lbl { color: var(--text-dim); }
 .setup-m-val { font-weight: 700; font-family: var(--font-mono); }
 
-/* Main Split Layout */
+/* Main Split Layout: Left Screener Sidebar (380px), Right Main Workspace (1fr) */
 .main-layout {
   display: grid;
-  grid-template-columns: 1fr 440px;
-  gap: 16px;
+  grid-template-columns: 380px 1fr;
+  gap: 20px;
+  align-items: start;
 }
-@media (max-width: 1024px) {
-  .main-layout { grid-template-columns: 1fr; }
+@media (max-width: 1280px) {
+  .main-layout {
+    grid-template-columns: 320px 1fr;
+    gap: 16px;
+  }
+}
+@media (max-width: 992px) {
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Pro Strategy HUD & Breakdown Grid */
+.pro-strategy-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .pro-strategy-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Card Container */
@@ -402,11 +424,22 @@ table.screener-table tr.active {
 
 /* Stock detail & Chart view */
 .chart-container {
-  height: 380px;
+  height: 500px;
   width: 100%;
   position: relative;
   border-radius: var(--radius-sm);
   overflow: hidden;
+  background: var(--bg);
+}
+@media (max-width: 1024px) {
+  .chart-container {
+    height: 420px;
+  }
+}
+@media (max-width: 640px) {
+  .chart-container {
+    height: 360px;
+  }
 }
 .stock-detail-header {
   display: flex;
@@ -895,7 +928,7 @@ function renderProStrategyPanel(d) {
     </div>
 
     <!-- MAIN TWO COLUMN GRID: UT GOD MODE HUD (Left) + Detailed Explanations (Right) -->
-    <div style="display:grid; grid-template-columns: minmax(320px, 360px) 1fr; gap:16px; align-items:start;">
+    <div class="pro-strategy-grid">
       
       <!-- LEFT COLUMN: Live UT GOD MODE HUD Panel (Exact Replica of TradingView HUD) -->
       <div style="background:#0a0e1a; border:1px solid #1e293b; border-radius:10px; overflow:hidden; box-shadow:0 12px 28px rgba(0,0,0,0.6); font-family:var(--font-mono, monospace); position:relative;">
@@ -1668,7 +1701,7 @@ async function fetchMarketData() {
       if (json && json.quoteResponse && json.quoteResponse.result) {
         json.quoteResponse.result.forEach(q => {
           const sym = q.symbol;
-          const price = q.regularMarketPrice || getSimulatedPrice(sym);
+          const price = q.postMarketPrice || q.preMarketPrice || q.regularMarketPrice || getSimulatedPrice(sym);
           const chgPct = q.regularMarketChangePercent !== undefined ? q.regularMarketChangePercent : (Math.random() * 4 - 2);
           DATA[sym] = calcIndicators(sym, price, +chgPct.toFixed(2));
         });
