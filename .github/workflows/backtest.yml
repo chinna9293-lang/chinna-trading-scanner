@@ -2,7 +2,7 @@ name: Backtest
 
 on:
   # DISABLED: Using scalp-scanner.yml instead for 1-minute signals
-  # workflow_dispatch:
+  workflow_dispatch:
   # schedule:
   #   - cron: '0 0 * * 0'   # every Sunday midnight UTC
 
