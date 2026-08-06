@@ -1,0 +1,6 @@
+# These are used by a separate local/GitHub Actions Python process
+# (scanner.py) and are unrelated to the Node.js api/ functions this
+# Vercel project serves. Excluding them stops Vercel's zero-config
+# Python builder from trying (and failing) to pip-install them.
+requirements.txt
+scanner.py
