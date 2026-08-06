@@ -1,6 +1,6 @@
 // Vercel serverless function: places a market order via Alpaca Paper API.
 // Credentials come from server-side env vars only (never from the client).
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Content-Type', 'application/json');
@@ -45,4 +45,4 @@ module.exports = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-};
+}

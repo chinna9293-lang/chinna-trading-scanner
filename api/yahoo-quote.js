@@ -1,6 +1,6 @@
-const https = require('https');
+import https from 'https';
 
-module.exports = (req, res) => {
+export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Content-Type', 'application/json');
@@ -39,4 +39,4 @@ module.exports = (req, res) => {
     console.error('Request timeout');
     res.status(500).json({ error: 'Timeout' });
   });
-};
+}

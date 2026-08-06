@@ -2,7 +2,7 @@
 // Credentials are read from server-side environment variables (Vercel
 // Project Settings -> Environment Variables) and are NEVER accepted
 // from the client, so no key/secret is ever exposed to the browser.
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Content-Type', 'application/json');
@@ -36,4 +36,4 @@ module.exports = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-};
+}
