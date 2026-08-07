@@ -1,8 +1,27 @@
 //@version=5
 // ─────────────────────────────────────────────────────────────────────────
-// SMA STACK + VWAP + DTR/ATR + VOLUME — Textbook Strategy
+// SMA STACK + VWAP + DTR/ATR + VOLUME — Textbook Strategy (v2)
 // Pine Script v5 port of strategies/sma-vwap-strategy.js in the repo.
 // Standalone — not related to the "Luxy UT GOD" dashboard strategy.
+//
+// v2 changes (per user feedback: too many entries, SL hit immediately):
+//   1. calc_on_every_tick = false -> signals + orders only evaluate once
+//      per CLOSED bar, not on every intrabar tick. This alone removes most
+//      of the rapid-fire "flip" entries that happen when a condition
+//      flickers true/false intrabar before the bar even closes.
+//   2. Minimum stop distance filter -> if the SMA10/VWAP stop sits closer
+//      than minStopATR x ATR(14) to the entry price, the trade is skipped.
+//      A near-zero stop distance is exactly what makes a stop feel like it
+//      "hits immediately" — normal noise is enough to tag it.
+//   3. Stop-side sanity check -> for a long, the stop must actually sit
+//      BELOW entry price (and above entry for a short). If daily SMA10 is
+//      on the wrong side of the current intraday price, that entry is
+//      skipped instead of firing with a broken/negative stop distance.
+//   4. Cooldown bars -> after any exit (win, loss, or flat-close), no new
+//      entry is allowed for N bars, preventing immediate re-entry into the
+//      same failed setup.
+//   5. Explicit BUY / SELL text labels plotted on the chart (in addition
+//      to the triangle markers), so signals are unambiguous at a glance.
 //
 // TREND FILTER : daily SMA 5/10/50/100/200 stack alignment
 // RANGE CONTEXT: today's Daily Trading Range (DTR) vs daily ATR(14)
@@ -12,9 +31,10 @@
 // Intended for intraday charts (e.g. 5m) with daily-timeframe context
 // pulled in via request.security(). Not financial advice.
 // ─────────────────────────────────────────────────────────────────────────
-strategy("SMA Stack + VWAP + DTR/ATR + Volume — Textbook Strategy", overlay=true,
+strategy("SMA Stack + VWAP + DTR/ATR + Volume — Textbook Strategy v2", overlay=true,
      default_qty_type=strategy.percent_of_equity, default_qty_value=10,
-     pyramiding=0, calc_on_every_tick=true)
+     pyramiding=0, calc_on_every_tick=false,
+     process_orders_on_close=true)
 
 // ───────────────────────── INPUTS ─────────────────────────
 smaFastLen   = input.int(5,   "SMA Fast",   minval=1, group="SMA Stack")
@@ -32,6 +52,8 @@ rvolEntryTh  = input.float(1.5, "RVOL Entry Threshold",     step=0.1, group="Vol
 rvolExitTh   = input.float(0.7, "RVOL Exit Threshold (fading)", step=0.1, group="Volume")
 
 targetAtrMult = input.float(2.0, "Target = N x ATR", step=0.5, group="Risk")
+minStopATR    = input.float(0.25, "Min Stop Distance (x ATR) — filters instant-SL trades", step=0.05, minval=0.01, group="Risk")
+cooldownBars  = input.int(5, "Cooldown Bars After Exit", minval=0, group="Risk")
 
 // ───────────────────────── DAILY TREND FILTER (SMA STACK) ─────────────────────────
 dClose  = request.security(syminfo.tickerid, "D", close, lookahead=barmerge.lookahead_off)
@@ -68,16 +90,32 @@ justLostVwap        = close[1] >= sessionVwap[1] and close < sessionVwap
 avgVol = ta.sma(volume, rvolLen)
 rvol   = avgVol > 0 ? volume / avgVol : na
 
-// ───────────────────────── ENTRY RULES ─────────────────────────
-// LONG:  bullish daily stack + holding/reclaiming VWAP + RVOL confirms + range not exhausted
-longSetup  = bullishStack and (priceAboveVwap or justReclaimedVwap) and not na(rvol) and rvol >= rvolEntryTh and not exhausted
-// SHORT: mirror image
-shortSetup = bearishStack and (priceBelowVwap or justLostVwap) and not na(rvol) and rvol >= rvolEntryTh and not exhausted
+// ───────────────────────── STOP / TARGET (with sanity checks) ─────────────────────────
+longStopRaw    = math.min(dSma10, sessionVwap)     // tighter of SMA10 / VWAP
+longTarget     = close + targetAtrMult * dAtrPrev  // textbook N x ATR target
+shortStopRaw   = math.max(dSma10, sessionVwap)
+shortTarget    = close - targetAtrMult * dAtrPrev
 
-longStop    = math.min(dSma10, sessionVwap)     // tighter of SMA10 / VWAP
-longTarget  = close + targetAtrMult * dAtrPrev  // textbook N x ATR target
-shortStop   = math.max(dSma10, sessionVwap)
-shortTarget = close - targetAtrMult * dAtrPrev
+minStopDist   = not na(dAtrPrev) ? minStopATR * dAtrPrev : na
+
+longStopDist  = close - longStopRaw
+shortStopDist = shortStopRaw - close
+
+// Reject a setup if the stop is on the wrong side of price, or too close
+// (too-tight stop = the classic "hit immediately" false order).
+longStopValid  = not na(minStopDist) and longStopDist  >= minStopDist
+shortStopValid = not na(minStopDist) and shortStopDist >= minStopDist
+
+// ───────────────────────── COOLDOWN AFTER EXIT ─────────────────────────
+var int barsSinceExit = 999999
+inCooldown = barsSinceExit < cooldownBars
+
+// ───────────────────────── ENTRY RULES ─────────────────────────
+// LONG:  bullish daily stack + holding/reclaiming VWAP + RVOL confirms +
+//        range not exhausted + valid (non-tiny, correctly-sided) stop + not in cooldown
+longSetup  = bullishStack and (priceAboveVwap or justReclaimedVwap) and not na(rvol) and rvol >= rvolEntryTh and not exhausted and longStopValid and not inCooldown
+// SHORT: mirror image
+shortSetup = bearishStack and (priceBelowVwap or justLostVwap) and not na(rvol) and rvol >= rvolEntryTh and not exhausted and shortStopValid and not inCooldown
 
 // ───────────────────────── EXIT RULES (any one is enough) ─────────────────────────
 exitLongTrend  = close < dSma10           // short-term trend broken
@@ -95,17 +133,21 @@ exitShort      = exitShortTrend or exitShortVwap or exitShortRange or exitShortV
 // ───────────────────────── STRATEGY CALLS ─────────────────────────
 if longSetup and strategy.position_size <= 0
     strategy.entry("Long", strategy.long)
-    strategy.exit("Long Exit", "Long", stop=longStop, limit=longTarget)
+    strategy.exit("Long Exit", "Long", stop=longStopRaw, limit=longTarget)
 
 if shortSetup and strategy.position_size >= 0
     strategy.entry("Short", strategy.short)
-    strategy.exit("Short Exit", "Short", stop=shortStop, limit=shortTarget)
+    strategy.exit("Short Exit", "Short", stop=shortStopRaw, limit=shortTarget)
 
 if strategy.position_size > 0 and exitLong
     strategy.close("Long", comment="Textbook Exit")
 
 if strategy.position_size < 0 and exitShort
     strategy.close("Short", comment="Textbook Exit")
+
+// Track cooldown: reset counter to 0 the bar a position closes, then count up.
+justExited = strategy.position_size == 0 and strategy.position_size[1] != 0
+barsSinceExit := justExited ? 0 : barsSinceExit + 1
 
 // ───────────────────────── PLOTS ─────────────────────────
 plot(dSma5,   "SMA 5 (D)",   color=color.new(color.aqua, 0),   linewidth=1)
@@ -117,13 +159,20 @@ plot(sessionVwap, "VWAP", color=color.new(color.yellow, 0), linewidth=2)
 
 bgcolor(bullishStack ? color.new(color.green, 92) : bearishStack ? color.new(color.red, 92) : na, title="Trend Stack BG")
 
+// Triangle markers
 plotshape(longSetup,  title="Long Entry",  style=shape.triangleup,   location=location.belowbar, color=color.green,  size=size.small)
 plotshape(shortSetup, title="Short Entry", style=shape.triangledown, location=location.abovebar, color=color.red,    size=size.small)
 plotshape(strategy.position_size > 0 and exitLong,  title="Long Exit Signal",  style=shape.xcross, location=location.abovebar, color=color.orange, size=size.tiny)
 plotshape(strategy.position_size < 0 and exitShort, title="Short Exit Signal", style=shape.xcross, location=location.belowbar, color=color.orange, size=size.tiny)
 
+// Explicit BUY / SELL text labels
+if longSetup
+    label.new(bar_index, low, "BUY", style=label.style_label_up, color=color.new(color.green, 0), textcolor=color.white, size=size.small, yloc=yloc.belowbar)
+if shortSetup
+    label.new(bar_index, high, "SELL", style=label.style_label_down, color=color.new(color.red, 0), textcolor=color.white, size=size.small, yloc=yloc.abovebar)
+
 // ───────────────────────── ALERTS ─────────────────────────
-alertcondition(longSetup,  title="Long Entry (VWAP+Stack+RVOL)",  message="LONG setup: bullish SMA stack + VWAP hold/reclaim + RVOL>=1.5, range not exhausted")
-alertcondition(shortSetup, title="Short Entry (VWAP+Stack+RVOL)", message="SHORT setup: bearish SMA stack + VWAP reject/loss + RVOL>=1.5, range not exhausted")
-alertcondition(exitLong,   title="Long Exit",  message="Exit LONG: SMA10/VWAP broken, range exhausted, or volume fading")
-alertcondition(exitShort,  title="Short Exit", message="Exit SHORT: SMA10/VWAP broken, range exhausted, or volume fading")
+alertcondition(longSetup,  title="BUY Signal (VWAP+Stack+RVOL)",  message="BUY: bullish SMA stack + VWAP hold/reclaim + RVOL>=1.5, range not exhausted, valid stop distance")
+alertcondition(shortSetup, title="SELL Signal (VWAP+Stack+RVOL)", message="SELL: bearish SMA stack + VWAP reject/loss + RVOL>=1.5, range not exhausted, valid stop distance")
+alertcondition(exitLong,   title="Exit Long",  message="Exit LONG: SMA10/VWAP broken, range exhausted, or volume fading")
+alertcondition(exitShort,  title="Exit Short", message="Exit SHORT: SMA10/VWAP broken, range exhausted, or volume fading")
