@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-07T11:11:27.089Z",
+  "timestamp": "2026-08-07T11:59:41.809Z",
   "totalSignals": 1,
   "totalExecuted": 1,
   "signals": [
@@ -17,11 +17,11 @@
       "message": "🟢 ORCL LUX UT GOD BUY — 72% confluence | RSI 57 | RVOL 1.6x",
       "strength": "MEDIUM",
       "order": {
-        "id": "e466f11c-8050-452c-8c1f-9512b3783b84",
-        "client_order_id": "5bb80378-a858-4a0a-a5ba-706ba0775f0d",
-        "created_at": "2026-08-07T11:11:26.868090092Z",
-        "updated_at": "2026-08-07T11:11:26.870358982Z",
-        "submitted_at": "2026-08-07T11:11:26.868090092Z",
+        "id": "b985bc68-3f4d-46e0-8f69-2abef3fa6bc3",
+        "client_order_id": "107d39a3-b5af-42d6-8570-64e8a94aa150",
+        "created_at": "2026-08-07T11:59:41.57460842Z",
+        "updated_at": "2026-08-07T11:59:41.57536517Z",
+        "submitted_at": "2026-08-07T11:59:41.57460842Z",
         "filled_at": null,
         "expired_at": null,
         "canceled_at": null,
