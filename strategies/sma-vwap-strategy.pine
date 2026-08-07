@@ -1,0 +1,129 @@
+//@version=5
+// ─────────────────────────────────────────────────────────────────────────
+// SMA STACK + VWAP + DTR/ATR + VOLUME — Textbook Strategy
+// Pine Script v5 port of strategies/sma-vwap-strategy.js in the repo.
+// Standalone — not related to the "Luxy UT GOD" dashboard strategy.
+//
+// TREND FILTER : daily SMA 5/10/50/100/200 stack alignment
+// RANGE CONTEXT: today's Daily Trading Range (DTR) vs daily ATR(14)
+// TRIGGER      : session VWAP hold/reclaim (long) or reject/loss (short)
+// CONFIRMATION : relative volume (RVOL) vs its 20-bar average
+//
+// Intended for intraday charts (e.g. 5m) with daily-timeframe context
+// pulled in via request.security(). Not financial advice.
+// ─────────────────────────────────────────────────────────────────────────
+strategy("SMA Stack + VWAP + DTR/ATR + Volume — Textbook Strategy", overlay=true,
+     default_qty_type=strategy.percent_of_equity, default_qty_value=10,
+     pyramiding=0, calc_on_every_tick=true)
+
+// ───────────────────────── INPUTS ─────────────────────────
+smaFastLen   = input.int(5,   "SMA Fast",   minval=1, group="SMA Stack")
+sma10Len     = input.int(10,  "SMA 10",     minval=1, group="SMA Stack")
+sma50Len     = input.int(50,  "SMA 50",     minval=1, group="SMA Stack")
+sma100Len    = input.int(100, "SMA 100",    minval=1, group="SMA Stack")
+sma200Len    = input.int(200, "SMA 200",    minval=1, group="SMA Stack")
+
+atrLen       = input.int(14,  "ATR Length (Daily)", minval=1, group="Range (DTR vs ATR)")
+compressedTh = input.float(0.7, "Compressed Threshold (DTR/ATR)", step=0.05, group="Range (DTR vs ATR)")
+exhaustedTh  = input.float(1.5, "Exhausted Threshold (DTR/ATR)",  step=0.05, group="Range (DTR vs ATR)")
+
+rvolLen      = input.int(20,  "RVOL Lookback",             minval=1, group="Volume")
+rvolEntryTh  = input.float(1.5, "RVOL Entry Threshold",     step=0.1, group="Volume")
+rvolExitTh   = input.float(0.7, "RVOL Exit Threshold (fading)", step=0.1, group="Volume")
+
+targetAtrMult = input.float(2.0, "Target = N x ATR", step=0.5, group="Risk")
+
+// ───────────────────────── DAILY TREND FILTER (SMA STACK) ─────────────────────────
+dClose  = request.security(syminfo.tickerid, "D", close, lookahead=barmerge.lookahead_off)
+dSma5   = request.security(syminfo.tickerid, "D", ta.sma(close, smaFastLen), lookahead=barmerge.lookahead_off)
+dSma10  = request.security(syminfo.tickerid, "D", ta.sma(close, sma10Len),   lookahead=barmerge.lookahead_off)
+dSma50  = request.security(syminfo.tickerid, "D", ta.sma(close, sma50Len),   lookahead=barmerge.lookahead_off)
+dSma100 = request.security(syminfo.tickerid, "D", ta.sma(close, sma100Len),  lookahead=barmerge.lookahead_off)
+dSma200 = request.security(syminfo.tickerid, "D", ta.sma(close, sma200Len),  lookahead=barmerge.lookahead_off)
+
+bullishStack = dClose > dSma5 and dSma5 > dSma10 and dSma10 > dSma50 and dSma50 > dSma100 and dSma100 > dSma200
+bearishStack = dClose < dSma5 and dSma5 < dSma10 and dSma10 < dSma50 and dSma50 < dSma100 and dSma100 < dSma200
+
+// ───────────────────────── RANGE CONTEXT: DTR vs ATR(14) ─────────────────────────
+dHigh = request.security(syminfo.tickerid, "D", high, lookahead=barmerge.lookahead_off)
+dLow  = request.security(syminfo.tickerid, "D", low,  lookahead=barmerge.lookahead_off)
+dtr   = dHigh - dLow
+
+// ATR(14) from days BEFORE today, so today's still-forming range isn't
+// baked into its own baseline.
+dAtrPrev = request.security(syminfo.tickerid, "D", ta.atr(atrLen)[1], lookahead=barmerge.lookahead_off)
+
+dtrToAtr   = dAtrPrev > 0 ? dtr / dAtrPrev : na
+compressed = not na(dtrToAtr) and dtrToAtr < compressedTh   // pre-breakout coil (informational)
+exhausted  = not na(dtrToAtr) and dtrToAtr >= exhaustedTh   // range already run -- blocks new entries
+
+// ───────────────────────── INTRADAY TRIGGER: VWAP ─────────────────────────
+sessionVwap        = ta.vwap(hlc3)
+priceAboveVwap      = close > sessionVwap
+justReclaimedVwap   = close[1] <= sessionVwap[1] and close > sessionVwap
+priceBelowVwap      = close < sessionVwap
+justLostVwap        = close[1] >= sessionVwap[1] and close < sessionVwap
+
+// ───────────────────────── CONFIRMATION: RELATIVE VOLUME ─────────────────────────
+avgVol = ta.sma(volume, rvolLen)
+rvol   = avgVol > 0 ? volume / avgVol : na
+
+// ───────────────────────── ENTRY RULES ─────────────────────────
+// LONG:  bullish daily stack + holding/reclaiming VWAP + RVOL confirms + range not exhausted
+longSetup  = bullishStack and (priceAboveVwap or justReclaimedVwap) and not na(rvol) and rvol >= rvolEntryTh and not exhausted
+// SHORT: mirror image
+shortSetup = bearishStack and (priceBelowVwap or justLostVwap) and not na(rvol) and rvol >= rvolEntryTh and not exhausted
+
+longStop    = math.min(dSma10, sessionVwap)     // tighter of SMA10 / VWAP
+longTarget  = close + targetAtrMult * dAtrPrev  // textbook N x ATR target
+shortStop   = math.max(dSma10, sessionVwap)
+shortTarget = close - targetAtrMult * dAtrPrev
+
+// ───────────────────────── EXIT RULES (any one is enough) ─────────────────────────
+exitLongTrend  = close < dSma10           // short-term trend broken
+exitLongVwap   = close < sessionVwap      // session control lost
+exitLongRange  = exhausted                // range already exhausted -- tighten/trail
+exitLongVol    = not na(rvol) and rvol < rvolExitTh   // momentum fading
+exitLong       = exitLongTrend or exitLongVwap or exitLongRange or exitLongVol
+
+exitShortTrend = close > dSma10
+exitShortVwap  = close > sessionVwap
+exitShortRange = exhausted
+exitShortVol   = not na(rvol) and rvol < rvolExitTh
+exitShort      = exitShortTrend or exitShortVwap or exitShortRange or exitShortVol
+
+// ───────────────────────── STRATEGY CALLS ─────────────────────────
+if longSetup and strategy.position_size <= 0
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Long Exit", "Long", stop=longStop, limit=longTarget)
+
+if shortSetup and strategy.position_size >= 0
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Short Exit", "Short", stop=shortStop, limit=shortTarget)
+
+if strategy.position_size > 0 and exitLong
+    strategy.close("Long", comment="Textbook Exit")
+
+if strategy.position_size < 0 and exitShort
+    strategy.close("Short", comment="Textbook Exit")
+
+// ───────────────────────── PLOTS ─────────────────────────
+plot(dSma5,   "SMA 5 (D)",   color=color.new(color.aqua, 0),   linewidth=1)
+plot(dSma10,  "SMA 10 (D)",  color=color.new(color.blue, 0),   linewidth=1)
+plot(dSma50,  "SMA 50 (D)",  color=color.new(color.orange, 0), linewidth=1)
+plot(dSma100, "SMA 100 (D)", color=color.new(color.purple, 0), linewidth=1)
+plot(dSma200, "SMA 200 (D)", color=color.new(color.red, 0),    linewidth=2)
+plot(sessionVwap, "VWAP", color=color.new(color.yellow, 0), linewidth=2)
+
+bgcolor(bullishStack ? color.new(color.green, 92) : bearishStack ? color.new(color.red, 92) : na, title="Trend Stack BG")
+
+plotshape(longSetup,  title="Long Entry",  style=shape.triangleup,   location=location.belowbar, color=color.green,  size=size.small)
+plotshape(shortSetup, title="Short Entry", style=shape.triangledown, location=location.abovebar, color=color.red,    size=size.small)
+plotshape(strategy.position_size > 0 and exitLong,  title="Long Exit Signal",  style=shape.xcross, location=location.abovebar, color=color.orange, size=size.tiny)
+plotshape(strategy.position_size < 0 and exitShort, title="Short Exit Signal", style=shape.xcross, location=location.belowbar, color=color.orange, size=size.tiny)
+
+// ───────────────────────── ALERTS ─────────────────────────
+alertcondition(longSetup,  title="Long Entry (VWAP+Stack+RVOL)",  message="LONG setup: bullish SMA stack + VWAP hold/reclaim + RVOL>=1.5, range not exhausted")
+alertcondition(shortSetup, title="Short Entry (VWAP+Stack+RVOL)", message="SHORT setup: bearish SMA stack + VWAP reject/loss + RVOL>=1.5, range not exhausted")
+alertcondition(exitLong,   title="Long Exit",  message="Exit LONG: SMA10/VWAP broken, range exhausted, or volume fading")
+alertcondition(exitShort,  title="Short Exit", message="Exit SHORT: SMA10/VWAP broken, range exhausted, or volume fading")
