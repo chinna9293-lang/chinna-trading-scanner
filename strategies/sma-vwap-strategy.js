@@ -2,7 +2,7 @@
 // SMA STACK + VWAP + DTR/ATR + VOLUME — textbook trend/range strategy
 //
 // Deliberately kept SEPARATE from strategy.js (the "Luxy UT GOD" engine
-// used by trader.js / scanner.js / scalp-scanner.js / the dashboard).
+// used by trader.js / the dashboard).
 // This is its own standalone module -- nothing in this repo imports it
 // automatically, and it does not place any orders itself. Read
 // strategies/SMA-VWAP-STRATEGY.md for the plain-English rules this

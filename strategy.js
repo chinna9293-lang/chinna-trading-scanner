@@ -7,7 +7,7 @@
 // ADX regime + RSI/divergence + volume, combined into a 0-100 confluence
 // score with a >=70 "high conviction" threshold). It is used by:
 //   - docs/dashboard-pro.html  (copy at docs/strategy.js, browser globals)
-//   - trader.js, scanner.js, scalp-scanner.js (import from here, Node ESM)
+//   - trader.js (imports from here, Node ESM)
 //
 // docs/strategy.js MUST be kept identical to this file (minus the
 // `export` keywords) so the dashboard and the live trading bots always

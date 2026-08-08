@@ -1640,7 +1640,7 @@ const CORS_PROXIES = [
 // Fetches ~6 months of REAL daily OHLCV bars (not just the current quote)
 // so evaluateStrategy() from strategy.js can compute real UT Bot /
 // SuperTrend / ADX / RSI values -- the same function trader.js,
-// scanner.js, and scalp-scanner.js use to decide their live trades.
+// trader.js uses to decide its live trades.
 async function fetchQuoteViaChart(sym, attempt = 0) {
   const target = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=6mo&interval=1d`;
   const proxied = CORS_PROXIES[attempt % CORS_PROXIES.length](target);

@@ -1,7 +1,7 @@
 // Continuous Trader — Scan & Monitor every 30 seconds, 24/7
 // One unified service: Check positions OR scan for signals
 // Entry signal is the same Luxy UT GOD confluence engine used by the
-// dashboard, scanner.js, and scalp-scanner.js -- see strategy.js.
+// dashboard -- see strategy.js.
 
 import { evaluateStrategy } from './strategy.js';
 
@@ -163,10 +163,9 @@ async function getBars(symbol, limit = 60) {
 
 function checkSignal(bars) {
   // REAL "Luxy UT GOD" confluence strategy shared with the dashboard and
-  // scanner.js/scalp-scanner.js (see strategy.js). trader.js stays
+  // trader.js stays
   // long-only (its bracket-order math below assumes stop < entry <
   // target), so it only acts on high-conviction BUY signals; SELL
-  // signals are left to scanner.js, which can short.
   const strat = evaluateStrategy(bars);
   if (!strat || !strat.highConviction || strat.signal !== 'BUY') return null;
 
